@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Commerce\AddressController;
 use App\Http\Controllers\Api\V1\Commerce\WishlistController;
 use App\Http\Controllers\Api\V1\Commerce\CheckoutController;
 use App\Http\Controllers\Api\V1\Commerce\OrderController;
+use App\Http\Controllers\Api\V1\Commerce\WearCatalogController;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::prefix('auth')->group(function () {
@@ -26,6 +27,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::post('/logout', [AuthenticationController::class, 'logout']);
             Route::get('/me', [AuthenticationController::class, 'me']);
         });
+    });
+
+    Route::prefix('wear')->group(function () {
+        Route::get('/categories', [WearCatalogController::class, 'categories']);
+        Route::get('/products', [WearCatalogController::class, 'index']);
+        Route::get('/products/{product:slug}', [WearCatalogController::class, 'show']);
     });
 
     Route::prefix('cart')->group(function () {

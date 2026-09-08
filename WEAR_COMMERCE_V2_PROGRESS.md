@@ -83,3 +83,16 @@ The developer machine should run:
 `php artisan test`
 
 The expected regression goal for this milestone is zero failing tests before moving to real payment integration.
+
+
+## Wear Catalog V1 — Read API (2026-09-09)
+
+Implemented the first public Wear catalog read slice on `feature/wear-catalog`.
+
+- `GET /api/v1/wear/categories` returns distinct categories from active products.
+- `GET /api/v1/wear/products` returns active products with variants, supports category/featured filters and bounded pagination.
+- `GET /api/v1/wear/products/{product:slug}` returns an active product with variants and availability.
+- Server response exposes current product/variant price, image URL, size, color, SKU and stock.
+- Added request validation and feature coverage for active-only visibility, filters, slug detail, category deduplication and invalid pagination.
+
+The read API does not alter cart/order/payment behavior.
