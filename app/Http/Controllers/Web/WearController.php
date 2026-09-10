@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Models\Wear\WearProduct;
+use Illuminate\Contracts\View\View;
+
+final class WearController extends Controller
+{
+    public function catalog(): View
+    {
+        $products = WearProduct::query()
+            ->where('is_active', true)
+            ->with('variants')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->paginate(24);
+
+        return view('pages.wear.catalog', [
+            'title' => 'Kipanya Wear',
+            'products' => $products,
+        ]);
+    }
+
+    public function product(WearProduct $product): View
+    {
+        abort_unless($product->is_active, 404);
+
+        $product->load('variants');
+
+        return view('pages.wear.product', [
+            'title' => $product->name,
+            'product' => $product,
+        ]);
+    }
+
+    public function cart(): View
+    {
+        return view('pages.wear.cart', ['title' => 'Your Cart']);
+    }
+
+    public function checkout(): View
+    {
+        return view('pages.wear.checkout', ['title' => 'Checkout']);
+    }
+
+    public function orders(): View
+    {
+        return view('pages.wear.orders', ['title' => 'Orders']);
+    }
+
+    public function orderConfirmation(string $orderNumber): View
+    {
+        return view('pages.wear.order-confirmation', [
+            'title' => 'Order Confirmation',
+            'orderNumber' => $orderNumber,
+        ]);
+    }
+
+    public function wishlist(): View
+    {
+        return view('pages.wear.wishlist', ['title' => 'Favorites']);
+    }
+}
