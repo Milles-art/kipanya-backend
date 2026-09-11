@@ -103,7 +103,7 @@
                     <button type="button" class="kp-acc-head" data-kp-acc-head aria-expanded="false">
                         <span>Delivery &amp; returns</span><i class="ti ti-chevron-down" aria-hidden="true"></i>
                     </button>
-                    <div class="kp-acc-body" hidden>
+                    <div class="kp-acc-body">
                         <p>Complimentary delivery across Kenya. International orders ship with duties calculated at checkout. Unworn items in original condition can be returned within 14 days — contact support to start a return.</p>
                     </div>
                 </div>

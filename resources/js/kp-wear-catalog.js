@@ -33,8 +33,6 @@
     const loadMoreWrap = $('[data-kp-load-more-wrap]');
     const loadMoreBtn = $('[data-kp-load-more]');
     const searchChip = $('[data-kp-search-chip]');
-    const tilesSec = $('[data-kp-tiles]');
-    const tilesRow = $('[data-kp-tiles-row]');
     const sectionTitle = $('#kp-featured-title');
 
     const setVisible = (showGrid) => {
@@ -196,32 +194,6 @@
         }
     }
 
-    function renderTiles(sample) {
-        if (!state.categories.length || tilesSec.dataset.done) return;
-        tilesSec.dataset.done = '1';
-        const byCat = {};
-        sample.forEach((p) => {
-            const s = slugify(p.category);
-            if (!byCat[s]) byCat[s] = p;
-        });
-        tilesRow.innerHTML = state.categories.map((c) => {
-            const rep = byCat[c.slug];
-            const media = rep
-                ? `<img src="${esc(rep.image)}" alt="" loading="lazy" />`
-                : `<span class="kp-tile-fallback" aria-hidden="true">${esc(c.name.charAt(0))}</span>`;
-            return `<button type="button" class="kp-tile${state.activeSlug === c.slug ? ' is-active' : ''}" data-tile="${esc(c.slug)}">
-                <span class="kp-tile-media">${media}</span>
-                <span class="kp-tile-label">${esc(c.name)}</span>
-            </button>`;
-        }).join('');
-        tilesSec.hidden = false;
-        $$('[data-tile]', tilesRow).forEach((t) => t.addEventListener('click', () => {
-            setSearch('');
-            selectCategory(t.dataset.tile, true);
-            document.getElementById('kp-catalog-grid')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
-        }));
-    }
-
     function stockInfo(p) {
         const variants = p.variants ?? [];
         const inStock = variants.filter((v) => v.in_stock);
@@ -248,9 +220,8 @@
             <div class="kp-product-info kp-editorial-product-info">
                 <div class="kp-product-text"><p class="kp-product-name">${esc(p.name)}</p>${price}</div>
                 <button type="button" class="kp-quick-add-btn${out ? ' is-disabled' : ''}" data-kp-quick-add data-product-id="${p.id}"`
-                    + `${out ? ' disabled' : ''} aria-expanded="false" aria-label="${out ? `Out of stock: ${esc(p.name)}` : `Add ${esc(p.name)} to bag — choose size`}"><i class="ti ${out ? 'ti-x' : 'ti-shopping-cart'}" aria-hidden="true"></i></button>
+                    + `${out ? ' disabled' : ''} aria-label="${out ? `Out of stock: ${esc(p.name)}` : `Add ${esc(p.name)} to bag`}"><i class="ti ${out ? 'ti-x' : 'ti-shopping-bag'}" aria-hidden="true"></i></button>
             </div>
-            <div class="kp-qa-popover" data-kp-qa-popover hidden></div>
         </article>`;
     }
 
@@ -272,6 +243,17 @@
                 : 'No products in this category yet.'}</p>`;
         } else {
             const cards = items.map(renderCard);
+            // Mid-grid editorial banner on the unfiltered landing view.
+            const unfiltered = !state.search && state.sizeFilter === 'all' && state.sort === 'featured';
+            if (unfiltered && state.activeSlug === 'all' && cards.length > 6 && categoryName('t-shirts')) {
+                cards.splice(4, 0, `<aside class="kp-editorial-banner" data-kp-banner>
+                    <p class="kp-eyebrow">The new edit</p>
+                    <p class="kp-editorial-banner-title">Everyday tees, cut to last</p>
+                    <button type="button" class="kp-hero-cta" data-kp-banner-go>Shop T-Shirts</button>
+                </aside>`);
+            }
+            grid.innerHTML = cards.join('');
+            grid.querySelector('[data-kp-banner-go]')?.addEventListener('click', () => selectCategory('t-shirts', true));
         }
         if (revealIO) $$('.kp-reveal', grid).forEach((el) => revealIO.observe(el));
         else $$('.kp-reveal', grid).forEach((el) => el.classList.add('is-in'));
@@ -341,7 +323,6 @@
             state.products = json.data ?? [];
             state.nextUrl = json.links?.next ?? null;
             state.total = json.meta?.total ?? state.products.length;
-            if (reset && state.activeSlug === 'all' && !state.search) renderTiles(state.products);
             setVisible(true);
             paintGrid();
         } catch (err) {
@@ -382,7 +363,6 @@
         resetToolbar();
         if (pushUrl) setUrlSlug(slug);
         renderCategories();
-        $$('[data-tile]', tilesRow).forEach((t) => t.classList.toggle('is-active', t.dataset.tile === slug));
         await loadProducts({ reset: true });
     }
 
@@ -444,189 +424,39 @@
         lastSizesKey = '';
     }
 
-    /* ============ Quick view modal ============ */
-    const qvModal = $('[data-kp-qv-modal]');
-    const qvBody = $('[data-kp-qv-body]');
-    let qvReturnFocus = null;
-
-    function closeQuickView() {
-        if (!qvModal || qvModal.hidden) return;
-        qvModal.hidden = true;
-        qvBody.innerHTML = '';
-        qvReturnFocus?.focus();
-        qvReturnFocus = null;
-    }
-
-    function openQuickView(product, trigger) {
-        if (!qvModal) return;
-        qvReturnFocus = trigger || null;
-        const { inStock } = stockInfo(product);
-        const sizes = [...new Set(inStock.map((v) => v.size))];
-        let size = sizes.length === 1 ? sizes[0] : null;
-        const colorsFor = (s) => [...new Set(inStock.filter((v) => v.size === s).map((v) => v.color))];
-        const price = product.compare_at_price && Number(product.compare_at_price) > Number(product.price)
-            ? `<p class="kp-product-price"><span>${tzs(product.price)}</span> <s class="kp-compare-price">${tzs(product.compare_at_price)}</s></p>`
-            : `<p class="kp-product-price">${tzs(product.price)}</p>`;
-
-        const renderQv = () => {
-            const colors = size ? colorsFor(size) : [];
-            const validColor = colors.length === 1 ? colors[0]
-                : (colors.includes(qvBody.dataset.color) ? qvBody.dataset.color : colors[0] || null);
-            if (validColor) qvBody.dataset.color = validColor;
-            const variant = size && validColor
-                ? inStock.find((v) => v.size === size && v.color === validColor) : null;
-            qvBody.innerHTML = `
-                <div class="kp-qv-media"><img src="${esc(product.image)}" alt="${esc(product.name)}" /></div>
-                <p class="kp-eyebrow">${esc(product.category ?? 'Kipanya Wear')}</p>
-                <h3 id="kp-qv-title">${esc(product.name)}</h3>
-                ${price}
-                <p class="kp-qa-title">Size${sizes.length > 1 ? ' — choose' : ''}</p>
-                <div class="kp-qa-row" role="group" aria-label="Size">
-                    ${sizes.map((s) => `<button type="button" class="kp-qa-opt${s === size ? ' is-active' : ''}" data-qv-size="${esc(s)}" aria-pressed="${s === size}">${esc(s)}</button>`).join('') || '<span class="kp-hint-text">Out of stock</span>'}
-                </div>
-                ${colors.length > 1 ? `<p class="kp-qa-title">Color</p>
-                <div class="kp-qa-row" role="group" aria-label="Color">
-                    ${colors.map((c) => `<button type="button" class="kp-qa-opt${c === validColor ? ' is-active' : ''}" data-qv-color="${esc(c)}" aria-pressed="${c === validColor}">
-                        <span class="kp-swatch" style="background:${swatchColor(c)}" aria-hidden="true"></span>${esc(c)}</button>`).join('')}
-                </div>` : ''}
-                <div class="kp-qv-actions">
-                    <button type="button" class="kp-qa-add" data-qv-add ${variant ? '' : 'disabled'}>
-                        ${variant ? `Add to bag — ${tzs(product.price)}` : 'Select options'}
-                    </button>
-                    <a href="/wear/products/${encodeURIComponent(product.slug)}" class="kp-secondary-btn">Full details</a>
-                </div>`;
-            $$('[data-qv-size]', qvBody).forEach((b) => b.addEventListener('click', () => {
-                size = b.dataset.qvSize;
-                delete qvBody.dataset.color;
-                renderQv();
-            }));
-            $$('[data-qv-color]', qvBody).forEach((b) => b.addEventListener('click', () => {
-                qvBody.dataset.color = b.dataset.qvColor;
-                renderQv();
-            }));
-            $('[data-qv-add]', qvBody)?.addEventListener('click', async (e) => {
-                if (!variant) return;
-                const btn = e.currentTarget;
-                btn.disabled = true;
-                btn.textContent = 'Adding…';
-                const result = await window.KipanyaCart.addItem(Number(variant.id), 1);
-                if (result.ok) {
-                    toast(`${product.name} (${variant.size}${variant.color ? ` · ${variant.color}` : ''}) added to bag.`, 'success');
-                    document.dispatchEvent(new CustomEvent('kp:bag-bump'));
-                    closeQuickView();
-                } else {
-                    btn.disabled = false;
-                    btn.textContent = `Add to bag — ${tzs(product.price)}`;
-                    window.KipanyaAnim?.shake(btn);
-                    toast(result.data?.message || 'Could not add to bag. Try again.', 'error');
-                }
-            });
-        };
-
-        delete qvBody.dataset.color;
-        qvModal.hidden = false;
-        renderQv();
-        qvModal.querySelector('[data-kp-qv-close]')?.focus();
-    }
-
-    qvModal?.querySelector('[data-kp-qv-close]')?.addEventListener('click', closeQuickView);
-    qvModal?.addEventListener('click', (e) => { if (e.target === qvModal) closeQuickView(); });
-
     /* ================= Card wiring ================= */
     const byId = (id) => state.products.find((p) => String(p.id) === String(id));
 
-    function closeAllPopovers() {
-        $$('[data-kp-qa-popover]', grid).forEach((pop) => {
-            if (!pop.hidden) {
-                pop.hidden = true;
-                pop.innerHTML = '';
-                pop.closest('article')?.querySelector('[data-kp-quick-add]')?.setAttribute('aria-expanded', 'false');
-            }
-        });
-    }
-
-    function openQuickAdd(article, product) {
-        const pop = $('[data-kp-qa-popover]', article);
-        const btn = $('[data-kp-quick-add]', article);
-        closeAllPopovers();
+    /* Quick add is safe only when the product has exactly one in-stock variant.
+       Products with multiple variants go to the product page for an explicit choice. */
+    async function quickAdd(btn, product) {
         const { inStock } = stockInfo(product);
-        const sizes = [...new Set(inStock.map((v) => v.size))];
-        let size = sizes.length === 1 ? sizes[0] : null;
-
-        const colorsFor = (s) => [...new Set(inStock.filter((v) => v.size === s).map((v) => v.color))];
-
-        const render = () => {
-            const colors = size ? colorsFor(size) : [];
-            let validColor = colors.length === 1 ? colors[0] : null;
-            if (colors.length > 1) {
-                validColor = colors.includes(pop.dataset.color) ? pop.dataset.color : colors[0];
-                pop.dataset.color = validColor;
-            }
-            const variant = size && validColor
-                ? inStock.find((v) => v.size === size && v.color === validColor)
-                : null;
-            pop.innerHTML = `
-                <p class="kp-qa-title">Choose size</p>
-                <div class="kp-qa-row" role="group" aria-label="Size">
-                    ${sizes.map((s) => `<button type="button" class="kp-qa-opt${s === size ? ' is-active' : ''}" data-qa-size="${esc(s)}" aria-pressed="${s === size}">${esc(s)}</button>`).join('')}
-                </div>
-                ${colors.length > 1 ? `<p class="kp-qa-title">Color</p>
-                <div class="kp-qa-row" role="group" aria-label="Color">
-                    ${colors.map((c) => `<button type="button" class="kp-qa-opt${c === validColor ? ' is-active' : ''}" data-qa-color="${esc(c)}" aria-pressed="${c === validColor}">
-                        <span class="kp-swatch" style="background:${swatchColor(c)}" aria-hidden="true"></span>${esc(c)}</button>`).join('')}
-                </div>` : ''}
-                <button type="button" class="kp-qa-add" data-qa-add ${variant ? '' : 'disabled'}>
-                    Add to bag${variant ? ` — ${tzs(product.price)}` : ''}
-                </button>`;
-            $$('[data-qa-size]', pop).forEach((b) => b.addEventListener('click', () => {
-                size = b.dataset.qaSize;
-                delete pop.dataset.color;
-                render();
-            }));
-            $$('[data-qa-color]', pop).forEach((b) => b.addEventListener('click', () => {
-                pop.dataset.color = b.dataset.qaColor;
-                render();
-            }));
-            $('[data-qa-add]', pop)?.addEventListener('click', async () => {
-                if (!variant) return;
-                const addBtn = $('[data-qa-add]', pop);
-                addBtn.disabled = true;
-                addBtn.textContent = 'Adding…';
-                const result = await window.KipanyaCart.addItem(Number(variant.id), 1);
-                if (result.ok) {
-                    toast(`${product.name} (${variant.size}${variant.color ? ` · ${variant.color}` : ''}) added to bag.`, 'success');
-                    document.dispatchEvent(new CustomEvent('kp:bag-bump'));
-                    closeAllPopovers();
-                    btn.focus();
-                } else {
-                    addBtn.disabled = false;
-                    addBtn.textContent = 'Add to bag';
-                    window.KipanyaAnim?.shake(addBtn);
-                    toast(result.data?.message || 'Could not add to bag. Try again.', 'error');
-                }
-            });
-            pop.querySelector('.kp-qa-opt')?.focus();
-        };
-
-        pop.hidden = false;
-        btn.setAttribute('aria-expanded', 'true');
-        render();
+        if (inStock.length !== 1) {
+            window.location.href = `/wear/products/${encodeURIComponent(product.slug)}`;
+            return;
+        }
+        const variant = inStock[0];
+        btn.disabled = true;
+        const icon = btn.querySelector('i');
+        const original = icon ? icon.className : '';
+        if (icon) icon.className = 'ti ti-loader-2 kp-spin';
+        const result = await window.KipanyaCart.addItem(Number(variant.id), 1);
+        if (icon) icon.className = original;
+        btn.disabled = false;
+        if (result.ok) {
+            toast(`${product.name} (${variant.size}${variant.color ? ` · ${variant.color}` : ''}) added to bag.`, 'success');
+            document.dispatchEvent(new CustomEvent('kp:bag-bump'));
+        } else {
+            window.KipanyaAnim?.shake(btn);
+            toast(result.data?.message || 'Could not add to bag. Try again.', 'error');
+        }
     }
 
     function wireCards() {
-        $$('[data-kp-qv]', grid).forEach((btn) => btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const product = byId(btn.dataset.productId);
-            if (product) openQuickView(product, btn);
-        }));
         $$('[data-kp-quick-add]', grid).forEach((btn) => btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const article = btn.closest('article');
             const product = byId(btn.dataset.productId);
-            if (!product) return;
-            const pop = $('[data-kp-qa-popover]', article);
-            if (!pop.hidden) { closeAllPopovers(); return; }
-            openQuickAdd(article, product);
+            if (product) quickAdd(btn, product);
         }));
         $$('[data-kp-favorite]', grid).forEach((btn) => btn.addEventListener('click', async () => {
             const id = Number(btn.dataset.productId);
@@ -649,11 +479,8 @@
         }));
     }
 
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('[data-kp-qa-popover]') && !e.target.closest('[data-kp-quick-add]')) closeAllPopovers();
-    });
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') { closeAllPopovers(); closeQuickView(); }
+        if (e.key === 'Escape') closeQuickView();
     });
     document.addEventListener('kp:apply-search', (e) => {
         resetToolbar();

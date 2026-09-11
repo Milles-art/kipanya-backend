@@ -106,7 +106,9 @@
         if (!stickyBar || !addBtn) return;
         const past = addBtn.getBoundingClientRect().bottom < 0;
         const unavailable = addBtn.disabled;
-        stickyBar.hidden = !past || unavailable || window.innerWidth >= 860;
+        const show = past && !unavailable && window.innerWidth < 860;
+        stickyBar.hidden = !show;
+        stickyBar.classList.toggle('is-visible', show);
         if (stickyAdd) stickyAdd.textContent = !size ? 'Choose size' : 'Add to bag';
     };
     window.addEventListener('scroll', syncSticky, { passive: true });
@@ -189,27 +191,39 @@
     const modal = $('[data-kp-sizing-modal]');
     const openBtn = $('[data-kp-sizing-quiz-open]');
     const closeBtn = $('[data-kp-sizing-close]');
+    const showModal = (m) => {
+        if (!m) return;
+        m.hidden = false;
+        requestAnimationFrame(() => m.classList.add('is-open'));
+    };
+    const hideModal = (m, returnTo) => {
+        if (!m || m.hidden) return;
+        m.classList.remove('is-open');
+        window.setTimeout(() => { m.hidden = true; }, 300);
+        returnTo?.focus();
+    };
+    $('[data-kp-sizing-skip]')?.addEventListener('click', () => hideModal(modal, openBtn));
     openBtn?.addEventListener('click', () => {
-        modal.hidden = false;
+        showModal(modal);
         $('[data-kp-quiz-height]')?.focus();
     });
-    closeBtn?.addEventListener('click', () => { modal.hidden = true; openBtn.focus(); });
-    modal?.addEventListener('click', (e) => { if (e.target === modal) { modal.hidden = true; openBtn.focus(); } });
+    closeBtn?.addEventListener('click', () => hideModal(modal, openBtn));
+    modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(modal, openBtn); });
 
     /* General size chart dialog */
     const chartModal = document.querySelector('[data-kp-chart-modal]');
     const chartOpen = document.querySelector('[data-kp-chart-open]');
     const chartClose = document.querySelector('[data-kp-chart-close]');
     chartOpen?.addEventListener('click', () => {
-        chartModal.hidden = false;
+        showModal(chartModal);
         chartClose?.focus();
     });
-    chartClose?.addEventListener('click', () => { chartModal.hidden = true; chartOpen.focus(); });
-    chartModal?.addEventListener('click', (e) => { if (e.target === chartModal) { chartModal.hidden = true; chartOpen.focus(); } });
+    chartClose?.addEventListener('click', () => hideModal(chartModal, chartOpen));
+    chartModal?.addEventListener('click', (e) => { if (e.target === chartModal) hideModal(chartModal, chartOpen); });
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        if (modal && !modal.hidden) { modal.hidden = true; openBtn.focus(); }
-        if (chartModal && !chartModal.hidden) { chartModal.hidden = true; chartOpen.focus(); }
+        if (modal && !modal.hidden) hideModal(modal, openBtn);
+        if (chartModal && !chartModal.hidden) hideModal(chartModal, chartOpen);
     });
 
     const LADDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
@@ -264,20 +278,14 @@
         const { size: pick, exact } = nearestOffered(guess);
         const pill = sizeRow.querySelector(`[data-size="${CSS.escape(pick)}"]`);
         if (pill && !pill.disabled) {
-            pill.click();
             resultEl.textContent = exact
-                ? `Estimated size: ${pick} — selected above (estimate only).`
-                : `Estimated size: ${guess}, which this product doesn't come in — nearest offered size ${pick} selected.`;
+                ? `Suggested size: ${pick}. Choose it above if it feels right.`
+                : `Suggested size: ${guess}; nearest available size is ${pick}. Choose it above if it feels right.`;
         } else {
-            resultEl.textContent = `Estimated size: ${pick}, but it is out of stock right now.`;
+            resultEl.textContent = `Suggested size: ${pick}, but it is out of stock right now.`;
         }
     });
 
-    /* Accordion */
-    $$('[data-kp-acc-head]').forEach((head) => head.addEventListener('click', () => {
-        const item = head.closest('.kp-acc-item');
-        const open = item.classList.toggle('kp-acc-open');
-        head.setAttribute('aria-expanded', String(open));
-        item.querySelector('.kp-acc-body')?.toggleAttribute('hidden', !open);
-    }));
+    /* Accordion motion is owned by kipanya-wear-animations.js
+       (animated single-open); no local handler to avoid double toggles. */
 })();

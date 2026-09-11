@@ -1,9 +1,4 @@
-/* KIPANYA WEAR — Uniqlo-language design tokens (from-scratch rebuild).
-   White minimalism, ink text, red accent. Single source of truth. */
-
-/* KIPANYA WEAR — Participle-template language: black/white boutique
-   minimalism, serif display, sharp corners. Single source of truth. */
-
+/* KIPANYA WEAR — Design tokens. Single source of truth. */
 :root {
     --kp-ink: #111111;
     --kp-ink-soft: rgba(17, 17, 17, 0.64);
@@ -26,9 +21,12 @@
     --kp-header-bg: rgba(255, 255, 255, 0.96);
     --kp-surface: #ffffff;
     --kp-line: rgba(17, 17, 17, 0.14);
+    --kp-earth: #c17f4a;
+    --kp-earth-2: #a06535;
+    --kp-ocean: #1b4f72;
 
-    --kp-font: "Helvetica Neue", Helvetica, Arial, system-ui, -apple-system, "Segoe UI", sans-serif;
-    --kp-serif: Georgia, "Times New Roman", "Nimbus Roman", serif;
+    --kp-font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --kp-serif: "Playfair Display", Georgia, "Times New Roman", serif;
 
     --kp-text-hero: clamp(2rem, 4vw, 3rem);
     --kp-text-h2: clamp(1.25rem, 2.2vw, 1.5rem);
@@ -49,6 +47,7 @@
     --kp-ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
     --kp-dur-fast: 0.15s;
     --kp-dur-med: 0.25s;
+    --kp-dur-slow: 0.42s;
 
     --kp-maxw: 1600px;
     --kp-gutter: clamp(14px, 2.5vw, 28px);

@@ -9,7 +9,7 @@
 <footer class="kp-footer">
     <div class="kp-footer-inner">
         <div class="kp-footer-brand">
-            <span class="kp-footer-mark" aria-hidden="true">K</span>
+            <img class="kp-footer-logo" src="{{ asset('assets/wear/brand/kp-wear-logo.jpg') }}" alt="Kipanya Wear" loading="lazy">
             <div>
                 <p class="kp-footer-name">KIPANYA WEAR</p>
                 <p class="kp-footer-tag">Everyday clothing, made to last.</p>

@@ -1,10 +1,5 @@
-/* Master entry for the Wear frontend. Vendor icon font first (self-hosted
-   Tabler 3.31.0 — no CDN dependency), then tokens, then app layers. */
+/* Master entry for the current Wear frontend. */
 @import './vendor/tabler-icons.css';
 @import './kp-tokens.css';
 @import './kipanya-nav.css';
-@import './kipanya-wear.css';
-@import './kipanya-wear-storefront.css';
-@import './kipanya-wear-product.css';
-@import './kipanya-wear-checkout.css';
-@import './kipanya-wear-orders.css';
+@import './kipanya-wear-upgraded.css';

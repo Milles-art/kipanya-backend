@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Kipanya Wear' }}</title>
-    {{-- Icon font: single @font-face bound to the app origin (works in dev
-         HMR and production builds alike — never the Vite origin). --}}
     <style>
         @font-face {
             font-family: "tabler-icons";
@@ -17,7 +15,19 @@
                  url("{{ asset('fonts/tabler-icons.woff') }}") format("woff");
         }
     </style>
-    @vite(['resources/css/kipanya-wear-all.css', 'resources/js/kipanya-cart.js', 'resources/js/kipanya-nav.js', 'resources/js/kp-bag-drawer.js'])
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {{-- NOTE: kipanya-wear-upgraded.css is bundled INSIDE kipanya-wear-all.css
+         (last @import = wins the cascade). Do NOT add it as a separate entry
+         here: duplicate loading doubles every rule, and production builds
+         would 500 on the missing manifest entry. --}}
+    @vite([
+        'resources/css/kipanya-wear-all.css',
+        'resources/js/kipanya-cart.js',
+        'resources/js/kipanya-nav.js',
+        'resources/js/kipanya-wear-animations.js',
+        'resources/js/kp-bag-drawer.js'
+    ])
 </head>
 <body class="kp-body" data-kp-auth="{{ auth()->check() ? '1' : '0' }}">
     <a class="kp-skip-link" href="#kp-main">Skip to content</a>

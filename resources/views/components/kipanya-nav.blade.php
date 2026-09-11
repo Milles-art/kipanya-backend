@@ -12,7 +12,7 @@
 
 <header class="kp-header" data-kp-redesign-nav>
     <div class="kp-utility-strip">
-        <span>Complimentary delivery across Tanzania</span>
+        <span>Free delivery across Tanzania</span>
     </div>
 
     <div class="kp-mainbar">
@@ -36,7 +36,7 @@
         </nav>
 
         <a class="kp-brand" href="{{ $wearUrl }}" aria-label="Kipanya Wear home">
-            <span class="kp-brand-word">Kipanya Wear</span>
+            <img class="kp-brand-logo" src="{{ asset('assets/wear/brand/kp-wear-logo.jpg') }}" alt="Kipanya Wear" fetchpriority="high">
         </a>
 
         <div class="kp-mainbar-actions">

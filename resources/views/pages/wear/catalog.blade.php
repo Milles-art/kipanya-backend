@@ -2,6 +2,10 @@
 
 @section('content')
 <div class="kp-catalog" data-kp-catalog>
+
+    {{-- ═══════════════════════════════════════════════════
+         HERO SLIDER
+    ═══════════════════════════════════════════════════ --}}
     <section class="kp-hero" data-wear-slider aria-roledescription="carousel" aria-label="Featured products">
         @php
             $slides = [
@@ -34,21 +38,79 @@
         @endforeach
 
         <div class="kp-slider-controls">
-            <button type="button" class="kp-slider-arrow" data-wear-prev aria-label="Previous slide"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+            <button type="button" class="kp-slider-arrow" data-wear-prev aria-label="Previous slide">
+                <i class="ti ti-chevron-left" aria-hidden="true"></i>
+            </button>
             <div class="kp-slider-dots" role="group" aria-label="Choose slide">
                 @foreach($slides as $index => $slide)
-                    <button type="button" class="kp-slider-dot {{ $index === 0 ? 'is-active' : '' }}" data-wear-dot="{{ $index }}" aria-label="Slide {{ $index + 1 }}: {{ $slide['title'] }}" aria-current="{{ $index === 0 ? 'true' : 'false' }}"></button>
+                    <button
+                        type="button"
+                        class="kp-slider-dot {{ $index === 0 ? 'is-active' : '' }}"
+                        data-wear-dot="{{ $index }}"
+                        aria-label="Slide {{ $index + 1 }}: {{ $slide['title'] }}"
+                        aria-current="{{ $index === 0 ? 'true' : 'false' }}"
+                    ></button>
                 @endforeach
             </div>
-            <button type="button" class="kp-slider-arrow" data-wear-next aria-label="Next slide"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+            <button type="button" class="kp-slider-arrow" data-wear-next aria-label="Next slide">
+                <i class="ti ti-chevron-right" aria-hidden="true"></i>
+            </button>
         </div>
     </section>
 
-    <section class="kp-tiles" aria-labelledby="kp-tiles-title" data-kp-tiles hidden>
-        <h2 id="kp-tiles-title">Shop by category</h2>
-        <div class="kp-tiles-row" data-kp-tiles-row></div>
-    </section>
+    {{-- ═══════════════════════════════════════════════════
+         FEATURED 2-UP CARDS  ← RIGHT HERE between slider
+         and the product grid listing, matching the blue
+         line in your screenshot
+    ═══════════════════════════════════════════════════ --}}
+    @if(!empty($featuredProducts) && count($featuredProducts) >= 2)
+    <section class="kp-featured-section" aria-labelledby="kp-featured-label">
+        <p class="kp-kicker kp-featured-kicker" id="kp-featured-label">Featured this week</p>
+        <div class="kp-featured-grid">
 
+            <a href="{{ route('wear.product', $featuredProducts[0]) }}" class="kp-feat-card">
+                <div class="kp-feat-img-wrap">
+                    <img
+                        src="{{ url($featuredProducts[0]->image_url) }}"
+                        alt="{{ $featuredProducts[0]->name }}"
+                        loading="lazy"
+                    />
+                    <span class="kp-feat-badge">New in</span>
+                </div>
+                <div class="kp-feat-info">
+                    <p class="kp-feat-category">{{ $featuredProducts[0]->category }}</p>
+                    <h3 class="kp-feat-name">{{ $featuredProducts[0]->name }}</h3>
+                    <p class="kp-feat-price">TZS {{ number_format($featuredProducts[0]->price) }}</p>
+                    <span class="kp-feat-cta">Shop now →</span>
+                </div>
+            </a>
+
+            <a href="{{ route('wear.product', $featuredProducts[1]) }}" class="kp-feat-card">
+                <div class="kp-feat-img-wrap">
+                    <img
+                        src="{{ url($featuredProducts[1]->image_url) }}"
+                        alt="{{ $featuredProducts[1]->name }}"
+                        loading="lazy"
+                    />
+                    @if(!empty($featuredProducts[1]->badge))
+                        <span class="kp-feat-badge">{{ $featuredProducts[1]->badge }}</span>
+                    @endif
+                </div>
+                <div class="kp-feat-info">
+                    <p class="kp-feat-category">{{ $featuredProducts[1]->category }}</p>
+                    <h3 class="kp-feat-name">{{ $featuredProducts[1]->name }}</h3>
+                    <p class="kp-feat-price">TZS {{ number_format($featuredProducts[1]->price) }}</p>
+                    <span class="kp-feat-cta">Shop now →</span>
+                </div>
+            </a>
+
+        </div>
+    </section>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════
+         LISTING HEAD + FILTERS
+    ═══════════════════════════════════════════════════ --}}
     <section class="kp-listing-head" aria-labelledby="kp-listing-title">
         <div>
             <p class="kp-kicker">Current collection</p>
@@ -76,17 +138,31 @@
         </label>
     </div>
 
+    {{-- ═══════════════════════════════════════════════════
+         PRODUCT GRID
+    ═══════════════════════════════════════════════════ --}}
+
+    {{-- Skeleton (shown while JS loads products) --}}
     <div class="kp-grid" data-kp-skeleton aria-hidden="true">
         @for ($i = 0; $i < 8; $i++)
-            <div class="kp-skel"><div class="kp-skel-img kp-pulse"></div><div class="kp-skel-line kp-pulse" style="width:70%"></div><div class="kp-skel-line kp-pulse" style="width:40%"></div></div>
+            <div class="kp-skel">
+                <div class="kp-skel-img kp-pulse"></div>
+                <div class="kp-skel-line kp-pulse" style="width:70%"></div>
+                <div class="kp-skel-line kp-pulse" style="width:40%"></div>
+            </div>
         @endfor
     </div>
+
+    {{-- Real products rendered by JS --}}
     <div class="kp-grid" data-kp-products hidden></div>
 
     <div class="kp-more-wrap" data-kp-load-more-wrap hidden>
         <button type="button" class="kp-btn kp-btn-outline" data-kp-load-more>Load more</button>
     </div>
 
+    {{-- ═══════════════════════════════════════════════════
+         QUICK VIEW MODAL
+    ═══════════════════════════════════════════════════ --}}
     <div class="kp-qv" data-kp-qv-modal hidden>
         <div class="kp-qv-card" role="dialog" aria-modal="true" aria-labelledby="kp-qv-title">
             <button type="button" class="kp-qv-close" data-kp-qv-close aria-label="Close quick view">
@@ -95,6 +171,7 @@
             <div data-kp-qv-body></div>
         </div>
     </div>
+
 </div>
 @endsection
 
