@@ -1,0 +1,11 @@
+@extends('layouts.app')
+@section('content')
+<div data-checkout-page class="mx-auto max-w-6xl px-4 pb-20 pt-12 sm:px-6 lg:px-8"><div class="flex items-end justify-between gap-4"><div><p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">Secure checkout</p><h1 class="mt-2 text-3xl font-bold">Complete your order</h1></div><a href="{{ route('cart') }}" class="text-sm font-medium text-gray-500 hover:text-emerald-600">Back to bag</a></div>
+  <div data-checkout-auth class="mt-8 hidden rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">You need to <a class="font-semibold underline" href="{{ route('login') }}">sign in</a> before placing an order.</div>
+  <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]"><div class="space-y-5">
+    <section class="rounded-2xl border border-gray-100 p-6"><div class="flex items-center justify-between"><h2 class="text-lg font-semibold">Delivery address</h2><span class="text-xs text-gray-400">Required</span></div><div data-address-list class="mt-5 space-y-3"></div><form data-address-form class="mt-5 grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-2"><input name="recipient_name" class="field" placeholder="Recipient name" required><input name="phone" class="field" placeholder="Phone" required><input name="region" class="field" placeholder="Region" required><input name="district" class="field" placeholder="District" required><input name="ward" class="field" placeholder="Ward"><input name="street" class="field sm:col-span-2" placeholder="Street / house address" required><button class="button-dark sm:col-span-2">Save address</button></form></section>
+    <section class="rounded-2xl border border-gray-100 p-6"><h2 class="text-lg font-semibold">Order note</h2><textarea data-order-notes class="field mt-4 min-h-28 w-full" placeholder="Optional note for your order"></textarea></section>
+    <button data-place-order class="button-dark w-full py-3.5">Place order</button>
+  </div><aside class="h-fit rounded-2xl bg-gray-50 p-6"><h2 class="text-lg font-semibold">Order summary</h2><div data-checkout-summary class="mt-5 space-y-3 text-sm"><p class="text-gray-500">Loading…</p></div></aside></div>
+</div>
+@endsection

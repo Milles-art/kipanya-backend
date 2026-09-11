@@ -1,0 +1,2 @@
+@extends('layouts.app')
+@section('content')<div class="mx-auto max-w-md px-4 pb-20 pt-32 text-center"><h1 class="text-2xl font-bold">Verify your email</h1><p class="mt-2 text-sm text-gray-500">Enter the six-digit code we sent you.</p><form action="{{ url('/account') }}" class="mt-8 rounded-2xl border border-gray-100 p-6 shadow-sm"><input class="field w-full text-center text-xl tracking-[.5em]" maxlength="6" inputmode="numeric" placeholder="000000"><button class="button-dark mt-5 w-full">Verify code</button></form></div>@endsection

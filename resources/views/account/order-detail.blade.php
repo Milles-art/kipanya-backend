@@ -1,0 +1,2 @@
+@extends('layouts.app')
+@section('content')<div data-order-detail data-order-number="{{ request()->route('orderId') }}" class="mx-auto max-w-5xl px-4 pb-20 pt-12 sm:px-6 lg:px-8"><a href="{{ route('account.orders') }}" class="text-sm font-medium text-emerald-600">← Back to orders</a><h1 class="mt-4 text-3xl font-bold">Order {{ request()->route('orderId') }}</h1><div data-order-detail-content class="mt-8 rounded-2xl border border-gray-100 p-6"><p class="text-sm text-gray-500">Loading…</p></div></div>@endsection

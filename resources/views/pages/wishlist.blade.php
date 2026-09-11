@@ -1,0 +1,2 @@
+@extends('layouts.app')
+@section('content')<div data-wishlist-page class="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-6 lg:px-8"><h1 class="text-3xl font-bold tracking-tight">Wishlist</h1><p class="mt-2 text-sm text-gray-500">Your saved pieces, synced to your account.</p><div data-wishlist-grid class="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4 lg:gap-6"></div></div>@endsection
