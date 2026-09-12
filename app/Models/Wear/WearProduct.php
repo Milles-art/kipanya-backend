@@ -33,11 +33,19 @@ class WearProduct extends Model
     public function getImageUrlAttribute(): string
     {
         if (! $this->image_path) {
-            return asset('assets/wear/shirts/black-clean.png');
+            return asset('assets/wear/catalog/generated/product-01.jpg');
         }
 
-        return str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')
-            ? $this->image_path
-            : asset($this->image_path);
+        if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
+            return $this->image_path;
+        }
+
+        if (preg_match('/product-(\d+)\.jpg$/', $this->image_path, $matches)) {
+            $number = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+
+            return asset("assets/wear/catalog/generated/product-{$number}.jpg");
+        }
+
+        return asset($this->image_path);
     }
 }
