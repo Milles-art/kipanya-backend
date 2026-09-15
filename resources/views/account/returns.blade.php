@@ -3,7 +3,7 @@
 <div class="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
     <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
 
-        @include('account._account-sidebar')
+        @include('components.account-sidebar')
 
         <div data-returns-page>
             <div class="flex flex-col gap-3 border-b border-gray-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -27,7 +27,7 @@
                     <x-tabler-rotate size="26" class="text-gray-400" />
                 </div>
                 <h2 class="mt-4 text-lg font-semibold text-gray-900">No return requests yet</h2>
-                <p class="mt-2 max-w-xs text-sm text-gray-500">Eligible orders can be returned or exchanged within 7 days of delivery.</p>
+                <p class="mt-2 max-w-xs text-sm text-gray-500">Select a delivered order to request a return or exchange. Our team will review the request and confirm eligibility.</p>
             </div>
 
             {{-- Requests list --}}

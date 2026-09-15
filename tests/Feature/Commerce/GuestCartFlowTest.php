@@ -72,9 +72,8 @@ class GuestCartFlowTest extends TestCase
             'user_id' => $user->id,
             'status' => 'active',
         ]);
-        $this->assertDatabaseHas('carts', [
+        $this->assertDatabaseMissing('carts', [
             'guest_token_hash' => hash('sha256', $token),
-            'status' => 'converted',
         ]);
     }
 
@@ -107,6 +106,13 @@ class GuestCartFlowTest extends TestCase
             ->postJson('/api/v1/cart/merge', ['guest_cart_token' => $token])
             ->assertOk()
             ->assertJsonPath('data.item_count', 2);
+    }
+
+    public function test_guest_cart_rejects_malformed_guest_tokens(): void
+    {
+        $this->withHeader('X-Guest-Cart-Token', 'not-a-valid-token')
+            ->getJson('/api/v1/cart')
+            ->assertUnprocessable();
     }
 
     public function test_checkout_preview_requires_authentication_and_uses_server_price(): void

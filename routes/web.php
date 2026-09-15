@@ -28,5 +28,4 @@ Route::view('/account/returns', 'account.returns', ['title' => 'Returns & Suppor
 Route::view('/account/loyalty', 'account.loyalty', ['title' => 'Loyalty & Referrals — KP Wear'])->name('account.loyalty');
 Route::view('/account/size-profile', 'account.size-profile', ['title' => 'Size Profile — KP Wear'])->name('account.size-profile');
 Route::view('/account/addresses', 'account.addresses', ['title' => 'Addresses — KP Wear'])->name('account.addresses');
-Route::view('/account/wishlist', 'account.wishlist', ['title' => 'Wishlist — KP Wear'])->name('account.wishlist');
 Route::view('/orders/{orderNumber}', 'pages.order-status')->name('order-status');

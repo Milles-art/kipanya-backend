@@ -23,6 +23,7 @@ class CartController extends Controller
 
     public function show(Request $request): CartResource
     {
+        $this->validateGuestToken($request);
         return $this->resource(
             $this->service->current($this->authenticatedUser($request), $request->header(CartService::HEADER))
                 ->load('items.variant.product'),
@@ -32,6 +33,7 @@ class CartController extends Controller
 
     public function store(AddCartItemRequest $request): CartResource
     {
+        $this->validateGuestToken($request);
         $cart = $this->service->current($this->authenticatedUser($request), $request->header(CartService::HEADER));
         $variant = WearProductVariant::with('product')->findOrFail($request->integer('variant_id'));
         return $this->resource($this->add->execute($cart, $variant, $request->integer('quantity')), $request);
@@ -39,6 +41,7 @@ class CartController extends Controller
 
     public function update(UpdateCartItemRequest $request, int $variant): CartResource
     {
+        $this->validateGuestToken($request);
         $cart = $this->service->current($this->authenticatedUser($request), $request->header(CartService::HEADER));
         $model = WearProductVariant::with('product')->findOrFail($variant);
         return $this->resource($this->service->set($cart, $model, $request->integer('quantity')), $request);
@@ -46,6 +49,7 @@ class CartController extends Controller
 
     public function destroy(Request $request, int $variant): CartResource
     {
+        $this->validateGuestToken($request);
         $cart = $this->service->current($this->authenticatedUser($request), $request->header(CartService::HEADER));
         $model = WearProductVariant::with('product')->findOrFail($variant);
         return $this->resource($this->service->remove($cart, $model), $request);
@@ -53,6 +57,7 @@ class CartController extends Controller
 
     public function clear(Request $request): CartResource
     {
+        $this->validateGuestToken($request);
         $cart = $this->service->current($this->authenticatedUser($request), $request->header(CartService::HEADER));
         return $this->resource($this->service->clear($cart), $request);
     }
@@ -67,6 +72,18 @@ class CartController extends Controller
             $this->merge->execute($data['guest_cart_token'], $request->user()),
             $request,
         );
+    }
+
+    private function validateGuestToken(Request $request): void
+    {
+        if ($this->authenticatedUser($request)) {
+            return;
+        }
+
+        $token = $request->header(CartService::HEADER);
+        if ($token !== null && ! preg_match('/^[a-f0-9]{64}(?:[a-f0-9]{32})?$/', $token)) {
+            abort(422, 'Invalid guest cart token.');
+        }
     }
 
     private function authenticatedUser(Request $request)

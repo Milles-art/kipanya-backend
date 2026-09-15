@@ -3,7 +3,7 @@
 <div class="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
     <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
 
-        @include('account._account-sidebar')
+        @include('components.account-sidebar')
 
         <div data-security-page class="space-y-6">
             <div class="border-b border-gray-200 pb-6">

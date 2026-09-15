@@ -175,9 +175,17 @@ final class WearCatalogFlowTest extends TestCase
 
         $this->getJson('/api/v1/wear/categories')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.name', 'T-Shirts')
-            ->assertJsonPath('data.0.slug', 't-shirts');
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('data.0.name', 'Hoodies')
+            ->assertJsonPath('data.0.slug', 'hoodies')
+            ->assertJsonPath('data.1.name', 'Long Sleeves')
+            ->assertJsonPath('data.1.slug', 'long-sleeves')
+            ->assertJsonPath('data.2.name', 'T-Shirts')
+            ->assertJsonPath('data.2.slug', 't-shirts')
+            ->assertJsonPath('data.3.name', 'Shirts')
+            ->assertJsonPath('data.3.slug', 'shirts')
+            ->assertJsonPath('data.4.name', 'Polos')
+            ->assertJsonPath('data.4.slug', 'polos');
     }
 
     public function test_catalog_rejects_invalid_per_page_parameter(): void

@@ -813,8 +813,8 @@ catGrid.innerHTML = visibleCategories
       const image = collection.cover || `/assets/wear/catalog/generated/${fallbackImages[collection.slug] || 'product-01.jpg'}`;
       const wide = index === 0 || index === 2;
       return `
-        <a href="/collections/${encodeURIComponent(collection.slug)}" class="group relative overflow-hidden rounded-[1.5rem] bg-gray-100 ${wide ? 'lg:col-span-8' : 'lg:col-span-4'} aspect-[5/4]">
-          <img src="${escapeHtml(image)}" alt="${escapeHtml(collection.name)}" class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] rounded-xl object-contain transition duration-700 group-hover:scale-[1.025] sm:inset-5 sm:h-[calc(100%-2.5rem)] sm:w-[calc(100%-2.5rem)]">
+        <a href="/collections/${encodeURIComponent(collection.slug)}" class="group relative overflow-hidden rounded-[1.5rem] bg-gray-100 ${wide ? 'lg:col-span-8' : 'lg:col-span-4'} aspect-[4/3]">
+          <img src="${escapeHtml(image)}" alt="${escapeHtml(collection.name)}" class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]">
           <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"></div>
           <div class="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
             <div class="flex items-end justify-between gap-5">
@@ -1962,7 +1962,28 @@ const bootCatalog = async () => {
 
       if (!page) return;
 
-      if (!token()) return;
+      const loading =
+        page.querySelector('[data-wishlist-loading]');
+      const skeleton =
+        page.querySelector('[data-wishlist-skeleton]');
+      const grid =
+        page.querySelector('[data-wishlist-grid]');
+      const empty =
+        page.querySelector('[data-wishlist-empty]');
+      const auth =
+        page.querySelector('[data-wishlist-auth]');
+      const count =
+        page.querySelector('[data-wishlist-page-count]');
+
+      if (!token()) {
+        loading?.classList.add('hidden');
+        auth?.classList.remove('hidden');
+        grid?.classList.add('hidden');
+        empty?.classList.add('hidden');
+        return;
+      }
+
+      renderProductSkeletons(skeleton, 8);
 
       try {
         const data =
@@ -1970,20 +1991,32 @@ const bootCatalog = async () => {
 
         const products =
           (data?.data || [])
-            .map(
-              i => i.product
-            )
+            .map(i => i.product)
             .filter(Boolean);
 
-        renderProductGrid(
-          page.querySelector(
-            '[data-wishlist-grid]'
-          ),
-          products
-        );
+        const total = products.length;
+        if (count) {
+          count.textContent = total;
+          count.classList.toggle('hidden', total === 0);
+        }
+
+        loading?.classList.add('hidden');
+        auth?.classList.add('hidden');
+
+        if (!total) {
+          grid?.classList.add('hidden');
+          empty?.classList.remove('hidden');
+          await counts();
+          return;
+        }
+
+        empty?.classList.add('hidden');
+        grid?.classList.remove('hidden');
+        renderProductGrid(grid, products);
 
         await counts();
       } catch (e) {
+        loading?.classList.add('hidden');
         toast(e.message);
       }
     };
@@ -2365,167 +2398,282 @@ const bootCatalog = async () => {
       }
     };
 
-  const bootOrders =
-    async () => {
-      const page =
-        document.querySelector(
-          '[data-orders-page]'
-        );
+  const orderStatusClass = status => {
+    const value = String(status || '').toLowerCase();
+    if (value.includes('confirmed') || value.includes('paid') || value.includes('completed')) {
+      return 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-100';
+    }
+    if (value.includes('cancel') || value.includes('failed')) {
+      return 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-100';
+    }
+    return 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-100';
+  };
 
-      if (!page) return;
+  const formatOrderStatus = status => String(status || 'pending_payment').replaceAll('_', ' ');
 
-      if (!token()) {
-        location.href =
-          '/login';
+  const returnStatusClass = status => {
+    const value = String(status || '').toLowerCase();
+    if (value === 'approved' || value === 'completed') return 'bg-emerald-50 text-emerald-700';
+    if (value === 'rejected' || value === 'cancelled') return 'bg-rose-50 text-rose-700';
+    return 'bg-amber-50 text-amber-700';
+  };
 
+  const bootReturns = async () => {
+    const page = document.querySelector('[data-returns-page]');
+    if (!page) return;
+    if (!token()) { location.href = '/login'; return; }
+
+    const list = page.querySelector('[data-returns-list]');
+    const empty = page.querySelector('[data-returns-empty]');
+    const modal = document.querySelector('[data-return-modal]');
+    const form = document.querySelector('[data-return-form]');
+    const orderSelect = document.querySelector('[data-return-order-select]');
+    const itemsNode = document.querySelector('[data-return-items]');
+
+    const renderRequests = requests => {
+      if (!requests.length) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        empty.classList.add('flex');
+        return;
+      }
+      empty.classList.add('hidden');
+      empty.classList.remove('flex');
+      list.innerHTML = requests.map(r => `
+        <article class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">${escapeHtml(r.request_type || 'request')}</p>
+              <h2 class="mt-1 text-sm font-bold text-gray-950">Order #${escapeHtml(r.order_number || '')}</h2>
+              <p class="mt-1 text-xs text-gray-500">${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</p>
+            </div>
+            <span class="rounded-full px-3 py-1 text-[11px] font-semibold capitalize ${returnStatusClass(r.status)}">${escapeHtml(String(r.status || '').replaceAll('_', ' '))}</span>
+          </div>
+          <div class="mt-4 border-t border-gray-100 pt-4">
+            ${(r.items || []).map(i => `<p class="text-sm text-gray-700">${escapeHtml(i.product_name)}${i.size ? ` · Size ${escapeHtml(i.size)}` : ''} · Qty ${Number(i.quantity || 0)}</p>`).join('')}
+            <p class="mt-1 text-xs text-gray-400">Reason: ${escapeHtml(String(r.reason || '').replaceAll('_', ' '))}</p>
+          </div>
+        </article>`).join('');
+    };
+
+    try {
+      const [requestsResponse, ordersResponse] = await Promise.all([api('/returns'), api('/orders')]);
+      const requests = Array.isArray(requestsResponse?.data) ? requestsResponse.data : [];
+      const orders = Array.isArray(ordersResponse?.data) ? ordersResponse.data : [];
+      renderRequests(requests);
+
+      const eligibleOrders = orders.filter(o => String(o.status || '').toLowerCase() === 'delivered');
+      orderSelect.innerHTML = '<option value="">Choose an order…</option>' + eligibleOrders.map(o =>
+        `<option value="${escapeHtml(o.id)}">${escapeHtml(o.order_number)} · ${Number(o.total || 0).toLocaleString()} TZS</option>`
+      ).join('');
+
+      const openModal = () => {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      };
+      const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        form.reset();
+        itemsNode.innerHTML = 'Select an order to see items';
+      };
+
+      page.querySelector('[data-new-request]')?.addEventListener('click', openModal);
+      document.querySelector('[data-close-return-modal]')?.addEventListener('click', closeModal);
+      modal?.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+      page.querySelector('[data-contact-support]')?.addEventListener('click', () => { location.href = '/contact'; });
+
+      orderSelect.addEventListener('change', async () => {
+        const selected = eligibleOrders.find(o => String(o.id) === String(orderSelect.value));
+        if (!selected) { itemsNode.innerHTML = 'Select an order to see items'; return; }
+        try {
+          const response = await api(`/orders/${encodeURIComponent(selected.order_number)}`);
+          const items = Array.isArray(response?.data?.items) ? response.data.items : [];
+          itemsNode.innerHTML = items.length ? items.map(i => `
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50">
+              <input type="checkbox" name="item_ids[]" value="${escapeHtml(i.id)}" class="mt-1 rounded border-gray-300" checked>
+              <span class="min-w-0"><span class="block text-sm font-medium text-gray-800">${escapeHtml(i.name)}</span><span class="mt-0.5 block text-xs text-gray-500">${escapeHtml([i.size, i.color].filter(Boolean).join(' · ') || 'Standard')} · Qty ${Number(i.quantity || 0)}</span></span>
+            </label>`).join('') : '<p class="text-sm text-gray-500">No items found for this order.</p>';
+        } catch (e) { itemsNode.innerHTML = `<p class="text-sm text-rose-600">${escapeHtml(e.message)}</p>`; }
+      });
+
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const submit = form.querySelector('button[type="submit"]');
+        const itemIds = [...form.querySelectorAll('input[name="item_ids[]"]:checked')].map(i => Number(i.value));
+        if (!orderSelect.value || !itemIds.length) { toast('Select an order and at least one item.'); return; }
+        submit.disabled = true;
+        submit.textContent = 'Submitting…';
+        try {
+          await api('/returns', { method: 'POST', body: {
+            order_id: Number(orderSelect.value),
+            item_ids: itemIds,
+            request_type: form.querySelector('input[name="request_type"]:checked')?.value || 'return',
+            reason: form.querySelector('[name="reason"]')?.value,
+            notes: form.querySelector('[name="notes"]')?.value || null,
+          }});
+          closeModal();
+          renderRequests((await api('/returns'))?.data || []);
+          toast('Return request submitted.');
+        } catch (e) { toast(e.message); }
+        finally { submit.disabled = false; submit.textContent = 'Submit request'; }
+      });
+    } catch (e) {
+      list.innerHTML = `<div class="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">${escapeHtml(e.message || 'Unable to load returns.')}</div>`;
+    }
+  };
+
+  const bootOrders = async () => {
+    const page = document.querySelector('[data-orders-page]');
+    if (!page) return;
+
+    if (!token()) {
+      location.href = '/login';
+      return;
+    }
+
+    try {
+      const orders = await api('/orders');
+      const list = page.querySelector('[data-orders-list]');
+      const data = Array.isArray(orders.data) ? orders.data : [];
+
+      if (!data.length) {
+        list.innerHTML = `
+          <div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-6 py-14 text-center">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V4h12v5"/><path d="M4 9h16v11H4z"/><path d="M9 13h6"/></svg>
+            </div>
+            <h2 class="mt-5 text-lg font-semibold text-gray-950">No orders yet</h2>
+            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">Your completed and pending purchases will appear here.</p>
+            <a href="/shop" class="button-dark mt-6">Start shopping</a>
+          </div>`;
         return;
       }
 
-      try {
-        const orders =
-          await api('/orders');
+      list.innerHTML = data.map(o => `
+        <article class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:border-gray-200 hover:shadow-md">
+          <div class="flex flex-col gap-5 p-5 sm:p-6">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Order</p>
+                <h2 class="mt-1 text-base font-bold text-gray-950">${escapeHtml(o.order_number)}</h2>
+                <p class="mt-1 text-sm text-gray-500">${o.created_at ? new Date(o.created_at).toLocaleString() : 'Date unavailable'}</p>
+              </div>
+              <span class="w-fit rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${orderStatusClass(o.status)}">${escapeHtml(formatOrderStatus(o.status))}</span>
+            </div>
 
-        page.querySelector(
-          '[data-orders-list]'
-        ).innerHTML =
-          (orders.data || [])
-            .map(
-              o => `
-                <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-100 p-5">
-                  <div>
-                    <p class="font-semibold">
-                      ${escapeHtml(o.order_number)}
-                    </p>
+            <div class="grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-3">
+              <div>
+                <p class="text-xs text-gray-400">Items</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900">${Array.isArray(o.items) ? o.items.reduce((n, i) => n + Number(i.quantity || 0), 0) : '—'}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Payment</p>
+                <p class="mt-1 text-sm font-semibold capitalize text-gray-900">${escapeHtml(formatOrderStatus(o.payment_status))}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Total</p>
+                <p class="mt-1 text-sm font-bold text-gray-950">${Number(o.total || 0).toLocaleString()} TZS</p>
+              </div>
+            </div>
 
-                    <p class="mt-1 text-sm text-gray-500">
-                      ${
-                        o.created_at
-                          ? new Date(
-                              o.created_at
-                            ).toLocaleString()
-                          : ''
-                      }
-                    </p>
-                  </div>
+            <div class="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-5">
+              <a href="/account/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50">View details</a>
+              ${String(o.status || '').toLowerCase() === 'pending_payment' ? `<a href="/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800">Continue payment</a>` : ''}
+            </div>
+          </div>
+        </article>
+      `).join('');
+    } catch (e) {
+      page.querySelector('[data-orders-list]').innerHTML = `
+        <div class="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">${escapeHtml(e.message || 'Unable to load your orders.')}</div>`;
+    }
+  };
 
-                  <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold">
-                    ${escapeHtml(o.status)}
-                  </span>
+  const bootOrderDetail = async () => {
+    const page = document.querySelector('[data-order-detail]');
+    if (!page) return;
 
-                  <strong>
-                    ${Number(
-                      o.total
-                    ).toLocaleString()} TZS
-                  </strong>
+    if (!token()) {
+      location.href = '/login';
+      return;
+    }
 
-                  <a
-                    href="/account/orders/${escapeHtml(o.order_number)}"
-                    class="text-sm font-medium text-emerald-600"
-                  >
-                    View details →
-                  </a>
+    try {
+      const o = (await api(`/orders/${encodeURIComponent(page.dataset.orderNumber)}`)).data;
+      const items = Array.isArray(o.items) ? o.items : [];
+      const canCancel = String(o.status || '').toLowerCase() === 'pending_payment';
+
+      page.querySelector('[data-order-detail-content]').innerHTML = `
+        <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
+          <section class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <div class="border-b border-gray-100 p-5 sm:p-6">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Order summary</p>
+                  <p class="mt-1 text-sm text-gray-500">${o.created_at ? new Date(o.created_at).toLocaleString() : ''}</p>
                 </div>
-              `
-            )
-            .join('') ||
-          '<p class="text-sm text-gray-500">No orders yet.</p>';
-      } catch (e) {
-        toast(e.message);
-      }
-    };
-
-  const bootOrderDetail =
-    async () => {
-      const page =
-        document.querySelector(
-          '[data-order-detail]'
-        );
-
-      if (!page) return;
-
-      if (!token()) {
-        location.href =
-          '/login';
-
-        return;
-      }
-
-      try {
-        const o =
-          (
-            await api(
-              `/orders/${encodeURIComponent(
-                page.dataset
-                  .orderNumber
-              )}`
-            )
-          ).data;
-
-        page.querySelector(
-          '[data-order-detail-content]'
-        ).innerHTML = `
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p class="text-sm text-gray-500">
-                Status
-              </p>
-
-              <p class="mt-1 font-semibold">
-                ${escapeHtml(o.status)}
-              </p>
+                <span class="rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${orderStatusClass(o.status)}">${escapeHtml(formatOrderStatus(o.status))}</span>
+              </div>
             </div>
 
-            <div>
-              <p class="text-sm text-gray-500">
-                Payment
-              </p>
-
-              <p class="mt-1 font-semibold">
-                ${escapeHtml(o.payment_status)}
-              </p>
-            </div>
-
-            <div>
-              <p class="text-sm text-gray-500">
-                Total
-              </p>
-
-              <p class="mt-1 font-semibold">
-                ${Number(
-                  o.total
-                ).toLocaleString()} TZS
-              </p>
-            </div>
-          </div>
-
-          <div class="mt-8 border-t border-gray-100 pt-6">
-            ${(o.items || [])
-              .map(
-                i => `
-                  <div class="flex justify-between border-b border-gray-100 py-3 text-sm">
-                    <span>
-                      ${escapeHtml(i.name)} · ${
-                        escapeHtml(i.size || '')
-                      } × ${
-                        i.quantity
-                      }
-                    </span>
-
-                    <strong>
-                      ${Number(
-                        i.line_total
-                      ).toLocaleString()} TZS
-                    </strong>
+            <div class="divide-y divide-gray-100">
+              ${items.length ? items.map(i => `
+                <div class="flex items-start justify-between gap-5 p-5 sm:p-6">
+                  <div class="min-w-0">
+                    <p class="font-semibold text-gray-950">${escapeHtml(i.name)}</p>
+                    <p class="mt-1 text-sm text-gray-500">${escapeHtml([i.size, i.color].filter(Boolean).join(' · ') || 'Standard')} · Qty ${Number(i.quantity || 0)}</p>
+                    ${i.sku ? `<p class="mt-1 text-xs text-gray-400">SKU ${escapeHtml(i.sku)}</p>` : ''}
                   </div>
-                `
-              )
-              .join('')}
-          </div>
-        `;
-      } catch (e) {
-        toast(e.message);
-      }
-    };
+                  <p class="shrink-0 text-sm font-bold text-gray-950">${Number(i.line_total || 0).toLocaleString()} TZS</p>
+                </div>`).join('') : '<p class="p-6 text-sm text-gray-500">No order items available.</p>'}
+            </div>
+          </section>
+
+          <aside class="space-y-4">
+            <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Payment</p>
+              <p class="mt-2 text-sm font-semibold capitalize text-gray-950">${escapeHtml(formatOrderStatus(o.payment_status))}</p>
+              <div class="mt-5 space-y-3 border-t border-gray-100 pt-5 text-sm">
+                <div class="flex justify-between gap-4"><span class="text-gray-500">Subtotal</span><strong>${Number(o.subtotal || 0).toLocaleString()} TZS</strong></div>
+                <div class="flex justify-between gap-4"><span class="text-gray-500">Delivery</span><strong>${Number(o.delivery_fee || 0).toLocaleString()} TZS</strong></div>
+                <div class="flex justify-between gap-4 border-t border-gray-100 pt-3 text-base"><span class="font-semibold">Total</span><strong>${Number(o.total || 0).toLocaleString()} TZS</strong></div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Delivery</p>
+              <p class="mt-2 text-sm font-semibold text-gray-950">${escapeHtml(o.customer?.name || 'Customer')}</p>
+              <p class="mt-1 text-sm leading-6 text-gray-500">${escapeHtml(o.delivery?.address || 'Delivery address unavailable')}</p>
+              ${o.customer?.phone ? `<p class="mt-3 text-sm text-gray-600">${escapeHtml(o.customer.phone)}</p>` : ''}
+            </div>
+
+            ${canCancel ? `<button data-cancel-order type="button" class="w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Cancel order</button>` : ''}
+          </aside>
+        </div>
+      `;
+
+      page.querySelector('[data-cancel-order]')?.addEventListener('click', async event => {
+        const button = event.currentTarget;
+        if (!window.confirm('Cancel this order?')) return;
+        button.disabled = true;
+        button.textContent = 'Cancelling…';
+        try {
+          const response = await api(`/orders/${encodeURIComponent(page.dataset.orderNumber)}/cancel`, { method: 'POST' });
+          const updated = response.data;
+          toast('Order cancelled');
+          setTimeout(() => location.reload(), 350);
+        } catch (e) {
+          button.disabled = false;
+          button.textContent = 'Cancel order';
+          toast(e.message);
+        }
+      });
+    } catch (e) {
+      page.querySelector('[data-order-detail-content]').innerHTML = `
+        <div class="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">${escapeHtml(e.message || 'Unable to load this order.')}</div>`;
+    }
+  };
 
   const bootAddresses =
     async () => {
@@ -2638,6 +2786,7 @@ const bootCatalog = async () => {
   bootWishlist();
   bootCheckout();
   bootAccount();
+  bootReturns();
   bootOrders();
   bootOrderDetail();
   bootAddresses();

@@ -3,7 +3,7 @@
 <div class="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
     <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
 
-        @include('account._account-sidebar')
+        @include('components.account-sidebar')
 
         <div data-size-profile-page>
             <div class="border-b border-gray-200 pb-6">
@@ -82,3 +82,37 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    const page = document.querySelector('[data-size-profile-page]');
+    if (!page) return;
+    const form = page.querySelector('[data-size-profile-form]');
+    const button = form?.querySelector('button[type="submit"]');
+    const token = localStorage.getItem('kp_api_token');
+    if (!token) { window.location.href = '/login'; return; }
+    const api = async (path, options = {}) => {
+        const response = await fetch(`/api/v1${path}`, { ...options, headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) } });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(data?.message || Object.values(data?.errors || {})?.flat?.()?.[0] || `Request failed (${response.status})`);
+        return data;
+    };
+    (async () => {
+        try {
+            const data = (await api('/account/preferences'))?.data?.size_profile || {};
+            ['top','bottom','shoe'].forEach(key => { if (data[key]) form.querySelector(`[name="size_${key}"][value="${CSS.escape(data[key])}"]`)?.click(); });
+        } catch (e) { window.dispatchEvent(new CustomEvent('kp:toast', { detail: e.message || 'Unable to save your size profile.' })); }
+    })();
+    form?.addEventListener('submit', async e => {
+        e.preventDefault(); button.disabled = true; const old = button.textContent; button.textContent = 'Saving…';
+        try {
+            await api('/account/preferences/size-profile', { method: 'PUT', body: JSON.stringify({ top: form.querySelector('[name="size_top"]:checked')?.value || null, bottom: form.querySelector('[name="size_bottom"]:checked')?.value || null, shoe: form.querySelector('[name="size_shoe"]:checked')?.value || null }) });
+            button.textContent = 'Saved';
+            setTimeout(() => { button.textContent = old; }, 1400);
+        } catch (e) { button.textContent = old; window.dispatchEvent(new CustomEvent('kp:toast', { detail: e.message || 'Unable to save your size profile.' })); }
+        finally { button.disabled = false; }
+    });
+})();
+</script>
+@endpush

@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (! Schema::hasColumn('user_profiles', 'size_profile')) {
+            Schema::table('user_profiles', function (Blueprint $table): void {
+                $table->json('size_profile')->nullable()->after('timezone');
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        if (Schema::hasColumn('user_profiles', 'size_profile')) {
+            Schema::table('user_profiles', function (Blueprint $table): void {
+                $table->dropColumn('size_profile');
+            });
+        }
+    }
+};
