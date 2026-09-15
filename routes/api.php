@@ -31,6 +31,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         });
     });
 
+    Route::post('/contact', [\App\Http\Controllers\Api\V1\ContactController::class, 'store'])->middleware('throttle:5,10');
+
     Route::prefix('wear')->group(function () {
         Route::get('/categories', [WearCatalogController::class, 'categories']);
         Route::get('/collections', [WearCatalogController::class, 'collections']);
@@ -59,6 +61,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         Route::apiResource('addresses', AddressController::class)->except(['show']);
         Route::get('/account/preferences', [AccountPreferencesController::class, 'show']);
+        Route::put('/account/profile', [AccountPreferencesController::class, 'updateProfile']);
         Route::put('/account/preferences/notifications', [AccountPreferencesController::class, 'updateNotifications']);
         Route::put('/account/preferences/size-profile', [AccountPreferencesController::class, 'updateSizeProfile']);
 

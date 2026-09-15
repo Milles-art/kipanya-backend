@@ -31,13 +31,27 @@ final class WearCatalogController extends Controller
                     });
                 }
             )
-            ->when(
-                $request->boolean('featured'),
-                fn ($query) => $query->where('is_featured', true)
-            )
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->paginate($request->integer('per_page', 20));
+            ->when($request->boolean('featured'), fn (Builder $query) => $query->where('is_featured', true))
+            ->when($request->filled('q'), function (Builder $query) use ($request): void {
+                $term = '%' . Str::lower($request->string('q')->trim()->toString()) . '%';
+                $query->where(function (Builder $search) use ($term): void {
+                    $search->whereRaw('LOWER(name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(description) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(category) LIKE ?', [$term]);
+                });
+            })
+            ->when($request->filled('price_min'), fn (Builder $query) => $query->where('price', '>=', $request->input('price_min')))
+            ->when($request->filled('price_max'), fn (Builder $query) => $query->where('price', '<=', $request->input('price_max')))
+            ->when($request->boolean('sale'), fn (Builder $query) => $query->whereNotNull('compare_at_price')->whereColumn('compare_at_price', '>', 'price'));
+
+        match ($request->input('sort', 'featured')) {
+            'price-asc' => $products->orderBy('price')->orderBy('id'),
+            'price-desc' => $products->orderByDesc('price')->orderBy('id'),
+            'newest' => $products->orderByDesc('id'),
+            default => $products->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('id'),
+        };
+
+        $products = $products->paginate($request->integer('per_page', 20));
 
         return WearProductResource::collection($products);
     }

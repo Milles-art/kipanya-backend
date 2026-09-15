@@ -143,7 +143,7 @@
                 </div>
             </div>
 
-            <form class="rounded-3xl border border-gray-200 bg-white p-6 shadow-[0_16px_48px_rgba(0,0,0,0.04)] sm:p-8" onsubmit="return false;">
+            <form data-contact-form class="rounded-3xl border border-gray-200 bg-white p-6 shadow-[0_16px_48px_rgba(0,0,0,0.04)] sm:p-8">
                 <div class="grid gap-5 sm:grid-cols-2">
                     <label class="block">
                         <span class="text-xs font-bold uppercase tracking-[0.16em] text-gray-600">Name</span>
@@ -170,8 +170,8 @@
                     <span class="text-xs font-bold uppercase tracking-[0.16em] text-gray-600">Message</span>
                     <textarea name="message" rows="6" required class="kp-input mt-2 w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-950 placeholder:text-gray-400" placeholder="How can we help?"></textarea>
                 </label>
-                <p class="mt-4 text-xs leading-5 text-gray-500">This form is ready for the KP Wear contact endpoint when contact submission is connected.</p>
-                <button type="submit" disabled class="mt-6 inline-flex cursor-not-allowed items-center justify-center rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white opacity-60 transition enabled:cursor-pointer enabled:opacity-100 enabled:hover:-translate-y-0.5 enabled:hover:bg-emerald-700">
+                <p data-contact-feedback class="mt-4 hidden rounded-xl px-4 py-3 text-sm" role="status" aria-live="polite"></p>
+                <button data-contact-submit type="submit" class="mt-6 inline-flex items-center justify-center rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
                     Send message
                 </button>
             </form>
@@ -181,6 +181,33 @@
 @endsection
 
 @push('scripts')
+<script>
+(function () {
+  const form = document.querySelector('[data-contact-form]');
+  if (!form) return;
+  const button = form.querySelector('[data-contact-submit]');
+  const feedback = form.querySelector('[data-contact-feedback]');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    feedback.className = 'mt-4 hidden rounded-xl px-4 py-3 text-sm';
+    button.disabled = true;
+    const original = button.textContent;
+    button.textContent = 'Sending…';
+    const fd = new FormData(form);
+    try {
+      const response = await fetch('/api/v1/contact', { method:'POST', headers:{Accept:'application/json','Content-Type':'application/json'}, body:JSON.stringify({name:fd.get('name'),email:fd.get('email'),type:fd.get('type'),message:fd.get('message')}) });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || Object.values(data?.errors || {}).flat?.()?.[0] || `Request failed (${response.status})`);
+      feedback.textContent = data?.message || 'Your message has been sent.';
+      feedback.className = 'mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700';
+      form.reset();
+    } catch (error) {
+      feedback.textContent = error.message || 'Unable to send your message right now.';
+      feedback.className = 'mt-4 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700';
+    } finally { button.disabled=false; button.textContent=original; }
+  });
+})();
+</script>
 <script>
 (function () {
   const reveals  = document.querySelectorAll('.kp-reveal');

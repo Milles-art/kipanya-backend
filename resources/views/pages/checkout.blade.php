@@ -85,7 +85,7 @@
             {{-- Error + place order --}}
             <div data-checkout-error class="hidden items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert"></div>
 
-            <button data-place-order class="button-dark flex w-full items-center justify-center gap-2 py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50">
+            <button data-place-order disabled class="button-dark flex w-full items-center justify-center gap-2 py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50">
                 <x-tabler-lock size="16" />
                 Place order
             </button>

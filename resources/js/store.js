@@ -31,6 +31,10 @@
     );
   };
 
+  window.addEventListener('kp:toast', event => {
+    if (event.detail) toast(event.detail);
+  });
+
   const escapeHtml = (value) => String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -239,6 +243,12 @@
 
       bag:
         '<path d="M6 8h12l1 13H5L6 8Z"></path><path d="M9 8a3 3 0 0 1 6 0"></path>',
+
+      x:
+        '<path d="M6 6l12 12M18 6 6 18"></path>',
+
+      clock:
+        '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
 
       star:
         '<path d="m12 3 2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 17.2l-5.56 2.92 1.06-6.2L3 9.53l6.22-.9L12 3Z"></path>'
@@ -704,7 +714,7 @@ const bootHome = async () => {
       products,
       categories
     ] = await Promise.all([
-      fetchProducts('per_page=12'),
+      fetchProducts('per_page=12&featured=1'),
       fetchCategories()
     ]);
 
@@ -959,203 +969,6 @@ const bootCatalog = async () => {
       return true;
     };
 
-    const apply = () => {
-      let result =
-        state.products.filter(p => {
-          if (
-            !state.collection &&
-            state.category &&
-            slugify(p.category) !== state.category
-          ) {
-            return false;
-          }
-
-          if (state.search) {
-            const q =
-              state.search.toLowerCase();
-
-            const haystack =
-              `${p.name || ''} ${
-                p.description || ''
-              } ${
-                p.category || ''
-              }`.toLowerCase();
-
-            if (
-              !haystack.includes(q)
-            ) {
-              return false;
-            }
-          }
-
-          if (!priceMatch(p)) {
-            return false;
-          }
-
-          if (
-            state.saleOnly &&
-            !productOnSale(p)
-          ) {
-            return false;
-          }
-
-          return true;
-        });
-
-      if (
-        state.sort === 'price-asc'
-      ) {
-        result.sort(
-          (a, b) =>
-            Number(a.price) -
-            Number(b.price)
-        );
-      } else if (
-        state.sort === 'price-desc'
-      ) {
-        result.sort(
-          (a, b) =>
-            Number(b.price) -
-            Number(a.price)
-        );
-      } else if (
-        state.sort === 'newest'
-      ) {
-        result.sort(
-          (a, b) =>
-            Number(b.id) -
-            Number(a.id)
-        );
-      } else if (
-        state.sort === 'rating'
-      ) {
-        result.sort(
-          (a, b) =>
-            Number(b.id) -
-            Number(a.id)
-        );
-      } else {
-        result.sort(
-          (a, b) =>
-            Number(b.is_featured) -
-            Number(a.is_featured)
-        );
-      }
-
-      renderProductGrid(
-        page,
-        result
-      );
-
-      if (count) {
-        count.textContent =
-          `${result.length} ${
-            result.length === 1
-              ? 'product'
-              : 'products'
-          } found`;
-      }
-
-      empty?.classList.toggle(
-        'hidden',
-        result.length > 0
-      );
-
-      empty?.classList.toggle(
-        'flex',
-        result.length === 0
-      );
-
-      const filters =
-        (state.category ? 1 : 0) +
-        (state.price !== 'all'
-          ? 1
-          : 0) +
-        (state.saleOnly ? 1 : 0) +
-        (state.search ? 1 : 0);
-
-      filterCount?.classList.toggle(
-        'hidden',
-        filters === 0
-      );
-
-      filterCount?.classList.toggle(
-        'inline-flex',
-        filters > 0
-      );
-
-      if (filterCount) {
-        filterCount.textContent =
-          String(filters);
-      }
-
-      clearButton?.classList.toggle(
-        'hidden',
-        filters === 0
-      );
-
-      saleToggle?.classList.toggle(
-        'bg-emerald-600',
-        state.saleOnly
-      );
-
-      saleToggle?.classList.toggle(
-        'bg-gray-200',
-        !state.saleOnly
-      );
-
-      saleToggle?.setAttribute(
-        'aria-pressed',
-        state.saleOnly
-          ? 'true'
-          : 'false'
-      );
-
-      saleToggle
-        ?.querySelector('span')
-        ?.classList.toggle(
-          'translate-x-5',
-          state.saleOnly
-        );
-
-      saleToggle
-        ?.querySelector('span')
-        ?.classList.toggle(
-          'translate-x-0',
-          !state.saleOnly
-        );
-
-      document
-        .querySelectorAll(
-          '[data-catalog-categories] [data-category]'
-        )
-        .forEach(button => {
-          const active =
-            slugify(button.dataset.category) ===
-            slugify(state.category || '');
-
-          button.classList.toggle(
-            'bg-emerald-50',
-            active
-          );
-
-          button.classList.toggle(
-            'text-emerald-700',
-            active
-          );
-
-          button.classList.toggle(
-            'font-medium',
-            active
-          );
-
-          button.classList.toggle(
-            'text-gray-600',
-            !active
-          );
-        });
-    };
-
     const renderFilters =
       categories => {
         const markup = `
@@ -1263,328 +1076,166 @@ const bootCatalog = async () => {
         }
       };
 
-    try {
-      const [products, apiCategories, collectionData] = await Promise.all([
-        state.collection ? Promise.resolve([]) : fetchProducts('per_page=50'),
-        fetchCategories(),
-        state.collection ? fetchCollection(state.collection) : Promise.resolve(null)
-      ]);
+    let debounceTimer;
+    let requestController = null;
 
-      state.products = state.collection
-        ? (collectionData?.products || [])
-        : products;
+    const priceParams = () => {
+      if (state.price === 'under-50000') return { price_max: 49999 };
+      if (state.price === '50000-150000') return { price_min: 50000, price_max: 150000 };
+      if (state.price === 'over-150000') return { price_min: 150001 };
+      return {};
+    };
 
-      if (state.collection && collectionData) {
-        const heading = document.querySelector('.kp-shop-page h1');
-        const description = document.querySelector('.kp-shop-page [data-catalog-count]');
-        if (heading) heading.textContent = collectionData.name || 'Collection';
-        if (description) description.textContent = collectionData.description || '';
-        const context = document.querySelector('.kp-shop-page main > div:first-child > p');
-        if (context) context.textContent = 'Kipanya Wear collection';
-      }
+    const setLoading = (loading) => {
+      page.setAttribute('aria-busy', loading ? 'true' : 'false');
+      if (loading) renderProductSkeletons(page, 8);
+    };
 
-      // Kipanya Wear shop categories. Keep the sidebar limited to the five
-      // categories defined for the Wear catalogue.
-      const categories = [
-        'Hoodies',
-        'Long Sleeves',
-        'T-Shirts',
-        'Shirts',
-        'Polos'
-      ].map(name => ({
-        name,
-        slug: slugify(name)
-      }));
+    const loadProducts = async () => {
+      if (requestController) requestController.abort();
+      requestController = new AbortController();
+      setLoading(true);
 
-      if (searchInput) {
-        searchInput.value =
-          state.search;
-      }
+      const params = new URLSearchParams();
+      params.set('per_page', '24');
+      params.set('page', String(state.page || 1));
+      if (state.category && !state.collection) params.set('category', state.category);
+      if (state.search) params.set('q', state.search);
+      if (state.saleOnly) params.set('sale', '1');
+      if (state.sort) params.set('sort', state.sort);
+      Object.entries(priceParams()).forEach(([key, value]) => params.set(key, String(value)));
 
-      if (state.category) {
-        state.category = slugify(
-          decodeURIComponent(state.category)
-        );
-      }
+      try {
+        const response = state.collection
+          ? await api(`/wear/collections/${encodeURIComponent(state.collection)}`)
+          : await api(`/wear/products?${params.toString()}`, { signal: requestController.signal });
 
-      if (categoryHost) {
-        categoryHost.innerHTML = [
-          '<button type="button" data-category="" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Products</button>',
-
-          ...categories.map(
-            c =>
-              `<button type="button" data-category="${c.slug}" class="w-full rounded-lg px-3 py-2 text-left text-sm">${c.name}</button>`
-          )
-        ].join('');
-      }
-
-      if (mobileContent) {
-        mobileContent.innerHTML = `
-          <div class="space-y-8">
-            <div>
-              <div class="mb-4 flex items-center justify-between">
-                <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900">
-                  Category
-                </h3>
-
-                <button
-                  type="button"
-                  data-catalog-clear-mobile
-                  class="text-xs font-medium text-emerald-600"
-                >
-                  Clear all
-                </button>
-              </div>
-
-              <div
-                data-mobile-categories
-                class="space-y-1"
-              >
-                <button
-                  type="button"
-                  data-category=""
-                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
-                >
-                  All Products
-                </button>
-
-                ${categories
-                  .map(
-                    c =>
-                      `<button type="button" data-category="${c.slug}" class="w-full rounded-lg px-3 py-2 text-left text-sm">${c.name}</button>`
-                  )
-                  .join('')}
-              </div>
-            </div>
-
-            <div>
-              <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">
-                Price Range
-              </h3>
-
-              <div class="space-y-1">
-                <button
-                  type="button"
-                  data-price="all"
-                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
-                >
-                  All Prices
-                </button>
-
-                <button
-                  type="button"
-                  data-price="under-50000"
-                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
-                >
-                  Under 50,000 TZS
-                </button>
-
-                <button
-                  type="button"
-                  data-price="50000-150000"
-                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
-                >
-                  50,000 – 150,000 TZS
-                </button>
-
-                <button
-                  type="button"
-                  data-price="over-150000"
-                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
-                >
-                  Over 150,000 TZS
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">
-                Special
-              </h3>
-
-              <label class="flex items-center gap-3">
-                <button
-                  type="button"
-                  data-catalog-sale-toggle-mobile
-                  class="relative h-6 w-11 rounded-full bg-gray-200"
-                >
-                  <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"></span>
-                </button>
-
-                <span class="text-sm text-gray-700">
-                  On Sale Only
-                </span>
-              </label>
-            </div>
-          </div>
-        `;
-      }
-
-      const catalogClickHandler =
-        event => {
-          const category =
-            event.target.closest(
-              '[data-category]'
-            );
-
-          if (category) {
-            state.category =
-              category.dataset.category ||
-              '';
-
-            apply();
-
-            mobilePanel?.classList.add(
-              'hidden'
-            );
-          }
-
-          const price =
-            event.target.closest(
-              '[data-price]'
-            );
-
-          if (price) {
-            state.price =
-              price.dataset.price ||
-              'all';
-
-            document
-              .querySelectorAll(
-                '[data-catalog-prices] [data-price], [data-catalog-mobile-content] [data-price]'
-              )
-              .forEach(el => {
-                const active =
-                  el.dataset.price ===
-                  state.price;
-
-                el.classList.toggle(
-                  'bg-emerald-50',
-                  active
-                );
-
-                el.classList.toggle(
-                  'text-emerald-700',
-                  active
-                );
-
-                el.classList.toggle(
-                  'font-medium',
-                  active
-                );
-              });
-
-            apply();
-          }
-
-          const clear =
-            event.target.closest(
-              '[data-catalog-clear],[data-catalog-clear-mobile],[data-catalog-empty-clear]'
-            );
-
-          if (clear) {
-            state.category = '';
-            state.search = '';
-            state.price = 'all';
-            state.saleOnly = false;
-
-            if (searchInput) {
-              searchInput.value = '';
+        const payload = response?.data || {};
+        if (state.collection) {
+          const collectionProducts = Array.isArray(payload.products) ? payload.products : [];
+          state.products = collectionProducts.filter(product => {
+            if (state.search) {
+              const q = state.search.toLowerCase();
+              const haystack = `${product.name || ''} ${product.description || ''} ${product.category || ''}`.toLowerCase();
+              if (!haystack.includes(q)) return false;
             }
-
-            apply();
-          }
-
-          const mobileSale =
-            event.target.closest(
-              '[data-catalog-sale-toggle-mobile]'
-            );
-
-          if (mobileSale) {
-            state.saleOnly =
-              !state.saleOnly;
-
-            apply();
-          }
-        };
-
-      document.addEventListener(
-        'click',
-        catalogClickHandler
-      );
-
-      searchInput?.addEventListener(
-        'input',
-        () => {
-          state.search =
-            searchInput.value.trim();
-
-          apply();
+            if (state.price === 'under-50000' && Number(product.price || 0) >= 50000) return false;
+            if (state.price === '50000-150000' && (Number(product.price || 0) < 50000 || Number(product.price || 0) > 150000)) return false;
+            if (state.price === 'over-150000' && Number(product.price || 0) <= 150000) return false;
+            if (state.saleOnly && !productOnSale(product)) return false;
+            return true;
+          });
+          if (state.sort === 'price-asc') state.products.sort((a,b) => Number(a.price)-Number(b.price));
+          else if (state.sort === 'price-desc') state.products.sort((a,b) => Number(b.price)-Number(a.price));
+          else if (state.sort === 'newest') state.products.sort((a,b) => Number(b.id)-Number(a.id));
+          else state.products.sort((a,b) => Number(b.is_featured)-Number(a.is_featured));
+          const heading = document.querySelector('.kp-shop-page h1');
+          const description = document.querySelector('.kp-shop-page [data-catalog-count]');
+          if (heading) heading.textContent = payload.name || 'Collection';
+          if (description) description.textContent = payload.description || '';
+        } else {
+          state.products = Array.isArray(payload) ? payload : [];
         }
-      );
 
-      sortSelect?.addEventListener(
-        'change',
-        () => {
-          state.sort =
-            sortSelect.value;
+        renderProductGrid(page, state.products);
 
-          apply();
+        const total = state.collection
+          ? state.products.length
+          : Number(response?.meta?.total ?? state.products.length);
+        if (count) count.textContent = `${total} ${total === 1 ? 'product' : 'products'} found`;
+        empty?.classList.toggle('hidden', state.products.length > 0);
+        empty?.classList.toggle('flex', state.products.length === 0);
+
+        const pagination = document.querySelector('[data-catalog-pagination]');
+        if (pagination) {
+          const current = Number(response?.meta?.current_page || 1);
+          const last = Number(response?.meta?.last_page || 1);
+          pagination.innerHTML = (!state.collection && last > 1) ? `
+            <div class="mt-10 flex items-center justify-center gap-3">
+              <button type="button" data-catalog-page="${Math.max(1,current-1)}" ${current <= 1 ? 'disabled' : ''} class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+              <span class="text-sm text-gray-500">Page ${current} of ${last}</span>
+              <button type="button" data-catalog-page="${Math.min(last,current+1)}" ${current >= last ? 'disabled' : ''} class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+            </div>` : '';
         }
-      );
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        page.innerHTML = '';
+        empty?.classList.remove('hidden');
+        empty?.classList.add('flex');
+        if (count) count.textContent = '';
+        toast(e.message || 'Unable to load products.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      saleToggle?.addEventListener(
-        'click',
-        () => {
-          state.saleOnly =
-            !state.saleOnly;
+    const apply = () => {
+      state.page = 1;
+      const filters =
+        (state.category ? 1 : 0) +
+        (state.price !== 'all' ? 1 : 0) +
+        (state.saleOnly ? 1 : 0) +
+        (state.search ? 1 : 0);
 
-          apply();
-        }
-      );
+      filterCount?.classList.toggle('hidden', filters === 0);
+      filterCount?.classList.toggle('inline-flex', filters > 0);
+      if (filterCount) filterCount.textContent = String(filters);
+      clearButton?.classList.toggle('hidden', filters === 0);
+      saleToggle?.classList.toggle('bg-emerald-600', state.saleOnly);
+      saleToggle?.classList.toggle('bg-gray-200', !state.saleOnly);
+      saleToggle?.setAttribute('aria-pressed', state.saleOnly ? 'true' : 'false');
+      saleToggle?.querySelector('span')?.classList.toggle('translate-x-5', state.saleOnly);
+      saleToggle?.querySelector('span')?.classList.toggle('translate-x-0', !state.saleOnly);
 
-      document
-        .querySelector(
-          '[data-catalog-filter-toggle]'
-        )
-        ?.addEventListener(
-          'click',
-          () =>
-            mobilePanel?.classList.remove(
-              'hidden'
-            )
-        );
+      document.querySelectorAll('[data-catalog-categories] [data-category]').forEach(button => {
+        const active = slugify(button.dataset.category) === slugify(state.category || '');
+        button.classList.toggle('bg-emerald-50', active);
+        button.classList.toggle('text-emerald-700', active);
+        button.classList.toggle('font-medium', active);
+        button.classList.toggle('text-gray-600', !active);
+      });
 
-      document
-        .querySelector(
-          '[data-catalog-filter-close]'
-        )
-        ?.addEventListener(
-          'click',
-          () =>
-            mobilePanel?.classList.add(
-              'hidden'
-            )
-        );
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(loadProducts, state.search ? 250 : 0);
+    };
 
-      mobilePanel?.addEventListener(
-        'click',
-        event => {
-          if (
-            event.target ===
-            mobilePanel
-          ) {
-            mobilePanel.classList.add(
-              'hidden'
-            );
-          }
-        }
-      );
+    const categories = [
+      'Hoodies','Long Sleeves','T-Shirts','Shirts','Polos'
+    ].map(name => ({ name, slug: slugify(name) }));
 
-      apply();
-    } catch (e) {
-      toast(e.message);
+    if (searchInput) searchInput.value = state.search;
+    if (categoryHost) {
+      categoryHost.innerHTML = ['<button type="button" data-category="" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Products</button>', ...categories.map(c => `<button type="button" data-category="${c.slug}" class="w-full rounded-lg px-3 py-2 text-left text-sm">${c.name}</button>`)].join('');
     }
+    if (mobileContent) {
+      mobileContent.innerHTML = `<div class="space-y-8"><div><div class="mb-4 flex items-center justify-between"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900">Category</h3><button type="button" data-catalog-clear-mobile class="text-xs font-medium text-emerald-600">Clear all</button></div><div data-mobile-categories class="space-y-1"><button type="button" data-category="" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Products</button>${categories.map(c=>`<button type="button" data-category="${c.slug}" class="w-full rounded-lg px-3 py-2 text-left text-sm">${c.name}</button>`).join('')}</div></div><div><h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">Price Range</h3><div class="space-y-1"><button type="button" data-price="all" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Prices</button><button type="button" data-price="under-50000" class="w-full rounded-lg px-3 py-2 text-left text-sm">Under 50,000 TZS</button><button type="button" data-price="50000-150000" class="w-full rounded-lg px-3 py-2 text-left text-sm">50,000 – 150,000 TZS</button><button type="button" data-price="over-150000" class="w-full rounded-lg px-3 py-2 text-left text-sm">Over 150,000 TZS</button></div></div><div><h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">Special</h3><label class="flex items-center gap-3"><button type="button" data-catalog-sale-toggle-mobile class="relative h-6 w-11 rounded-full bg-gray-200"><span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"></span></button><span class="text-sm text-gray-700">On Sale Only</span></label></div></div>`;
+    }
+
+    const catalogClickHandler = event => {
+      const category = event.target.closest('[data-category]');
+      const price = event.target.closest('[data-price]');
+      const clear = event.target.closest('[data-catalog-clear],[data-catalog-clear-mobile],[data-catalog-empty-clear]');
+      const mobileSale = event.target.closest('[data-catalog-sale-toggle-mobile]');
+      const pageButton = event.target.closest('[data-catalog-page]');
+
+      if (category) { state.category = category.dataset.category || ''; apply(); mobilePanel?.classList.add('hidden'); }
+      if (price) { state.price = price.dataset.price || 'all'; apply(); }
+      if (clear) { state.category=''; state.search=''; state.price='all'; state.saleOnly=false; if(searchInput) searchInput.value=''; apply(); }
+      if (mobileSale) { state.saleOnly=!state.saleOnly; apply(); }
+      if (pageButton && !pageButton.disabled) { state.page = Number(pageButton.dataset.catalogPage); loadProducts(); window.scrollTo({top:0,behavior:'smooth'}); }
+    };
+
+    document.addEventListener('click', catalogClickHandler);
+    searchInput?.addEventListener('input', () => { state.search=searchInput.value.trim(); apply(); });
+    sortSelect?.addEventListener('change', () => { state.sort=sortSelect.value; state.page=1; loadProducts(); });
+    saleToggle?.addEventListener('click', () => { state.saleOnly=!state.saleOnly; apply(); });
+    document.querySelector('[data-catalog-search-clear]')?.addEventListener('click', () => { state.search=''; if(searchInput) searchInput.value=''; apply(); });
+    document.querySelector('[data-catalog-filter-toggle]')?.addEventListener('click', () => mobilePanel?.classList.remove('hidden'));
+    document.querySelector('[data-catalog-filter-close]')?.addEventListener('click', () => mobilePanel?.classList.add('hidden'));
+    mobilePanel?.addEventListener('click', event => { if(event.target === mobilePanel) mobilePanel.classList.add('hidden'); });
+
+    // Collection pages use the collection endpoint; normal shop pages use the paginated product endpoint.
+    await loadProducts();
   };
 
   const bootProduct = async () => {
@@ -1602,7 +1253,7 @@ const bootCatalog = async () => {
       if (!p) throw new Error('Product not found');
 
       const variants = p.variants || [];
-      const firstAvailable = findFirstVariant(p);
+      let firstAvailable = findFirstVariant(p);
       const totalStock = variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
 
       page.querySelector('[data-product-name]').textContent = p.name || '';
@@ -1650,6 +1301,29 @@ const bootCatalog = async () => {
           return `<button type="button" data-variant="${escapeHtml(v.id)}" data-stock="${escapeHtml(v.stock)}" data-label="${escapeHtml(label)}" class="rounded-xl border px-4 py-2.5 text-sm ${String(v.id) === String(firstAvailable?.id || '') ? 'border-gray-950 bg-gray-950 text-white' : 'border-gray-200'}" ${!v.in_stock ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(label)}${!v.in_stock ? ' · Sold out' : ''}</button>`;
         }).join('') || '<span class="text-sm text-gray-500">No variants available.</span>';
         selectedLabel.textContent = firstAvailable ? [firstAvailable.size, firstAvailable.color].filter(Boolean).join(' · ') : '';
+        page.querySelector('[data-quantity]')?.setAttribute('max', String(Math.min(50, Math.max(1, Number(firstAvailable?.stock || 1)))));
+      }
+
+      // Pre-select the customer's saved size when it matches an available variant.
+      if (token() && variants.length) {
+        try {
+          const preferenceResponse = await api('/account/preferences');
+          const saved = preferenceResponse?.data?.size_profile || {};
+          const categoryText = String(p.category || '').toLowerCase();
+          const preferredSize = categoryText.includes('shoe') || categoryText.includes('footwear') ? saved.shoe : (categoryText.includes('bottom') || categoryText.includes('trouser') || categoryText.includes('pant') ? saved.bottom : saved.top);
+          const preferred = variants.find(v => v.in_stock && String(v.size || '') === String(preferredSize || ''));
+          if (preferred) {
+            firstAvailable = preferred;
+            page.dataset.selectedVariant = preferred.id;
+            selectedLabel.textContent = [preferred.size, preferred.color].filter(Boolean).join(' · ');
+            variantsBox?.querySelectorAll('[data-variant]').forEach(button => {
+              const active = String(button.dataset.variant) === String(preferred.id);
+              button.classList.toggle('border-gray-950', active);
+              button.classList.toggle('bg-gray-950', active);
+              button.classList.toggle('text-white', active);
+            });
+          }
+        } catch {}
       }
 
       const setVariant = btn => {
@@ -1657,7 +1331,10 @@ const bootCatalog = async () => {
         selectedLabel.textContent = btn.dataset.label || '';
         page.querySelectorAll('[data-variant]').forEach(x => x.classList.remove('border-gray-950', 'bg-gray-950', 'text-white'));
         btn.classList.add('border-gray-950', 'bg-gray-950', 'text-white');
-        page.querySelector('[data-quantity]').value = 1;
+        const quantityInput = page.querySelector('[data-quantity]');
+        const maxStock = Math.min(50, Math.max(1, Number(btn.dataset.stock || 1)));
+        quantityInput.max = String(maxStock);
+        quantityInput.value = 1;
       };
 
       variantsBox?.addEventListener('click', e => {
@@ -1670,7 +1347,12 @@ const bootCatalog = async () => {
         quantity.value = Math.max(1, Number(quantity.value || 1) - 1);
       });
       page.querySelector('[data-quantity-plus]')?.addEventListener('click', () => {
-        quantity.value = Math.min(50, Number(quantity.value || 1) + 1);
+        quantity.value = Math.min(Number(quantity.max || 50), Number(quantity.value || 1) + 1);
+      });
+      quantity?.addEventListener('input', () => {
+        const max = Number(quantity.max || 50);
+        const value = Math.max(1, Math.min(max, Number(quantity.value || 1)));
+        quantity.value = value;
       });
 
       page.querySelector('[data-product-wishlist]')?.addEventListener('click', async event => {
@@ -1729,7 +1411,7 @@ const bootCatalog = async () => {
         return `
           <article class="flex gap-4 py-5 sm:gap-6">
             <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-50 sm:h-32 sm:w-28">
-              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy">
+              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'">
             </a>
 
             <div class="min-w-0 flex-1">
@@ -2188,6 +1870,7 @@ const bootCatalog = async () => {
       addressList.querySelectorAll('input[name="address_id"]').forEach(input => {
         input.addEventListener('change', () => {
           selectedAddress = Number(input.value);
+          if (placeButton && !placeButton.dataset.checkoutBlocked) placeButton.removeAttribute('disabled');
           addressList.querySelectorAll('label').forEach(label => label.classList.remove('border-gray-950', 'bg-gray-50'));
           input.closest('label')?.classList.add('border-gray-950', 'bg-gray-50');
           clearError();
@@ -2220,6 +1903,8 @@ const bootCatalog = async () => {
         <div class="flex justify-between"><span>Delivery</span><strong>${Number(d.delivery_fee || 0).toLocaleString()} TZS</strong></div>
         <div class="mt-3 flex justify-between border-t border-gray-200 pt-3 text-base"><span>Total</span><strong>${Number(d.total || 0).toLocaleString()} TZS</strong></div>
       `;
+
+      if (items.length && selectedAddress) placeButton?.removeAttribute('disabled');
     } catch (e) {
       summary.innerHTML = '<p class="text-sm text-red-600">We could not load your checkout summary. Please return to your cart and try again.</p>';
       placeButton?.setAttribute('disabled', 'disabled');
@@ -2523,6 +2208,56 @@ const bootCatalog = async () => {
     }
   };
 
+  const bootOrderStatus = async () => {
+    const page = document.querySelector('[data-order-status]');
+    if (!page) return;
+    const orderNumber = page.dataset.orderNumber;
+    const text = page.querySelector('[data-order-status-text]');
+    const title = page.querySelector('[data-order-status-title]');
+    const iconBox = page.querySelector('[data-order-status-icon]');
+    const actions = page.querySelector('[data-order-status-actions]');
+
+    if (!token()) {
+      if (text) text.textContent = 'Please sign in to view this order.';
+      return;
+    }
+
+    const render = order => {
+      const status = String(order?.status || 'pending_payment').toLowerCase();
+      const payment = String(order?.payment_status || 'pending').toLowerCase();
+      const paid = payment === 'paid';
+      const cancelled = status === 'cancelled';
+      const pending = !paid && !cancelled;
+      if (title) title.textContent = cancelled ? 'Order cancelled' : paid ? 'Order confirmed' : 'Order created';
+      if (text) {
+        text.innerHTML = cancelled
+          ? '<span class="h-2 w-2 rounded-full bg-rose-500"></span> This order has been cancelled.'
+          : paid
+          ? '<span class="h-2 w-2 rounded-full bg-emerald-500"></span> Payment received. Your order is confirmed.'
+          : '<span class="h-2 w-2 animate-pulse rounded-full bg-amber-500"></span> Your order is awaiting payment.';
+      }
+      if (iconBox) {
+        iconBox.className = `mx-auto flex h-16 w-16 items-center justify-center rounded-full ${cancelled ? 'bg-rose-100 text-rose-700' : paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} ring-8 ${cancelled ? 'ring-rose-50' : paid ? 'ring-emerald-50' : 'ring-amber-50'}`;
+        iconBox.innerHTML = cancelled ? icon('x',30) : paid ? icon('check',30) : icon('clock',30);
+      }
+      if (actions) {
+        actions.innerHTML = `<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
+        actions.querySelector('[data-cancel-pending-order]')?.addEventListener('click', async e => {
+          const button=e.currentTarget; if(!confirm('Cancel this order?')) return; button.disabled=true; button.textContent='Cancelling…';
+          try { await api(`/orders/${encodeURIComponent(order.order_number)}/cancel`, {method:'POST'}); toast('Order cancelled'); location.reload(); }
+          catch(err){button.disabled=false;button.textContent='Cancel order';toast(err.message);}
+        });
+      }
+    };
+
+    try {
+      const response = await api(`/orders/${encodeURIComponent(orderNumber)}`);
+      render(response.data);
+    } catch (e) {
+      if (text) text.textContent = e.message || 'Unable to load this order.';
+    }
+  };
+
   const bootOrders = async () => {
     const page = document.querySelector('[data-orders-page]');
     if (!page) return;
@@ -2788,6 +2523,7 @@ const bootCatalog = async () => {
   bootAccount();
   bootReturns();
   bootOrders();
+  bootOrderStatus();
   bootOrderDetail();
   bootAddresses();
   bootLogout();

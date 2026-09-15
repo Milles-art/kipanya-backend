@@ -32,6 +32,23 @@ final class AccountPreferencesController extends Controller
         ]);
     }
 
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:120'],
+        ]);
+
+        $user = $request->user();
+        $user->update(['name' => trim($data['name'])]);
+
+        return response()->json(['data' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'phone' => $user->phone,
+        ]]);
+    }
+
     public function updateNotifications(Request $request): JsonResponse
     {
         $data = $request->validate([

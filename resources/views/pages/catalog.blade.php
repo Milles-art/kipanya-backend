@@ -158,6 +158,8 @@
                     <p class="mb-5 text-sm text-gray-500">Try adjusting your filters or search terms.</p>
                     <button data-catalog-empty-clear type="button" class="button-dark px-5">Clear All Filters</button>
                 </div>
+
+                <div data-catalog-pagination aria-live="polite"></div>
             </main>
         </div>
     </div>
