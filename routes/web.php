@@ -29,3 +29,5 @@ Route::view('/account/loyalty', 'account.loyalty', ['title' => 'Loyalty & Referr
 Route::view('/account/size-profile', 'account.size-profile', ['title' => 'Size Profile — KP Wear'])->name('account.size-profile');
 Route::view('/account/addresses', 'account.addresses', ['title' => 'Addresses — KP Wear'])->name('account.addresses');
 Route::view('/orders/{orderNumber}', 'pages.order-status')->name('order-status');
+
+require __DIR__.'/admin.php';

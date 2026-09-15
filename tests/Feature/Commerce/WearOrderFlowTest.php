@@ -76,6 +76,40 @@ class WearOrderFlowTest extends TestCase
         $this->assertDatabaseHas('wear_orders', ['checkout_idempotency_key' => 'checkout-00000000000001']);
     }
 
+    public function test_user_can_checkout_again_after_a_previous_cart_was_converted(): void
+    {
+        $user = $this->user();
+        [, $variant] = $this->product(5);
+        $address = $this->address($user);
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', [
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->withHeader('Idempotency-Key', 'checkout-repeat-0001')
+            ->postJson('/api/v1/checkout', ['address_id' => $address->id])
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', [
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->withHeader('Idempotency-Key', 'checkout-repeat-0002')
+            ->postJson('/api/v1/checkout', ['address_id' => $address->id])
+            ->assertOk();
+
+        $this->assertDatabaseCount('wear_orders', 2);
+        $this->assertDatabaseCount('carts', 1);
+        $this->assertDatabaseHas('carts', [
+            'user_id' => $user->id,
+            'status' => 'converted',
+        ]);
+    }
+
     public function test_same_idempotency_key_returns_same_order(): void
     {
         $user = $this->user();

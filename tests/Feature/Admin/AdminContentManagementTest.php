@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Content\Cartoon;
 use App\Models\Content\Category;
 use App\Models\Content\Collection;
+use App\Models\Administration\AuditLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -100,4 +101,38 @@ class AdminContentManagementTest extends TestCase
 
         $this->assertTrue(Collection::findOrFail($collection['id'])->cartoons()->whereKey($cartoon->id)->exists());
     }
+    public function test_admin_mutations_are_audited(): void
+    {
+        $admin = $this->admin();
+
+        $category = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/admin/categories', [
+                'name' => 'Audit Category',
+                'slug' => 'audit-category',
+                'is_active' => true,
+            ])
+            ->assertCreated()
+            ->json('data');
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $admin->id,
+            'action' => 'admin.category.created',
+            'auditable_type' => Category::class,
+            'auditable_id' => $category['id'],
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/v1/admin/categories/{$category['id']}")
+            ->assertOk();
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $admin->id,
+            'action' => 'admin.category.deleted',
+            'auditable_type' => Category::class,
+            'auditable_id' => $category['id'],
+        ]);
+
+        $this->assertSame(2, AuditLog::where('actor_id', $admin->id)->count());
+    }
+
 }

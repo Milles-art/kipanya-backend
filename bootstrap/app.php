@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AddRequestId;
 use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsureAdminPermission;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', [AddRequestId::class]);
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
+            'admin.permission' => EnsureAdminPermission::class,
+            'admin.web' => \App\Http\Middleware\EnsureAdminWebAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

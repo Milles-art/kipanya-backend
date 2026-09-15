@@ -8,6 +8,7 @@ use App\Enums\Commerce\OrderStatus;
 use App\Enums\Commerce\PaymentStatus;
 use App\Enums\Commerce\ReservationStatus;
 use App\Models\Commerce\PaymentTransaction;
+use App\Models\Cart\Cart;
 use App\Models\Commerce\Address;
 use App\Models\User;
 use App\Models\Wear\WearOrder;
@@ -124,6 +125,15 @@ final class OrderService
                 'to_status' => OrderStatus::PendingPayment->value,
                 'reason' => 'Order created and inventory reserved pending payment.',
             ]);
+
+            // A user can have only one cart per status. Converted carts are historical
+            // containers; the order already stores immutable item/price snapshots, so
+            // stale converted carts can be safely removed before converting the current cart.
+            Cart::query()
+                ->where('user_id', $user->id)
+                ->where('status', CartStatus::Converted)
+                ->whereKeyNot($cart->id)
+                ->delete();
 
             $cart->update(['status' => CartStatus::Converted]);
 
