@@ -38,7 +38,7 @@ final class OtpService
         }
 
         $plainCode = (string) random_int(100000, 999999);
-        $this->lastPlainCode = app()->environment(['local', 'testing']) || config('auth.expose_otp_codes', false) ? $plainCode : null;
+        $this->lastPlainCode = app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false) ? $plainCode : null;
 
         $otp = DB::transaction(function () use ($normalized, $purpose, $plainCode) {
             OtpCode::query()
@@ -64,7 +64,7 @@ final class OtpService
 
         // Never expose OTPs in production logs. This is intentionally limited to
         // local development so the Blade client login can be tested without SMS.
-        if (config('auth.log_otp_codes', false)) {
+        if (app()->environment(['local', 'testing']) && config('auth.log_otp_codes', false)) {
             Log::info('Kipanya OTP generated for local testing', [
                 'phone' => $normalized,
                 'purpose' => $purpose->value,

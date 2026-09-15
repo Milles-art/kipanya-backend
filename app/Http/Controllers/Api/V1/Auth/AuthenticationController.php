@@ -42,9 +42,15 @@ final class AuthenticationController extends Controller
 
         $otpService->send($phone, OtpPurpose::Registration);
 
-        return response()->json([
+        $response = [
             'message' => 'If the request is valid, a verification code has been sent.',
-        ]);
+        ];
+
+        if (app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false)) {
+            $response['dev_otp'] = $otpService->lastPlainCode();
+        }
+
+        return response()->json($response);
     }
 
     public function register(
@@ -99,9 +105,15 @@ final class AuthenticationController extends Controller
 
         $otpService->send($phone, OtpPurpose::Login);
 
-        return response()->json([
+        $response = [
             'message' => 'If the request is valid, a verification code has been sent.',
-        ]);
+        ];
+
+        if (app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false)) {
+            $response['dev_otp'] = $otpService->lastPlainCode();
+        }
+
+        return response()->json($response);
     }
 
     public function login(

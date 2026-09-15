@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\V1\Commerce\AddressController;
 use App\Http\Controllers\Api\V1\Commerce\WishlistController;
 use App\Http\Controllers\Api\V1\Commerce\CheckoutController;
 use App\Http\Controllers\Api\V1\Commerce\OrderController;
+use App\Http\Controllers\Api\V1\Commerce\ReturnRequestController;
+use App\Http\Controllers\Api\V1\Commerce\WearCatalogController;
+use App\Http\Controllers\Api\V1\Account\AccountPreferencesController;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::prefix('auth')->group(function () {
@@ -28,6 +31,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         });
     });
 
+    Route::prefix('wear')->group(function () {
+        Route::get('/categories', [WearCatalogController::class, 'categories']);
+        Route::get('/collections', [WearCatalogController::class, 'collections']);
+        Route::get('/collections/{collection:slug}', [WearCatalogController::class, 'collection']);
+        Route::get('/products', [WearCatalogController::class, 'index']);
+        Route::get('/products/{product:slug}', [WearCatalogController::class, 'show']);
+    });
+
     Route::prefix('cart')->group(function () {
         Route::get('/', [CartController::class, 'show']);
         Route::post('/items', [CartController::class, 'store']);
@@ -43,8 +54,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order:order_number}', [OrderController::class, 'show']);
         Route::post('/orders/{order:order_number}/cancel', [OrderController::class, 'cancel']);
+        Route::get('/returns', [ReturnRequestController::class, 'index']);
+        Route::post('/returns', [ReturnRequestController::class, 'store']);
 
         Route::apiResource('addresses', AddressController::class)->except(['show']);
+        Route::get('/account/preferences', [AccountPreferencesController::class, 'show']);
+        Route::put('/account/preferences/notifications', [AccountPreferencesController::class, 'updateNotifications']);
+        Route::put('/account/preferences/size-profile', [AccountPreferencesController::class, 'updateSizeProfile']);
+
         Route::get('/wishlist', [WishlistController::class, 'index']);
         Route::post('/wishlist', [WishlistController::class, 'store']);
         Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy']);

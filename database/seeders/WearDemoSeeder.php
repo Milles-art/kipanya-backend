@@ -9,24 +9,27 @@ class WearDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        // Product photos supplied for the Kipanya Wear presentation, stored locally for a reliable demo.
+        // Kipanya Wear demo catalogue. Each seeded product has its own supplied image.
         $products = [
-            ['name' => 'Pink Polo Shirt', 'slug' => 'pink-polo-shirt', 'category' => 'Polos', 'price' => 42000, 'badge' => 'New', 'description' => 'A soft pink polo with a smart button collar for an easy, polished everyday look.', 'image_path' => 'assets/wear/catalog/pink-polo.jpg'],
-            ['name' => 'Palm Print Resort Shirt', 'slug' => 'palm-print-resort-shirt', 'category' => 'Shirts', 'price' => 45000, 'badge' => 'Featured', 'description' => 'A black resort shirt with a bold palm-panel detail for relaxed weekend styling.', 'image_path' => 'assets/wear/catalog/palm-resort-shirt.jpg'],
-            ['name' => 'Maroon Performance Long Sleeve', 'slug' => 'maroon-performance-long-sleeve', 'category' => 'Long Sleeves', 'price' => 48000, 'badge' => null, 'description' => 'A close-fitting maroon long sleeve designed for active days and layered fits.', 'image_path' => 'assets/wear/catalog/maroon-performance-long-sleeve.jpg'],
-            ['name' => 'Grey Ringer Tee', 'slug' => 'grey-ringer-tee', 'category' => 'T-Shirts', 'price' => 35000, 'badge' => 'New', 'description' => 'A lightweight grey ringer tee with contrast trim and a clean everyday silhouette.', 'image_path' => 'assets/wear/catalog/grey-ringer-tee.jpg'],
-            ['name' => 'Heritage Border Tee', 'slug' => 'heritage-border-tee', 'category' => 'T-Shirts', 'price' => 47000, 'badge' => null, 'description' => 'A black tee with a rich heritage-inspired chest border that makes the outfit.', 'image_path' => 'assets/wear/catalog/heritage-border-tee.jpg'],
-            ['name' => 'Essential Black Tee', 'slug' => 'essential-black-tee', 'category' => 'T-Shirts', 'price' => 32000, 'badge' => 'Best', 'description' => 'A clean black crew-neck tee: versatile, comfortable and ready for every day.', 'image_path' => 'assets/wear/catalog/essential-black-tee.jpg'],
-            ['name' => 'Sage Polo Shirt', 'slug' => 'sage-polo-shirt', 'category' => 'Polos', 'price' => 40000, 'badge' => 'New', 'description' => 'A textured sage polo that brings a calm colour and refined finish to casual wear.', 'image_path' => 'assets/wear/catalog/sage-polo.jpg'],
-            ['name' => 'Sky Textured Tee', 'slug' => 'sky-textured-tee', 'category' => 'T-Shirts', 'price' => 39000, 'badge' => null, 'description' => 'A sky-blue textured tee with a relaxed fit and soft visual detail.', 'image_path' => 'assets/wear/catalog/sky-textured-tee.jpg'],
-            ['name' => 'Signature Black Tee', 'slug' => 'signature-black-tee', 'category' => 'T-Shirts', 'price' => 36000, 'badge' => 'Best', 'description' => 'A minimalist black tee finished with a subtle signature mark on the chest.', 'image_path' => 'assets/wear/catalog/signature-black-tee.jpg'],
-            ['name' => 'Midnight Graphic Tee', 'slug' => 'midnight-graphic-tee', 'category' => 'T-Shirts', 'price' => 46000, 'badge' => 'Featured', 'description' => 'A midnight tee with a tonal front graphic for understated statement styling.', 'image_path' => 'assets/wear/catalog/midnight-graphic-tee.jpg'],
-            ['name' => 'Cream Stripe Tee', 'slug' => 'cream-stripe-tee', 'category' => 'T-Shirts', 'price' => 38000, 'badge' => null, 'description' => 'A cream tee with fine horizontal stripes for a fresh, effortless finish.', 'image_path' => 'assets/wear/catalog/cream-stripe-tee.jpg'],
-            ['name' => 'Brown Monogram Tee', 'slug' => 'brown-monogram-tee', 'category' => 'T-Shirts', 'price' => 48000, 'badge' => 'New', 'description' => 'A rich brown tee with a bold monogram detail to anchor a streetwear look.', 'image_path' => 'assets/wear/catalog/brown-monogram-tee.jpg'],
-            ['name' => 'Green Mark Tee', 'slug' => 'green-mark-tee', 'category' => 'T-Shirts', 'price' => 43000, 'badge' => null, 'description' => 'A deep green tee with a graphic chest mark for a confident everyday option.', 'image_path' => 'assets/wear/catalog/green-mark-tee.jpg'],
-            ['name' => 'Black Oversize Tee', 'slug' => 'black-oversize-tee', 'category' => 'T-Shirts', 'price' => 44000, 'badge' => 'Best', 'description' => 'A roomy black tee with a modern oversized cut for a laid-back streetwear fit.', 'image_path' => 'assets/wear/catalog/black-oversize-tee.jpg'],
+            ['name' => 'Classic White Sweatshirt', 'slug' => 'classic-white-sweatshirt', 'category' => 'Long Sleeves', 'price' => 56000, 'badge' => 'New', 'description' => 'A clean white sweatshirt with a simple everyday fit.', 'image_path' => 'assets/wear/catalog/generated/product-01.jpg'],
+            ['name' => 'Floral Resort Shirt', 'slug' => 'floral-resort-shirt', 'category' => 'Shirts', 'price' => 45000, 'badge' => 'Featured', 'description' => 'A relaxed floral resort shirt made for easy casual styling.', 'image_path' => 'assets/wear/catalog/generated/product-02.jpg'],
+            ['name' => 'Blue Statement Tee', 'slug' => 'blue-statement-tee', 'category' => 'T-Shirts', 'price' => 42000, 'badge' => 'Featured', 'description' => 'A graphic white tee with a bold blue statement design.', 'image_path' => 'assets/wear/catalog/generated/product-03.jpg'],
+            ['name' => 'Eagle Graphic Tee', 'slug' => 'eagle-graphic-tee', 'category' => 'T-Shirts', 'price' => 44000, 'badge' => null, 'description' => 'A white graphic tee finished with a striking eagle artwork.', 'image_path' => 'assets/wear/catalog/generated/product-04.jpg'],
+            ['name' => 'Rose Graphic Tee', 'slug' => 'rose-graphic-tee', 'category' => 'T-Shirts', 'price' => 40000, 'badge' => null, 'description' => 'A clean white tee with a minimal floral graphic.', 'image_path' => 'assets/wear/catalog/generated/product-05.jpg'],
+            ['name' => 'Character Print Tee', 'slug' => 'character-print-tee', 'category' => 'T-Shirts', 'price' => 43000, 'badge' => 'New', 'description' => 'A playful graphic tee with a bold character print.', 'image_path' => 'assets/wear/catalog/generated/product-06.jpg'],
+            ['name' => 'Yellow Character Hoodie', 'slug' => 'yellow-character-hoodie', 'category' => 'Hoodies', 'price' => 68000, 'badge' => 'New', 'description' => 'A bright yellow hoodie with a playful character graphic.', 'image_path' => 'assets/wear/catalog/generated/product-07.jpg'],
+            ['name' => 'Dice Graphic Tee', 'slug' => 'dice-graphic-tee', 'category' => 'T-Shirts', 'price' => 44000, 'badge' => 'Featured', 'description' => 'A black tee with a colorful dice-inspired graphic.', 'image_path' => 'assets/wear/catalog/generated/product-08.jpg'],
+            ['name' => 'Flame Graphic Tee', 'slug' => 'flame-graphic-tee', 'category' => 'T-Shirts', 'price' => 42000, 'badge' => null, 'description' => 'A black graphic tee with a bold flame artwork.', 'image_path' => 'assets/wear/catalog/generated/product-09.jpg'],
+            ['name' => 'Essential White Long Sleeve', 'slug' => 'essential-white-long-sleeve', 'category' => 'Long Sleeves', 'price' => 58000, 'badge' => null, 'description' => 'A bright white long-sleeve sweatshirt for everyday layering.', 'image_path' => 'assets/wear/catalog/generated/product-10.jpg'],
+            ['name' => 'Sky Blue Hoodie', 'slug' => 'sky-blue-hoodie', 'category' => 'Hoodies', 'price' => 69000, 'badge' => 'Featured', 'description' => 'A soft sky-blue hoodie with a clean relaxed silhouette.', 'image_path' => 'assets/wear/catalog/generated/product-11.jpg'],
+            ['name' => 'Sand Essential Hoodie', 'slug' => 'sand-essential-hoodie', 'category' => 'Hoodies', 'price' => 68000, 'badge' => null, 'description' => 'A warm sand-toned hoodie with a timeless everyday fit.', 'image_path' => 'assets/wear/catalog/generated/product-12.jpg'],
+            ['name' => 'Classic Yellow Polo', 'slug' => 'classic-yellow-polo', 'category' => 'Polos', 'price' => 46000, 'badge' => 'Best', 'description' => 'A classic yellow polo with contrast collar and sleeve trim.', 'image_path' => 'assets/wear/catalog/generated/product-13.jpg'],
+            ['name' => 'Navy Character Polo', 'slug' => 'navy-character-polo', 'category' => 'Polos', 'price' => 47000, 'badge' => null, 'description' => 'A navy polo with a playful character graphic.', 'image_path' => 'assets/wear/catalog/generated/product-14.jpg'],
+            ['name' => 'Pink Essential Hoodie', 'slug' => 'pink-essential-hoodie', 'category' => 'Hoodies', 'price' => 67000, 'badge' => 'New', 'description' => 'A soft pink hoodie with a clean minimal finish.', 'image_path' => 'assets/wear/catalog/generated/product-15.jpg'],
+            ['name' => 'Two-Tone Graphic Sweatshirt', 'slug' => 'two-tone-graphic-sweatshirt', 'category' => 'Long Sleeves', 'price' => 59000, 'badge' => 'Featured', 'description' => 'A distinctive two-tone sweatshirt with a bold front graphic.', 'image_path' => 'assets/wear/catalog/generated/product-16.jpg'],
         ];
 
+        // Keep the catalogue in sync with the supplied 16-product image set.
         WearProduct::query()
             ->whereNotIn('slug', array_column($products, 'slug'))
             ->update(['is_active' => false]);
@@ -41,12 +44,8 @@ class WearDemoSeeder extends Seeder
                 ]
             );
 
-            $variantSizes = ['S', 'M', 'L', 'XL', 'XXL'];
-
-            $variantColors = ['black', 'white', 'navy'];
-
-            foreach ($variantSizes as $size) {
-                foreach ($variantColors as $color) {
+            foreach (['S', 'M', 'L', 'XL', 'XXL'] as $size) {
+                foreach (['black', 'white'] as $color) {
                     $record->variants()->updateOrCreate(
                         ['size' => $size, 'color' => $color],
                         ['stock' => 12, 'sku' => strtoupper('KW-'.$record->id.'-'.$size.'-'.$color)]

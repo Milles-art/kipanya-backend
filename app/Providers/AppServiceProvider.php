@@ -14,6 +14,8 @@ use App\Policies\WearOrderPolicy;
 use App\Policies\WearProductPolicy;
 use App\Integrations\Payments\FakePaymentGateway;
 use App\Integrations\Payments\PaymentGateway;
+use App\Integrations\Sms\LogSmsGateway;
+use App\Integrations\Sms\SmsGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(PaymentGateway::class, FakePaymentGateway::class);
+        $this->app->bind(SmsGateway::class, LogSmsGateway::class);
     }
 
     public function boot(): void
