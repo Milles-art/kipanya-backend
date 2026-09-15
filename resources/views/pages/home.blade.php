@@ -40,6 +40,10 @@
     box-shadow: 0 32px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.10);
     transition: background 1300ms ease;
   }
+  #kp-hero-card:focus-visible {
+    outline: 3px solid rgba(16,185,129,0.6);
+    outline-offset: -3px;
+  }
 
   /* ── Dots, positioned by JS once moved out of slide 0 ── */
   .kp-dots-positioned {
@@ -49,48 +53,6 @@
     display: flex;
     gap: 8px;
     z-index: 30;
-  }
-
-  /* ── Side panel: two-line tagline that slides in from opposite sides
-       once on load. Translation happens on the outer wrap in normal
-       screen space; the inner span only handles the vertical text
-       orientation, so the two transforms don't fight each other. ── */
-  .kp-hero-tagline-left-wrap,
-  .kp-hero-tagline-right-wrap {
-    opacity: 0;
-  }
-  .kp-hero-tagline-left-wrap {
-    animation: kpTaglineInLeft 850ms cubic-bezier(0.16,1,0.3,1) 250ms forwards;
-  }
-  .kp-hero-tagline-right-wrap {
-    animation: kpTaglineInRight 850ms cubic-bezier(0.16,1,0.3,1) 550ms forwards;
-  }
-  @keyframes kpTaglineInLeft {
-    from { opacity: 0; transform: translateX(-70px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes kpTaglineInRight {
-    from { opacity: 0; transform: translateX(70px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-  .kp-hero-tagline-line {
-    display: block;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-weight: 800;
-    font-size: 1.35rem;
-    letter-spacing: 0.1em;
-    line-height: 1.3;
-    color: #44403c; /* stone-700 — legible, but quieter than the carousel copy */
-    white-space: nowrap;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .kp-hero-tagline-left-wrap,
-    .kp-hero-tagline-right-wrap {
-      animation: none !important;
-      opacity: 1 !important;
-      transform: none !important;
-    }
   }
 
   /* ── Mobile: stack the slide instead of forcing a 300px+ right column
@@ -218,7 +180,7 @@ $slides = [
 
     {{-- RIGHT: existing visual carousel stays here --}}
     <div class="relative min-h-[540px] bg-stone-100">
-      <div id="kp-hero-card" class="relative h-full min-h-[540px] overflow-hidden">
+      <div id="kp-hero-card" class="relative h-full min-h-[540px] overflow-hidden" tabindex="0" role="region" aria-label="Featured product carousel — use left and right arrow keys to navigate">
 
         @foreach($slides as $i => $slide)
         <div class="kp-slide kp-slide-grid {{ $i === 0 ? '' : 'hidden' }} absolute inset-0 grid"
@@ -302,40 +264,77 @@ $slides = [
 </section>
 
 {{-- ── Categories ─────────────────────────────────────────────── --}}
-<section class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+<section class="mx-auto max-w-[1600px] px-6 py-14 sm:px-8 lg:px-10">
   <div class="mb-8 flex items-end justify-between">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">Browse</p>
-      <h2 class="mt-2 text-3xl font-bold tracking-tight">Shop by category</h2>
+      <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
+        Browse
+      </p>
+
+      <h2 class="mt-2 text-3xl font-bold tracking-tight">
+        Shop by category
+      </h2>
     </div>
-    <a href="{{ route('shop') }}" class="text-sm font-medium text-emerald-600 border border-emerald-600 hover:bg-emerald-600 hover:text-white">View all →</a>
+
+    <a
+      href="{{ route('shop') }}"
+      class="inline-flex items-center gap-1.5 rounded-full border border-emerald-600 px-5 py-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-600 hover:text-white"
+    >
+      View all <span aria-hidden="true">→</span>
+    </a>
   </div>
-  <div data-home-categories class="grid grid-cols-2 gap-4 md:grid-cols-4"></div>
+
+  <div data-home-categories class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5" aria-live="polite">
+    {{-- Skeleton shown until JS replaces this content --}}
+    @for($i = 0; $i < 5; $i++)
+      <div class="animate-pulse">
+        <div class="aspect-square rounded-2xl bg-gray-100"></div>
+        <div class="mt-2 h-3 w-2/3 rounded bg-gray-100"></div>
+      </div>
+    @endfor
+  </div>
 </section>
+
 
 {{-- ── Featured pieces ────────────────────────────────────────── --}}
 <section class="bg-gray-50 py-14">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-10">
     <div class="mb-8 flex items-end justify-between">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">The edit</p>
-        <h2 class="mt-2 text-3xl font-bold tracking-tight">Featured pieces</h2>
+        <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
+          The edit
+        </p>
+        <h2 class="mt-2 text-3xl font-bold tracking-tight">
+          Featured pieces
+        </h2>
       </div>
-      <a href="{{ route('shop') }}" class="text-sm font-medium text-emerald-600">Shop all →</a>
+
+      <a
+        href="{{ route('shop') }}"
+        class="text-sm font-medium text-emerald-600"
+      >
+        Shop all →
+      </a>
     </div>
-    <div data-home-featured class="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4 lg:gap-6"></div>
+
+    <div
+      data-home-featured
+      class="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-4 lg:gap-8"
+    >
+      {{-- Skeleton shown until JS replaces this content --}}
+      @for($i = 0; $i < 8; $i++)
+        <div class="animate-pulse">
+          <div class="aspect-[3/4] rounded-2xl bg-gray-100"></div>
+          <div class="mt-3 h-3 w-3/4 rounded bg-gray-100"></div>
+          <div class="mt-2 h-3 w-1/3 rounded bg-gray-100"></div>
+        </div>
+      @endfor
+    </div>
   </div>
 </section>
 
 {{-- ── Editorial banner ───────────────────────────────────────── --}}
-<section class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-  <div class="overflow-hidden rounded-3xl bg-gray-100">
-    <img src="{{ asset('assets/kp-wear/16_editorial_banner.jpg') }}"
-         class="h-auto w-full object-cover"
-         loading="lazy"
-         alt="KP Wear editorial">
-  </div>
-</section>
+@include('components.editorial-banner')
 
 @endsection
 
@@ -403,6 +402,23 @@ $slides = [
   function advance() { goTo((current + 1) % slides.length); }
   let timer = setInterval(advance, HOLD + DUR);
   function resetTimer() { clearInterval(timer); timer = setInterval(advance, HOLD + DUR); }
+
+  // Pause auto-advance while the user is hovering or focused on the carousel
+  card.addEventListener('mouseenter', () => clearInterval(timer));
+  card.addEventListener('mouseleave', () => resetTimer());
+  card.addEventListener('focusin', () => clearInterval(timer));
+  card.addEventListener('focusout', () => resetTimer());
+
+  // Keyboard navigation (left/right arrows) when the carousel is focused
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') {
+      goTo((current + 1) % slides.length);
+      resetTimer();
+    } else if (e.key === 'ArrowLeft') {
+      goTo((current - 1 + slides.length) % slides.length);
+      resetTimer();
+    }
+  });
 })();
 </script>
 @endpush

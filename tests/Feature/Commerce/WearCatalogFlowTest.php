@@ -89,6 +89,30 @@ final class WearCatalogFlowTest extends TestCase
             ->assertJsonPath('data.0.slug', 'featured-polo');
     }
 
+    public function test_catalog_accepts_category_slug(): void
+    {
+        WearProduct::create([
+            'name' => 'Slug Tee',
+            'slug' => 'slug-tee',
+            'price' => 30000,
+            'category' => 'T-Shirts',
+            'is_active' => true,
+        ]);
+
+        WearProduct::create([
+            'name' => 'Slug Hoodie',
+            'slug' => 'slug-hoodie',
+            'price' => 60000,
+            'category' => 'Hoodies',
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/v1/wear/products?category=t-shirts')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'slug-tee');
+    }
+
     public function test_product_detail_uses_slug_and_hides_inactive_products(): void
     {
         $product = WearProduct::create([
@@ -162,4 +186,51 @@ final class WearCatalogFlowTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
     }
+    public function test_collection_endpoints_return_active_collections_and_products(): void
+    {
+        $collection = \App\Models\Wear\WearCollection::create([
+            'name' => 'Streetwear',
+            'slug' => 'streetwear',
+            'description' => 'Bold styles.',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $product = WearProduct::create([
+            'name' => 'Street Tee',
+            'slug' => 'street-tee',
+            'price' => 45000,
+            'category' => 'T-Shirts',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $hidden = WearProduct::create([
+            'name' => 'Hidden Street Tee',
+            'slug' => 'hidden-street-tee',
+            'price' => 45000,
+            'category' => 'T-Shirts',
+            'is_active' => false,
+        ]);
+
+        $collection->products()->attach($product->id, ['sort_order' => 1]);
+        $collection->products()->attach($hidden->id, ['sort_order' => 2]);
+
+        $this->getJson('/api/v1/wear/collections')
+            ->assertOk()
+            ->assertJsonPath('data.0.slug', 'streetwear')
+            ->assertJsonPath('data.0.product_count', 1);
+
+        $this->getJson('/api/v1/wear/collections/streetwear')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'streetwear')
+            ->assertJsonPath('data.products.0.slug', 'street-tee')
+            ->assertJsonMissingPath('data.products.1');
+
+        $collection->update(['is_active' => false]);
+
+        $this->getJson('/api/v1/wear/collections/streetwear')
+            ->assertNotFound();
+    }
+
 }

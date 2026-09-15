@@ -4,6 +4,7 @@ namespace App\Models\Wear;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WearProduct extends Model
@@ -25,6 +26,12 @@ class WearProduct extends Model
         ];
     }
 
+    public function collections(): BelongsToMany
+    {
+        return $this->belongsToMany(WearCollection::class, 'wear_collection_product')
+            ->withPivot('sort_order');
+    }
+
     public function variants(): HasMany
     {
         return $this->hasMany(WearProductVariant::class);
@@ -42,10 +49,15 @@ class WearProduct extends Model
 
         if (preg_match('/product-(\d+)\.jpg$/', $this->image_path, $matches)) {
             $number = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $relative = "assets/wear/catalog/generated/product-{$number}.jpg";
 
-            return asset("assets/wear/catalog/generated/product-{$number}.jpg");
+            return file_exists(public_path($relative))
+                ? asset($relative)
+                : asset('assets/wear/catalog/generated/product-01.jpg');
         }
 
-        return asset($this->image_path);
+        return file_exists(public_path($this->image_path))
+            ? asset($this->image_path)
+            : asset('assets/wear/catalog/generated/product-01.jpg');
     }
 }

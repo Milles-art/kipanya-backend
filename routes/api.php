@@ -31,6 +31,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     Route::prefix('wear')->group(function () {
         Route::get('/categories', [WearCatalogController::class, 'categories']);
+        Route::get('/collections', [WearCatalogController::class, 'collections']);
+        Route::get('/collections/{collection:slug}', [WearCatalogController::class, 'collection']);
         Route::get('/products', [WearCatalogController::class, 'index']);
         Route::get('/products/{product:slug}', [WearCatalogController::class, 'show']);
     });

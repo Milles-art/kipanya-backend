@@ -78,6 +78,37 @@ class GuestCartFlowTest extends TestCase
         ]);
     }
 
+
+    public function test_guest_cart_with_frontend_token_length_can_be_merged(): void
+    {
+        $product = WearProduct::create([
+            'name' => 'Frontend Token Tee', 'slug' => 'frontend-token-tee', 'price' => 30000,
+            'category' => 'shirts', 'is_active' => true,
+        ]);
+        $variant = WearProductVariant::create([
+            'wear_product_id' => $product->id, 'size' => 'M', 'color' => 'Black',
+            'stock' => 10, 'sku' => 'FRONTEND-TOKEN-M-BLK',
+        ]);
+
+        $token = bin2hex(random_bytes(32));
+        $this->withHeader('X-Guest-Cart-Token', $token)
+            ->postJson('/api/v1/cart/items', [
+                'variant_id' => $variant->id,
+                'quantity' => 2,
+            ])
+            ->assertOk();
+
+        $user = User::factory()->create([
+            'status' => UserStatus::Active,
+            'phone_verified_at' => now(),
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/cart/merge', ['guest_cart_token' => $token])
+            ->assertOk()
+            ->assertJsonPath('data.item_count', 2);
+    }
+
     public function test_checkout_preview_requires_authentication_and_uses_server_price(): void
     {
         $this->getJson('/api/v1/cart/checkout/preview')->assertUnauthorized();

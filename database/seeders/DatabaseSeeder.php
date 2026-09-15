@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CartoonDemoSeeder::class,
             WearDemoSeeder::class,
+            WearCollectionSeeder::class,
         ]);
     }
 }
