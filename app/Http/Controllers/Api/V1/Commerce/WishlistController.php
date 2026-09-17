@@ -16,13 +16,23 @@ class WishlistController extends Controller
             ->wearWishlist()
             ->with('product')
             ->latest()
-            ->get();
+            ->paginate(24);
 
         return response()->json([
-            'data' => $items->map(fn (WishlistItem $item) => [
+            'data' => collect($items->items())->map(fn (WishlistItem $item) => [
                 'id' => $item->id,
                 'product' => (new WearProductResource($item->product))->resolve($request),
             ])->values(),
+            'meta' => [
+                'current_page' => $items->currentPage(),
+                'last_page' => $items->lastPage(),
+                'per_page' => $items->perPage(),
+                'total' => $items->total(),
+            ],
+            'links' => [
+                'next' => $items->nextPageUrl(),
+                'prev' => $items->previousPageUrl(),
+            ],
         ]);
     }
 

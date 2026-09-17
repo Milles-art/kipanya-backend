@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\Auth\OtpPurpose;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\ValidTanzanianPhoneNumber;
 use App\Services\Auth\OtpService;
 use App\Support\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
@@ -27,8 +28,12 @@ final class AuthController extends Controller
 
     public function requestOtp(Request $request, OtpService $otpService): RedirectResponse
     {
-        $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
-        $key = 'admin-login-otp:' . sha1($phone);
+        $data = $request->validate([
+            'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber],
+        ]);
+
+        $phone = PhoneNumber::normalize($data['phone'])->value();
+        $key = 'admin-login-otp:'.sha1($phone);
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
             throw ValidationException::withMessages(['phone' => ['Too many requests. Please try again later.']]);
@@ -49,7 +54,7 @@ final class AuthController extends Controller
     public function login(Request $request, OtpService $otpService): RedirectResponse
     {
         $data = $request->validate([
-            'phone' => ['required', 'string'],
+            'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber],
             'code' => ['required', 'digits:6'],
         ]);
 

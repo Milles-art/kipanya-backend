@@ -15,21 +15,31 @@
             </div>
 
             <p class="mt-6 max-w-2xl text-sm font-semibold uppercase leading-6 tracking-[0.12em] text-gray-900 sm:mt-7 sm:text-base sm:leading-7 sm:tracking-[0.14em]">
-                A Tanzanian fashion brand built around creativity, individuality, and confidence.
+                From cartoons to clothing. Built for creators.
             </p>
 
             <p class="mt-4 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">
-                KP Wear brings the spirit of art and self-expression into everyday clothing. Born from the creative world of Masoud Kipanya, the brand represents a simple idea: what we wear can be more than fashion — it can be a reflection of who we are.
+                KP Wear started with a simple idea: the clothes you wear should reflect who you are. Born from the creative world of Masoud Kipanya—artist, cartoonist, storyteller—KP Wear brings that same creative energy into everyday pieces. This isn't just fashion. It's a way for people with something to say to wear it with confidence.
             </p>
 
             <div class="mt-7 grid max-w-2xl gap-6 sm:mt-8 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-7">
                 <article class="flex gap-4">
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                        <x-tabler-pencil size="22" stroke-width="1.8" />
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">From cartoons to clothing</h2>
+                        <p class="mt-1 text-sm leading-6 text-gray-600">Masoud's creative foundation started in cartooning and art. That same energy—bold, expressive, unapologetic—is now woven into every KP Wear piece. Your clothes tell your story.</p>
+                    </div>
+                </article>
+
+                <article class="flex gap-4">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                         <x-tabler-world size="22" stroke-width="1.8" />
                     </div>
                     <div>
-                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">Our identity</h2>
-                        <p class="mt-1 text-sm leading-6 text-gray-600">KP Wear is rooted in Tanzanian creativity and culture, while looking beyond borders. Our designs are made for people who value individuality, creativity, and authenticity.</p>
+                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">Made in Dar es Salaam</h2>
+                        <p class="mt-1 text-sm leading-6 text-gray-600">Built in Tanzania, worn worldwide. KP Wear is rooted in Dar's creative energy and designed for people everywhere who value authenticity over trends.</p>
                     </div>
                 </article>
 
@@ -38,18 +48,8 @@
                         <x-tabler-star size="22" stroke-width="1.8" />
                     </div>
                     <div>
-                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">Our philosophy</h2>
-                        <p class="mt-1 text-sm leading-6 text-gray-600">We believe fashion should give people the confidence to be themselves. KP Wear is about creating pieces with character that allow the person wearing them to make their own statement.</p>
-                    </div>
-                </article>
-
-                <article class="flex gap-4">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <x-tabler-pencil size="22" stroke-width="1.8" />
-                    </div>
-                    <div>
-                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">The KP story</h2>
-                        <p class="mt-1 text-sm leading-6 text-gray-600">The name KP comes from Kipanya, the creative identity associated with Masoud Kipanya and his work as an artist and cartoonist. That creative foundation continues to influence the spirit of the brand.</p>
+                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">For creators & storytellers</h2>
+                        <p class="mt-1 text-sm leading-6 text-gray-600">You don't have to be famous to have something worth saying. KP Wear is made for people who think differently, create differently, and wear it with intent.</p>
                     </div>
                 </article>
 
@@ -58,15 +58,22 @@
                         <x-tabler-telescope size="22" stroke-width="1.8" />
                     </div>
                     <div>
-                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">Our vision</h2>
-                        <p class="mt-1 text-sm leading-6 text-gray-600">To build KP Wear into a distinctive African fashion brand recognized for its creativity, identity, and authentic approach to modern clothing.</p>
+                        <h2 class="text-base font-bold uppercase tracking-[0.08em] text-emerald-700">One brand, many stories</h2>
+                        <p class="mt-1 text-sm leading-6 text-gray-600">KP Wear is part of a larger creative universe. Connected to cartoons, clothing, and more—it's all rooted in the same idea: creativity matters.</p>
                     </div>
                 </article>
             </div>
 
             <div class="mt-7 flex items-center gap-4 sm:mt-8">
                 <span class="h-1.5 w-16 shrink-0 rounded-full bg-emerald-600 sm:w-20"></span>
-                <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-600 sm:text-xs sm:tracking-[0.28em]">Create. Express. Wear it with confidence.</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-600 sm:text-xs sm:tracking-[0.28em]">Designed for people who have something to say.</p>
+            </div>
+
+            <div class="mt-8 sm:mt-10">
+                <a href="{{ route('shop') }}" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                    Shop the collection
+                    <span class="ml-2">→</span>
+                </a>
             </div>
         </div>
     </div>

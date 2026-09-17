@@ -14,10 +14,7 @@ final class WearCategoryManagementTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create([
-            'role' => UserRole::Admin,
-            'status' => 'active',
-        ]);
+        return User::factory()->admin()->create();
     }
 
     public function test_admin_can_view_wear_categories_with_product_counts(): void

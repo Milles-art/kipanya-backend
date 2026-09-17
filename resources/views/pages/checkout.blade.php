@@ -21,7 +21,7 @@
     {{-- Auth notice --}}
     <div data-checkout-auth class="mt-8 hidden items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
         <x-tabler-alert-triangle size="18" class="mt-0.5 flex-shrink-0 text-amber-500" />
-        <span>You need to <a class="font-semibold underline underline-offset-2" href="{{ route('login') }}">sign in</a> before placing an order.</span>
+        <span>You need to <a class="font-semibold underline underline-offset-2" href="{{ route('login', ['redirect' => '/checkout']) }}">sign in</a> before placing an order.</span>
     </div>
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -40,7 +40,18 @@
                     <span class="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-500">Required</span>
                 </div>
 
-                <div data-address-list class="mt-5 space-y-3">
+                <div data-address-loading class="mt-5 space-y-3" aria-hidden="true">
+                    <div class="animate-pulse rounded-xl border border-gray-200 p-4">
+                        <div class="h-4 w-40 rounded bg-gray-200"></div>
+                        <div class="mt-3 h-3 w-4/5 rounded bg-gray-200"></div>
+                        <div class="mt-2 h-3 w-2/5 rounded bg-gray-200"></div>
+                    </div>
+                    <div class="animate-pulse rounded-xl border border-gray-200 p-4">
+                        <div class="h-4 w-32 rounded bg-gray-200"></div>
+                        <div class="mt-3 h-3 w-3/4 rounded bg-gray-200"></div>
+                    </div>
+                </div>
+                <div data-address-list class="mt-5 hidden space-y-3">
                     {{-- Each saved address is expected to render as its own selectable card, e.g.: --}}
                     {{--
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50">
@@ -85,7 +96,7 @@
             {{-- Error + place order --}}
             <div data-checkout-error class="hidden items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert"></div>
 
-            <button data-place-order disabled class="button-dark flex w-full items-center justify-center gap-2 py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" data-place-order disabled class="button-dark flex w-full items-center justify-center gap-2 py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50">
                 <x-tabler-lock size="16" />
                 Place order
             </button>
@@ -108,7 +119,7 @@
                 <span data-checkout-item-count class="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm"></span>
             </div>
 
-            <div data-checkout-summary class="mt-5 space-y-3 text-sm">
+            <div data-checkout-summary class="mt-5 space-y-3 text-sm" aria-live="polite">
                 <div class="animate-pulse space-y-3">
                     <div class="h-4 rounded bg-gray-200"></div>
                     <div class="h-4 rounded bg-gray-200"></div>

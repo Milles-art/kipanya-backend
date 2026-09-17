@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\Auth\UserRole;
 use App\Models\Administration\Role;
 use App\Models\User;
+use App\Support\PhoneNumber;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,6 +19,15 @@ class AdminUserSeeder extends Seeder
 
         if ($phone === '' || $email === '') {
             $this->command?->error('Set ADMIN_PHONE and ADMIN_EMAIL in .env before running AdminUserSeeder.');
+
+            return;
+        }
+
+        try {
+            $phone = PhoneNumber::normalize($phone)->value();
+        } catch (\Throwable $e) {
+            $this->command?->error('ADMIN_PHONE must be a valid Tanzanian phone number.');
+
             return;
         }
 
@@ -26,13 +36,16 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => $name,
                 'email' => $email,
-                'status' => 'active',
-                'role' => UserRole::Admin,
                 'phone_verified_at' => now(),
                 'onboarding_completed_at' => now(),
                 'password' => Hash::make(bin2hex(random_bytes(24))),
             ],
         );
+
+        $user->forceFill([
+            'status' => 'active',
+            'role' => UserRole::Admin,
+        ])->save();
 
         $superAdmin = Role::query()->where('slug', 'super_admin')->first();
 

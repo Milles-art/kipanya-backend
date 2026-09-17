@@ -42,9 +42,7 @@ return new class extends Migration
         $roles = [
             ['name' => 'User', 'slug' => 'user', 'description' => 'Default Kipanya customer account.', 'is_system' => true],
             ['name' => 'Super Administrator', 'slug' => 'super_admin', 'description' => 'Full platform administration.', 'is_system' => true],
-            ['name' => 'Content Manager', 'slug' => 'content_manager', 'description' => 'Manages editorial content.', 'is_system' => false],
             ['name' => 'Commerce Manager', 'slug' => 'commerce_manager', 'description' => 'Manages commerce operations.', 'is_system' => false],
-            ['name' => 'Moderator', 'slug' => 'moderator', 'description' => 'Moderates community content.', 'is_system' => false],
             ['name' => 'Support', 'slug' => 'support', 'description' => 'Handles customer support operations.', 'is_system' => false],
         ];
 
@@ -57,14 +55,8 @@ return new class extends Migration
 
         $permissions = [
             ['name' => 'View admin dashboard', 'slug' => 'admin.dashboard.view', 'module' => 'admin'],
-            ['name' => 'Manage categories', 'slug' => 'content.categories.manage', 'module' => 'content'],
-            ['name' => 'Manage cartoons', 'slug' => 'content.cartoons.manage', 'module' => 'content'],
-            ['name' => 'Manage episodes', 'slug' => 'content.episodes.manage', 'module' => 'content'],
-            ['name' => 'Manage collections', 'slug' => 'content.collections.manage', 'module' => 'content'],
-            ['name' => 'Moderate community', 'slug' => 'community.moderate', 'module' => 'community'],
             ['name' => 'Manage commerce', 'slug' => 'commerce.manage', 'module' => 'commerce'],
             ['name' => 'Manage payments', 'slug' => 'payments.manage', 'module' => 'payments'],
-            ['name' => 'Manage rewards', 'slug' => 'rewards.manage', 'module' => 'rewards'],
             ['name' => 'View analytics', 'slug' => 'analytics.view', 'module' => 'analytics'],
             ['name' => 'Manage settings', 'slug' => 'settings.manage', 'module' => 'settings'],
             ['name' => 'Manage users', 'slug' => 'users.manage', 'module' => 'users'],

@@ -31,7 +31,10 @@ return new class extends Migration
             $table->foreignId('wear_product_variant_id')->constrained('wear_product_variants')->cascadeOnDelete();
             $table->unsignedInteger('quantity');
             $table->timestamps();
-            $table->unique(['reservation_id', 'wear_product_variant_id']);
+            $table->unique(
+                ['reservation_id', 'wear_product_variant_id'],
+                'wear_reservation_items_reservation_variant_unique'
+            );
             $table->index('wear_product_variant_id');
         });
     }

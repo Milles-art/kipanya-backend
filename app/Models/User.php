@@ -3,24 +3,18 @@
 namespace App\Models;
 
 use App\Enums\Auth\UserRole;
-use App\Models\Administration\ActivityLog;
 use App\Models\Administration\Role;
-use App\Models\Content\Cartoon;
-use App\Models\Content\CartoonComment;
-use App\Models\Content\CartoonLike;
-use App\Models\Content\WatchProgress;
-use App\Models\Wear\WearDesign;
+use App\Models\Auth\NotificationPreference;
+use App\Models\Auth\UserProfile;
 use App\Models\Cart\Cart;
 use App\Models\Cart\WishlistItem;
 use App\Models\Commerce\Address;
-use App\Models\Auth\NotificationPreference;
-use App\Models\Auth\UserProfile;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -33,13 +27,16 @@ class User extends Authenticatable
         return UserFactory::new();
     }
 
+    /**
+     * Security-sensitive attributes (`status`, `role`) are intentionally NOT
+     * mass-assignable. Assign them explicitly so validated request data can
+     * never escalate an account.
+     */
     protected $fillable = [
         'name',
         'email',
         'phone',
         'phone_verified_at',
-        'status',
-        'role',
         'onboarding_completed_at',
     ];
 
@@ -73,19 +70,19 @@ class User extends Authenticatable
         return $this->hasOne(NotificationPreference::class);
     }
 
-    public function activityLogs(): HasMany
+    public function carts(): HasMany
     {
-        return $this->hasMany(ActivityLog::class);
+        return $this->hasMany(Cart::class);
     }
 
-    public function watchProgress(): HasMany
+    public function addresses(): HasMany
     {
-        return $this->hasMany(WatchProgress::class);
+        return $this->hasMany(Address::class);
     }
 
-    public function favorites(): BelongsToMany
+    public function wearWishlist(): HasMany
     {
-        return $this->belongsToMany(Cartoon::class, 'favorites')->withTimestamps();
+        return $this->hasMany(WishlistItem::class);
     }
 
     public function isAdmin(): bool
@@ -95,10 +92,6 @@ class User extends Authenticatable
 
     public function hasRole(string $role): bool
     {
-        if ($role === 'super_admin' && $this->role === UserRole::Admin) {
-            return true;
-        }
-
         return $this->roles()->where('slug', $role)->exists();
     }
 
@@ -122,34 +115,4 @@ class User extends Authenticatable
     {
         return $this->phone_verified_at !== null;
     }
-    public function cartoonLikes(): HasMany
-    {
-        return $this->hasMany(CartoonLike::class);
-    }
-
-    public function cartoonComments(): HasMany
-    {
-        return $this->hasMany(CartoonComment::class);
-    }
-
-    public function wearDesigns(): HasMany
-    {
-        return $this->hasMany(WearDesign::class);
-    }
-
-    public function carts(): HasMany
-    {
-        return $this->hasMany(Cart::class);
-    }
-
-    public function addresses(): HasMany
-    {
-        return $this->hasMany(Address::class);
-    }
-
-    public function wearWishlist(): HasMany
-    {
-        return $this->hasMany(WishlistItem::class);
-    }
-
 }

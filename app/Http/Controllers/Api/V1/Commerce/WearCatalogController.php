@@ -87,18 +87,27 @@ final class WearCatalogController extends Controller
 
     public function categories(): JsonResponse
     {
-        // Wear currently supports these five customer-facing categories.
-        // Keep this API contract stable even when one category temporarily has no products.
-        $categories = collect([
-            'Hoodies',
-            'Long Sleeves',
-            'T-Shirts',
-            'Shirts',
-            'Polos',
-        ])->map(fn (string $category) => [
-            'name' => $category,
-            'slug' => Str::slug($category),
-        ])->values();
+        $categoryNames = ['Hoodies', 'Long Sleeves', 'T-Shirts', 'Shirts', 'Polos'];
+
+        $products = WearProduct::query()
+            ->where('is_active', true)
+            ->whereIn('category', $categoryNames)
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['category', 'image_path']);
+
+        $byCategory = $products->groupBy('category');
+
+        $categories = collect($categoryNames)->map(function (string $name) use ($byCategory): array {
+            $product = $byCategory->get($name, collect())->first();
+
+            return [
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'image' => $product?->image_url,
+            ];
+        })->values();
 
         return response()->json(['data' => $categories]);
     }

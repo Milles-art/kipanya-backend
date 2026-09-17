@@ -4,6 +4,8 @@ namespace Tests\Feature\Admin\Wear;
 
 use App\Models\User;
 use App\Models\Wear\WearOrder;
+use App\Models\Wear\WearProduct;
+use App\Models\Wear\WearProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,8 +15,14 @@ final class DashboardAndCustomerManagementTest extends TestCase
 
     public function test_admin_can_view_wear_dashboard_statistics_and_customers(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->admin()->create();
         $customer = User::factory()->create(['name' => 'KP Customer']);
+
+        $product = WearProduct::factory()->create();
+        WearProductVariant::factory()->create([
+            'wear_product_id' => $product->id,
+            'stock' => 12,
+        ]);
 
         WearOrder::factory()->create([
             'user_id' => $customer->id,
@@ -23,9 +31,10 @@ final class DashboardAndCustomerManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)->get('/admin')->assertOk()
-            ->assertSee('Store counters')
-            ->assertSee('Paid orders')
-            ->assertSee('data-stat-counter="1"', false);
+            ->assertSee('TZS 125,000')
+            ->assertSee('1 paid today')
+            ->assertSee('1 variants')
+            ->assertSee('12');
 
         $this->actingAs($admin)->get('/admin/wear/customers')->assertOk()
             ->assertSee('Customers')

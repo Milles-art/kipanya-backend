@@ -70,7 +70,7 @@
     </div>
 
     {{-- ── Cart content ──────────────────────────────────────────── --}}
-    <div data-cart-content class="hidden gap-12 pt-9 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div data-cart-content class="hidden gap-8 pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] xl:gap-12 xl:grid-cols-[minmax(0,1fr)_420px]">
 
         {{-- ── Items ──────────────────────────────────────────────────── --}}
         <section aria-label="Cart items">
@@ -118,7 +118,7 @@
         </section>
 
         {{-- ── Order summary ────────────────────────────────────────── --}}
-        <aside class="h-fit rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_16px_48px_rgba(0,0,0,0.06)] lg:sticky lg:top-24 xl:p-7" aria-label="Order summary">
+        <aside class="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_16px_48px_rgba(0,0,0,0.06)] sm:p-6 lg:sticky lg:top-24 xl:p-7" aria-label="Order summary">
             <div class="flex items-center justify-between gap-4">
                 <h2 class="text-lg font-bold tracking-tight text-gray-900">Order summary</h2>
                 <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
@@ -144,7 +144,7 @@
             </div>
 
             <a href="{{ route('checkout') }}"
-               class="button-dark mt-7 flex min-h-12 w-full items-center justify-center gap-2 rounded-full text-center font-medium transition hover:-translate-y-0.5">
+               class="button-dark mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-full text-center font-medium transition hover:-translate-y-0.5 sm:mt-7">
                 Proceed to checkout <span aria-hidden="true">→</span>
             </a>
 

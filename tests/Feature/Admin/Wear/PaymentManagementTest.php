@@ -15,7 +15,7 @@ class PaymentManagementTest extends TestCase
 
     public function test_admin_can_view_payments_and_payment_detail(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->admin()->create();
         $order = WearOrder::create([
             'order_number' => 'KP-TEST-'.strtoupper(substr(uniqid(), -6)),
             'user_id' => $admin->id,

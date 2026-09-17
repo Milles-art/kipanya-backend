@@ -16,7 +16,6 @@ Route::view('/cart', 'pages.cart', ['title' => 'Your Bag — KP Wear'])->name('c
 Route::view('/checkout', 'pages.checkout', ['title' => 'Checkout — KP Wear'])->name('checkout');
 Route::view('/login', 'pages.login', ['title' => 'Sign in — KP Wear'])->name('login');
 Route::view('/register', 'pages.register', ['title' => 'Create account — KP Wear'])->name('register');
-Route::view('/otp-verification', 'pages.otp', ['title' => 'Verify — KP Wear'])->name('otp');
 Route::view('/account', 'account.dashboard', ['title' => 'My Account — KP Wear'])->name('account');
 Route::view('/account/orders', 'account.orders', ['title' => 'My Orders — KP Wear'])->name('account.orders');
 Route::view('/account/orders/{orderId}', 'account.order-detail')->name('account.order-detail');

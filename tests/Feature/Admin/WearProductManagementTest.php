@@ -14,10 +14,7 @@ final class WearProductManagementTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create([
-            'role' => UserRole::Admin,
-            'status' => 'active',
-        ]);
+        return User::factory()->admin()->create();
     }
 
     public function test_admin_can_create_and_update_wear_product(): void

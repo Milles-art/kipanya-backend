@@ -15,7 +15,7 @@ final class WearVariantManagementTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['role' => UserRole::Admin, 'status' => 'active']);
+        return User::factory()->admin()->create();
     }
 
     private function product(): WearProduct

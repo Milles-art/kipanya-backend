@@ -7,6 +7,8 @@
         <p class="mt-2 text-sm text-gray-500">Sign in using your phone number and verification code.</p>
     </div>
 
+    <input type="hidden" name="redirect" value="{{ request('redirect') }}">
+
     <form novalidate data-login-form class="space-y-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
         <div data-primary-step>
             <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">

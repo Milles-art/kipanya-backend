@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Commerce\StockReservationItem;
 use App\Models\Wear\WearProduct;
 use App\Models\Wear\WearProductVariant;
+use App\Models\Wear\WearInventoryMovement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,9 +62,20 @@ final class InventoryController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        $movements = WearInventoryMovement::query()
+            ->with([
+                'variant:id,wear_product_id,sku,size,color',
+                'variant.product:id,name',
+                'creator:id,name',
+            ])
+            ->latest('created_at')
+            ->limit(50)
+            ->get();
+
         return view('admin.wear.inventory.index', [
             'variants' => $variants,
             'categories' => WearProduct::query()->whereNotNull('category')->distinct()->orderBy('category')->pluck('category'),
+            'movements' => $movements,
         ]);
     }
 
@@ -73,7 +85,7 @@ final class InventoryController extends Controller
 
         $validated = $request->validate([
             'stock' => ['required', 'integer', 'min:0', 'max:2147483647'],
-            'reason' => ['nullable', 'string', 'max:500'],
+            'reason' => ['nullable', 'string', 'max:60'],
         ]);
 
         DB::transaction(function () use ($request, $variant, $validated): void {
@@ -95,6 +107,18 @@ final class InventoryController extends Controller
 
             $before = (int) $locked->stock;
             $locked->update(['stock' => $newStock]);
+
+            $delta = $newStock - $before;
+            if ($delta !== 0) {
+                WearInventoryMovement::query()->create([
+                    'wear_product_variant_id' => $locked->id,
+                    'quantity' => $delta,
+                    'stock_before' => $before,
+                    'stock_after' => $newStock,
+                    'reason' => trim((string) ($validated['reason'] ?? 'Manual adjustment')) ?: 'Manual adjustment',
+                    'created_by' => $request->user()?->id,
+                ]);
+            }
 
             app(\App\Support\AuditLogger::class)->log(
                 $request,

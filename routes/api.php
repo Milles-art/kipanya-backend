@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Commerce\CheckoutController;
 use App\Http\Controllers\Api\V1\Commerce\OrderController;
 use App\Http\Controllers\Api\V1\Commerce\ReturnRequestController;
 use App\Http\Controllers\Api\V1\Commerce\WearCatalogController;
+use App\Http\Controllers\Api\V1\Commerce\StorefrontController;
 use App\Http\Controllers\Api\V1\Account\AccountPreferencesController;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
@@ -34,6 +35,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::post('/contact', [\App\Http\Controllers\Api\V1\ContactController::class, 'store'])->middleware('throttle:5,10');
 
     Route::prefix('wear')->group(function () {
+        Route::get('/storefront', [StorefrontController::class, 'show']);
         Route::get('/categories', [WearCatalogController::class, 'categories']);
         Route::get('/collections', [WearCatalogController::class, 'collections']);
         Route::get('/collections/{collection:slug}', [WearCatalogController::class, 'collection']);
@@ -57,6 +59,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('/orders/{order:order_number}', [OrderController::class, 'show']);
         Route::post('/orders/{order:order_number}/cancel', [OrderController::class, 'cancel']);
         Route::get('/returns', [ReturnRequestController::class, 'index']);
+        Route::get('/returns/eligible-orders', [ReturnRequestController::class, 'eligibleOrders']);
         Route::post('/returns', [ReturnRequestController::class, 'store']);
 
         Route::apiResource('addresses', AddressController::class)->except(['show']);
@@ -70,6 +73,4 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy']);
     });
 
-    require __DIR__.'/api_content.php';
-    require __DIR__.'/api_admin.php';
 });

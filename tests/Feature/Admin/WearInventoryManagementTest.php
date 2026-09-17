@@ -18,7 +18,7 @@ final class WearInventoryManagementTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['role' => UserRole::Admin, 'status' => 'active']);
+        return User::factory()->admin()->create();
     }
 
     private function variant(int $stock = 10): WearProductVariant

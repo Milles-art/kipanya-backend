@@ -51,7 +51,13 @@ final class OrderService
                 ->where('type', 'shipping')
                 ->findOrFail($data->addressId);
 
-            $cart = $this->cartService->current($user, null)->load('items.variant.product');
+            $cart = $this->cartService->current($user, null);
+            $cart = Cart::query()->lockForUpdate()->findOrFail($cart->id);
+            $cart->load('items.variant.product');
+
+            if ($cart->status !== CartStatus::Active) {
+                throw ValidationException::withMessages(['cart' => 'Your cart is no longer available for checkout.']);
+            }
 
             if ($cart->items->isEmpty()) {
                 throw ValidationException::withMessages(['cart' => 'Your cart is empty.']);
@@ -156,7 +162,15 @@ final class OrderService
                 ]);
             }
 
-            $locked->update(['status' => OrderStatus::Cancelled]);
+            $locked->update([
+                'status' => OrderStatus::Cancelled,
+                'payment_status' => PaymentStatus::Cancelled,
+            ]);
+
+            $locked->payments()
+                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+                ->update(['status' => PaymentStatus::Cancelled]);
+
             $locked->statusHistory()->create([
                 'from_status' => OrderStatus::PendingPayment->value,
                 'to_status' => OrderStatus::Cancelled->value,

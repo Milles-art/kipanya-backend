@@ -9,6 +9,8 @@
     $badge = $product['badge'] ?? null;
     $availability = $product['availability'] ?? 'available';
     $variants = $product['variants'] ?? [];
+    $availableVariants = collect($variants)->filter(fn ($variant) => !empty($variant['in_stock']) || (int) ($variant['stock'] ?? 0) > 0)->values();
+    $primaryVariant = $availableVariants->count() === 1 ? $availableVariants->first() : null;
     $stock = collect($variants)->sum(fn ($variant) => (int) ($variant['stock'] ?? 0));
     $onSale = $compare !== null && (float) $compare > $price;
     $discount = $onSale ? (int) round((((float) $compare - $price) / (float) $compare) * 100) : 0;
@@ -48,9 +50,24 @@
             <x-tabler-heart size="18" stroke-width="1.8" />
         </button>
 
-        <button type="button" data-quick-add="{{ $id }}" @disabled($availability === 'out_of_stock') class="absolute bottom-3 right-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full bg-white text-gray-800 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-emerald-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50" aria-label="Add {{ $name }} to bag">
+        <button type="button" data-quick-add="{{ $id }}" data-quick-variant="{{ $primaryVariant['id'] ?? '' }}" aria-expanded="false" @disabled($availableVariants->isEmpty()) class="absolute bottom-3 right-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full bg-white text-gray-800 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-emerald-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50" aria-label="Add {{ $name }} to bag">
             <x-tabler-shopping-bag size="18" stroke-width="1.8" />
         </button>
+
+        @if($availableVariants->count() > 1)
+            <div data-quick-variant-picker class="absolute bottom-16 right-3 z-20 hidden w-[min(18rem,calc(100%-1.5rem))] rounded-2xl border border-gray-200 bg-white p-3 shadow-2xl" role="dialog" aria-label="Choose a size and colour for {{ $name }}">
+                <p class="mb-2 text-xs font-semibold text-gray-900">Choose an option</p>
+                <div class="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto">
+                    @foreach($availableVariants as $variant)
+                        @php($label = collect([$variant['size'] ?? null, $variant['color'] ?? null])->filter()->join(' · ') ?: 'Option '.$variant['id'])
+                        <button type="button" data-quick-variant-choice="{{ $variant['id'] }}" data-stock="{{ (int) ($variant['stock'] ?? 0) }}" class="rounded-xl border border-gray-200 px-2.5 py-2 text-left text-xs font-medium text-gray-800 transition hover:border-gray-900 hover:bg-gray-50">
+                            {{ $label }}
+                            <span class="mt-0.5 block text-[10px] font-normal text-gray-400">{{ (int) ($variant['stock'] ?? 0) }} available</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
 
     <div>

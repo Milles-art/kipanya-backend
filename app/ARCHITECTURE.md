@@ -1,8 +1,8 @@
-# Kipanya Backend Architecture
+# KP Wear Backend Architecture
 
 ## Source of truth
 
-The Kipanya App Master System Blueprint is the product and architecture authority. The backend provides a stable API for the web client and future Android/iOS clients while the admin API uses the same application foundation.
+This repository is the KP Wear application baseline. The Laravel backend and Blade storefront share the same application and API contracts.
 
 ## Layering
 
@@ -10,26 +10,22 @@ The Kipanya App Master System Blueprint is the product and architecture authorit
 
 Cross-cutting concerns are isolated into policies, middleware, integrations, jobs, events/listeners and support utilities.
 
-## Directory responsibilities
+## Product boundary
 
-- `Actions/`: one application operation/use case with a clear boundary.
-- `DTOs/`: typed data passed between application layers.
-- `Enums/`: stable domain states and finite values.
-- `Http/Controllers/Api/V1/`: transport-only HTTP controllers.
-- `Http/Requests/Api/V1/`: input validation and request authorization.
-- `Http/Resources/Api/V1/`: explicit public API response contracts.
-- `Models/`: Eloquent domain/data models grouped by product area.
-- `Policies/`: resource-level authorization rules.
-- `Services/`: reusable domain/application services grouped by concern.
-- `Integrations/`: replaceable adapters for external providers.
-- `Jobs/`: asynchronous work safe to retry.
-- `Events/`: business events; `Listeners/` react without coupling callers.
-- `Support/`: cross-cutting primitives such as API responses, audit logging and phone normalization.
+The production runtime contains only KP Wear commerce and its required shared foundation:
+
+- Identity/authentication: users, OTP, Sanctum, profiles and notification preferences.
+- Administration: roles, permissions, audit logs and store/storefront settings.
+- Commerce: catalog, variants, collections, cart, wishlist, addresses, checkout, orders, inventory, stock reservations, returns and payment abstractions.
+- Contact/support: customer enquiries and related administration.
+- Storefront: Blade pages and the shared store JavaScript client.
+
+Cartoon, Books, Motors and TV are not part of the KP Wear runtime. Their previous source has been removed from this repository and is no longer autoloaded or route-loaded.
 
 ## Dependency direction
 
-Controllers should not contain substantial business rules. Domain work belongs in Actions/Services and persistence belongs in Models. External providers are called through Integration adapters. Client input never becomes authoritative for price, stock, payment status, permissions or points.
+Controllers should remain transport-focused. Business rules belong in Actions/Services and persistence belongs in Models. External providers are accessed through replaceable integration adapters. Client input is never authoritative for price, stock, payment status or permissions.
 
-## Frontend boundary
+## Production principle
 
-The public frontend is intentionally outside this Laravel repository. The API is the contract consumed by the frontend, mobile clients and future integrations. Blade/public web routes are not part of this backend baseline.
+Keep the existing KP Wear architecture intact while removing unrelated application boundaries. Real SMS and payment providers remain integration concerns and are added only after the core commerce flow is verified.

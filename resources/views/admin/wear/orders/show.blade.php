@@ -91,8 +91,32 @@
                 <div class="mt-4 text-sm text-gray-700">
                     <p class="whitespace-pre-line">{{ $order->delivery_address }}</p>
                     @if($order->delivery_city)<p class="mt-2 font-semibold">{{ $order->delivery_city }}</p>@endif
+                    @if($order->delivery_provider || $order->tracking_number)
+                        <div class="mt-4 rounded-xl bg-gray-50 p-3 text-sm">
+                            @if($order->delivery_provider)<p><span class="font-semibold">Provider:</span> {{ $order->delivery_provider }}</p>@endif
+                            @if($order->tracking_number)<p class="mt-1"><span class="font-semibold">Tracking:</span> {{ $order->tracking_number }}</p>@endif
+                        </div>
+                    @endif
                     @if($order->notes)<p class="mt-4 rounded-xl bg-gray-50 p-3"><span class="font-semibold">Note:</span> {{ $order->notes }}</p>@endif
                 </div>
+            </section>
+
+            <section class="rounded-2xl border border-gray-200 bg-white p-5">
+                <h2 class="font-bold">Fulfillment & tracking</h2>
+                <p class="mt-1 text-sm text-gray-500">Add the delivery provider and tracking reference without changing payment state.</p>
+                <form method="POST" action="{{ route('admin.wear.orders.delivery', $order) }}" class="mt-5 space-y-4">
+                    @csrf
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Delivery provider</span><input name="delivery_provider" value="{{ old('delivery_provider', $order->delivery_provider) }}" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Courier / rider / provider"></label>
+                        <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Tracking number</span><input name="tracking_number" value="{{ old('tracking_number', $order->tracking_number) }}" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Tracking reference"></label>
+                    </div>
+                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Fulfillment note</span><textarea name="fulfillment_notes" rows="3" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Internal delivery note">{{ old('fulfillment_notes', $order->fulfillment_notes) }}</textarea></label>
+                    <div class="grid gap-3 text-xs text-gray-500 sm:grid-cols-2">
+                        <div class="rounded-xl bg-gray-50 p-3"><span class="font-semibold text-gray-700">Shipped:</span> {{ $order->shipped_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
+                        <div class="rounded-xl bg-gray-50 p-3"><span class="font-semibold text-gray-700">Delivered:</span> {{ $order->delivered_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
+                    </div>
+                    <button class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-900 hover:bg-gray-50">Save fulfillment details</button>
+                </form>
             </section>
 
             <section class="rounded-2xl border border-gray-200 bg-white p-5">

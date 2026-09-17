@@ -41,6 +41,19 @@
 <div class="kp-shop-page pt-8 md:pt-10">
     <div class="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-10">
 
+        {{-- ── Admin-controlled shop banner ───────────────────────────── --}}
+        <div data-storefront-shop-banner class="mb-7 hidden overflow-hidden rounded-[1.5rem] bg-gray-950 text-white">
+          <div data-storefront-shop-banner-inner class="relative min-h-[220px]">
+            <img data-storefront-shop-banner-image class="absolute inset-0 h-full w-full object-cover opacity-70" alt="" loading="eager">
+            <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10"></div>
+            <div class="relative max-w-2xl px-7 py-10 sm:px-10 sm:py-12">
+              <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">KP Wear</p>
+              <h2 data-storefront-shop-banner-title class="mt-3 text-3xl font-black tracking-tight sm:text-4xl"></h2>
+              <p data-storefront-shop-banner-description class="mt-3 max-w-xl text-sm leading-6 text-white/75"></p>
+            </div>
+          </div>
+        </div>
+
         {{-- ── Header bar ────────────────────────────────────────────── --}}
         <div class="kp-reveal mb-7 flex flex-col gap-5 border-b border-gray-100 pb-7 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -119,14 +132,6 @@
                         </button>
                     </section>
 
-                    {{-- Promo card --}}
-                    <div class="overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 p-5 text-white">
-                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-100">Members</p>
-                        <p class="mt-2 text-sm font-semibold leading-5">Free delivery on orders over 100,000 TZS</p>
-                        <a href="{{ route('collections') }}" class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white underline underline-offset-2">
-                            See collections <span aria-hidden="true">→</span>
-                        </a>
-                    </div>
                 </div>
             </aside>
 

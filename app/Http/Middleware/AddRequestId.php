@@ -11,7 +11,8 @@ final class AddRequestId
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $requestId = (string) ($request->header('X-Request-ID') ?: Str::uuid());
+        $provided = $request->header('X-Request-ID');
+        $requestId = is_string($provided) && Str::isUuid($provided) ? $provided : (string) Str::uuid();
         $request->attributes->set('request_id', $requestId);
 
         $response = $next($request);

@@ -6,9 +6,11 @@ use App\Enums\Commerce\OrderStatus;
 use App\Enums\Commerce\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Wear\WearOrder;
+use App\Support\AuditLogger;
+use App\Services\Commerce\OrderStateService;
+
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -61,7 +63,7 @@ final class OrderController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, WearOrder $order): RedirectResponse
+    public function updateStatus(Request $request, WearOrder $order, OrderStateService $stateService): RedirectResponse
     {
         abort_unless($request->user()?->hasPermission('commerce.manage'), 403);
 
@@ -71,46 +73,37 @@ final class OrderController extends Controller
         ]);
 
         $target = OrderStatus::from($validated['status']);
-        $current = $order->status;
 
-        if ($target === $current) {
+        if ($target === $order->status) {
             return back()->with('success', 'Order status is already '.$target->value.'.');
         }
 
-        if ($target === OrderStatus::PendingPayment) {
-            return back()->withErrors(['status' => 'Orders cannot be moved back to pending payment from the admin panel.']);
-        }
-
-        if ($target === OrderStatus::Confirmed && $order->payment_status !== PaymentStatus::Paid) {
-            return back()->withErrors(['status' => 'An order can only be confirmed after payment is marked as paid.']);
-        }
-
-        $allowed = match ($current) {
-            OrderStatus::PendingPayment => [OrderStatus::Cancelled, OrderStatus::Confirmed],
-            OrderStatus::Confirmed => [OrderStatus::Processing, OrderStatus::Cancelled],
-            OrderStatus::Processing => [OrderStatus::Shipped, OrderStatus::Cancelled],
-            OrderStatus::Shipped => [OrderStatus::Delivered],
-            OrderStatus::Delivered => [],
-            OrderStatus::Cancelled => [],
-        };
-
-        if (! in_array($target, $allowed, true)) {
-            return back()->withErrors([
-                'status' => sprintf('Cannot change an order from %s to %s.', $current->value, $target->value),
-            ]);
-        }
-
-        DB::transaction(function () use ($order, $current, $target, $validated, $request): void {
-            $order->update(['status' => $target]);
-
-            $order->statusHistory()->create([
-                'from_status' => $current->value,
-                'to_status' => $target->value,
-                'reason' => $validated['reason'] ?? null,
-                'changed_by' => $request->user()->id,
-            ]);
-        });
+        $stateService->transition($order, $target, $request->user(), $validated['reason'] ?? null);
 
         return back()->with('success', 'Order status updated to '.$target->value.'.');
+    }
+
+    public function updateDelivery(Request $request, WearOrder $order): RedirectResponse
+    {
+        abort_unless($request->user()?->hasPermission('commerce.manage'), 403);
+
+        $validated = $request->validate([
+            'delivery_provider' => ['nullable', 'string', 'max:100'],
+            'tracking_number' => ['nullable', 'string', 'max:120'],
+            'fulfillment_notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $order->update([
+            'delivery_provider' => filled($validated['delivery_provider'] ?? null) ? trim($validated['delivery_provider']) : null,
+            'tracking_number' => filled($validated['tracking_number'] ?? null) ? trim($validated['tracking_number']) : null,
+            'fulfillment_notes' => filled($validated['fulfillment_notes'] ?? null) ? trim($validated['fulfillment_notes']) : null,
+        ]);
+
+        app(AuditLogger::class)->log($request, 'admin.wear.order.delivery_updated', $order, [
+            'delivery_provider' => $order->delivery_provider,
+            'tracking_number' => $order->tracking_number,
+        ]);
+
+        return back()->with('success', 'Delivery details updated.');
     }
 }

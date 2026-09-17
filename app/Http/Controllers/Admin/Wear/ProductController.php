@@ -8,6 +8,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -70,7 +72,11 @@ final class ProductController extends Controller
 
         $data = $this->validateProduct($request);
 
-        $product = DB::transaction(function () use ($data) {
+        $product = DB::transaction(function () use ($request, $data) {
+            if ($request->hasFile('image')) {
+                $data['image_path'] = '/storage/'.$request->file('image')->store('wear/products', 'public');
+            }
+
             $product = WearProduct::create($data);
 
             app(\App\Support\AuditLogger::class)->log(
@@ -110,6 +116,14 @@ final class ProductController extends Controller
                 'image_path', 'badge', 'is_featured', 'is_active', 'sort_order',
             ]);
 
+            if ($request->hasFile('image')) {
+                $old = $product->image_path;
+                $data['image_path'] = '/storage/'.$request->file('image')->store('wear/products', 'public');
+                if ($old && str_starts_with($old, '/storage/')) {
+                    Storage::disk('public')->delete(ltrim(substr($old, 9), '/'));
+                }
+            }
+
             $product->update($data);
 
             app(\App\Support\AuditLogger::class)->log(
@@ -135,7 +149,11 @@ final class ProductController extends Controller
 
         DB::transaction(function () use ($request, $product) {
             $name = $product->name;
+            $oldImage = $product->image_path;
             $product->delete();
+            if ($oldImage && str_starts_with($oldImage, '/storage/')) {
+                Storage::disk('public')->delete(ltrim(substr($oldImage, 9), '/'));
+            }
 
             app(\App\Support\AuditLogger::class)->log(
                 $request,
@@ -163,7 +181,15 @@ final class ProductController extends Controller
             'category' => ['required', Rule::in(self::CATEGORIES)],
             'price' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99', 'gte:price'],
-            'image_path' => ['nullable', 'string', 'max:500'],
+            'image_path' => ['nullable', 'string', 'max:500', function (string $attribute, mixed $value, $fail): void {
+                $value = trim((string) $value);
+                if ($value === '') return;
+                if (preg_match('/^https?:\/\//i', $value)) return;
+                if (str_starts_with($value, '/storage/')) return;
+                if (str_starts_with($value, 'assets/')) return;
+                $fail('The image path must be a local storage/assets path or an HTTP(S) URL.');
+            }],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,avif', 'max:5120'],
             'badge' => ['nullable', 'string', 'max:30'],
             'is_featured' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],

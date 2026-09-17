@@ -9,7 +9,7 @@
 <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
 @endif
 
-<form method="POST" action="{{ $formAction }}" class="space-y-6">
+<form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6">
     @csrf
     @if($method !== 'POST') @method($method) @endif
 
@@ -44,8 +44,13 @@
             <input class="field w-full" type="number" name="compare_at_price" min="0" step="0.01" value="{{ old('compare_at_price', $product->compare_at_price) }}">
         </div>
 
-        <div class="sm:col-span-2">
-            <label class="mb-2 block text-sm font-semibold">Image path / URL</label>
+        <div class="sm:col-span-2 space-y-3">
+            <label class="mb-2 block text-sm font-semibold">Product image</label>
+            @if($product->image_url)
+                <img src="{{ $product->image_url }}" alt="{{ $product->name ?: 'Product image' }}" class="h-32 w-32 rounded-2xl object-cover ring-1 ring-gray-200">
+            @endif
+            <input class="field w-full" type="file" name="image" accept="image/jpeg,image/png,image/webp,image/avif">
+            <p class="text-xs text-gray-400">Upload JPG, PNG, WebP or AVIF, up to 5 MB. You can still use a path or remote URL below.</p>
             <input class="field w-full" name="image_path" value="{{ old('image_path', $product->image_path) }}" maxlength="500" placeholder="assets/wear/catalog/generated/product-01.jpg">
         </div>
 

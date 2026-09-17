@@ -29,6 +29,7 @@ final class ControlPanelController extends Controller
         $weekRevenue = $revenue((clone $paidOrders)->whereBetween('placed_at', [now()->startOfWeek(), now()->endOfWeek()]));
         $monthRevenue = $revenue((clone $paidOrders)->whereBetween('placed_at', [now()->startOfMonth(), now()->endOfMonth()]));
         $totalRevenue = $revenue($paidOrders);
+        $paidOrdersToday = (clone $paidOrders)->whereDate('placed_at', today());
 
         $recentOrders = WearOrder::query()
             ->with(['user:id,name,email', 'items:id,wear_order_id,product_name,quantity'])
@@ -62,6 +63,7 @@ final class ControlPanelController extends Controller
                 'total_revenue' => $totalRevenue,
                 'orders_total' => WearOrder::count(),
                 'orders_paid' => WearOrder::where('payment_status', PaymentStatus::Paid->value)->count(),
+                'orders_paid_today' => $paidOrdersToday->count(),
                 'orders_pending_payment' => WearOrder::where('status', OrderStatus::PendingPayment->value)->count(),
                 'orders_processing' => WearOrder::where('status', OrderStatus::Processing->value)->count(),
                 'orders_shipped' => WearOrder::where('status', OrderStatus::Shipped->value)->count(),
@@ -74,6 +76,10 @@ final class ControlPanelController extends Controller
                 'low_stock' => WearProductVariant::whereBetween('stock', [1, 5])->count(),
                 'out_of_stock' => WearProductVariant::where('stock', '<=', 0)->count(),
                 'customers' => WearOrder::whereNotNull('user_id')->distinct('user_id')->count('user_id'),
+                'customers_today' => WearOrder::whereNotNull('user_id')
+                    ->whereDate('placed_at', today())
+                    ->distinct('user_id')
+                    ->count('user_id'),
                 'customers_30d' => WearOrder::whereNotNull('user_id')
                     ->where('placed_at', '>=', now()->subDays(30))
                     ->distinct('user_id')
@@ -82,15 +88,6 @@ final class ControlPanelController extends Controller
             'recentOrders' => $recentOrders,
             'lowStockVariants' => $lowStockVariants,
             'salesChart' => $salesChart,
-        ]);
-    }
-
-    public function module(string $module): View
-    {
-        abort_unless(in_array($module, ['cartoon', 'wear', 'book', 'motors', 'tv'], true), 404);
-
-        return view('admin.modules.placeholder', [
-            'module' => $module,
         ]);
     }
 }

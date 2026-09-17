@@ -2,14 +2,8 @@
 
 namespace App\Providers;
 
-use App\Models\Content\Cartoon;
-use App\Models\Content\Category;
-use App\Models\Content\Collection;
 use App\Models\Wear\WearOrder;
 use App\Models\Wear\WearProduct;
-use App\Policies\CartoonPolicy;
-use App\Policies\CategoryPolicy;
-use App\Policies\CollectionPolicy;
 use App\Policies\WearOrderPolicy;
 use App\Policies\WearProductPolicy;
 use App\Integrations\Payments\FakePaymentGateway;
@@ -32,9 +26,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Gate::policy(Cartoon::class, CartoonPolicy::class);
-        Gate::policy(Category::class, CategoryPolicy::class);
-        Gate::policy(Collection::class, CollectionPolicy::class);
         Gate::policy(WearProduct::class, WearProductPolicy::class);
         Gate::policy(WearOrder::class, WearOrderPolicy::class);
 
