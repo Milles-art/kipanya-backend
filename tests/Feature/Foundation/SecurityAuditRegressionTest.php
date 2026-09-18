@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Foundation;
 
+use App\Actions\Auth\IssueSanctumToken;
 use App\Enums\Auth\OtpPurpose;
 use App\Enums\Auth\UserRole;
 use App\Integrations\Sms\SmsGateway;
@@ -17,6 +18,7 @@ use App\Services\Auth\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
 /**
@@ -89,6 +91,32 @@ class SecurityAuditRegressionTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame(0, $target->tokens()->count());
+    }
+
+    public function test_changing_an_admin_credentials_through_update_revokes_token(): void
+    {
+        $actor = $this->userWithPermissions(['users.manage']);
+        $target = $this->staffAdmin();
+        $target->createToken('regression-test');
+
+        $this->assertSame(1, $target->tokens()->count());
+
+        $this->actingAs($actor)
+            ->put(route('admin.users.update', $target), [
+                'name' => $target->name,
+                'phone' => '+255700000001',
+                'email' => 'credentials-changed@example.com',
+                'role_id' => $target->roles()->value('id'),
+                'status' => 'active',
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $target->id,
+            'phone' => '+255700000001',
+            'email' => 'credentials-changed@example.com',
+        ]);
+        $this->assertSame(0, $target->refresh()->tokens()->count());
     }
 
     public function test_product_image_path_traversal_is_rejected(): void
@@ -286,6 +314,141 @@ class SecurityAuditRegressionTest extends TestCase
             ->putJson("/api/v1/cart/items/{$variant->id}", ['quantity' => 2])
             ->assertOk()
             ->assertJsonPath('data.item_count', 2);
+    }
+
+    public function test_login_sets_an_http_only_same_site_lax_web_session_cookie(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '+255712345678',
+            'phone_verified_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $sent = [];
+        $this->app->bind(SmsGateway::class, function () use (&$sent) {
+            return new class($sent) implements SmsGateway
+            {
+                public function __construct(public array &$sent) {}
+
+                public function send(string $phone, string $message): void
+                {
+                    $this->sent[] = compact('phone', 'message');
+                }
+            };
+        });
+
+        $this->postJson('/api/v1/auth/login/request-otp', ['phone' => '+255712345678'])->assertOk();
+        preg_match('/\b\d{6}\b/', $sent[0]['message'], $matches);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'phone' => '0712345678',
+            'code' => $matches[0],
+        ])->assertOk();
+
+        $cookieHeader = $response->headers->get('set-cookie');
+        $this->assertNotNull($cookieHeader);
+        $this->assertStringContainsString('kp_web_session=', $cookieHeader);
+        $this->assertMatchesRegularExpression('/httponly/i', $cookieHeader);
+        $this->assertMatchesRegularExpression('/samesite=lax/i', $cookieHeader);
+
+        preg_match('/kp_web_session=([^;]+)/', $cookieHeader, $cookieMatch);
+        $cookie = rawurldecode($cookieMatch[1]);
+
+        // The HttpOnly cookie alone (no Authorization header) must authenticate
+        // the API just like an external bearer token. JSON helper requests
+        // never forward cookies, so use a plain request instead.
+        $this->withUnencryptedCookies(['kp_web_session' => $cookie])
+            ->withHeader('Accept', 'application/json')
+            ->get('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.phone', '+255712345678');
+    }
+
+    public function test_logout_forgets_the_web_session_cookie(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '+255712345678',
+            'phone_verified_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $sent = [];
+        $this->app->bind(SmsGateway::class, function () use (&$sent) {
+            return new class($sent) implements SmsGateway
+            {
+                public function __construct(public array &$sent) {}
+
+                public function send(string $phone, string $message): void
+                {
+                    $this->sent[] = compact('phone', 'message');
+                }
+            };
+        });
+
+        $this->postJson('/api/v1/auth/login/request-otp', ['phone' => '+255712345678'])->assertOk();
+        preg_match('/\b\d{6}\b/', $sent[0]['message'], $matches);
+
+        $login = $this->postJson('/api/v1/auth/login', [
+            'phone' => '0712345678',
+            'code' => $matches[0],
+        ])->assertOk();
+
+        preg_match('/kp_web_session=([^;]+)/', $login->headers->get('set-cookie'), $cookieMatch);
+        $cookie = rawurldecode($cookieMatch[1]);
+
+        $this->withUnencryptedCookies(['kp_web_session' => $cookie])
+            ->withHeader('Accept', 'application/json')
+            ->get('/api/v1/auth/me')
+            ->assertOk();
+
+        $logout = $this->withUnencryptedCookies(['kp_web_session' => $cookie])
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/auth/logout')
+            ->assertOk();
+
+        $this->assertMatchesRegularExpression('/kp_web_session=deleted/i', (string) $logout->headers->get('set-cookie'));
+
+        $this->withUnencryptedCookies(['kp_web_session' => $cookie])
+            ->withHeader('Accept', 'application/json')
+            ->get('/api/v1/auth/me')
+            ->assertUnauthorized();
+    }
+
+    public function test_storefront_pages_render_signed_in_state_from_the_web_session_cookie(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+        $token = (new IssueSanctumToken)->execute($user);
+
+        $this->get('/account')
+            ->assertOk()
+            ->assertSee('name="kp-signed-in" content="0"', false);
+
+        $this->withUnencryptedCookies(['kp_web_session' => $token])
+            ->get('/account')
+            ->assertOk()
+            ->assertSee('name="kp-signed-in" content="1"', false);
+    }
+
+    public function test_web_session_tokens_are_scoped_not_wildcard(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+        $token = (new IssueSanctumToken)->execute($user);
+
+        $record = PersonalAccessToken::findToken($token);
+
+        $this->assertNotNull($record);
+        $this->assertSame(['auth', 'account', 'commerce', 'cart'], $record->abilities);
+        $this->assertNotContains('*', $record->abilities);
+    }
+
+    public function test_narrow_token_is_blocked_from_out_of_scope_endpoints(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+        $narrow = $user->createToken('narrow-account', ['account'])->plainTextToken;
+
+        $this->withToken($narrow)->getJson('/api/v1/account/preferences')->assertOk();
+        $this->withToken($narrow)->getJson('/api/v1/auth/me')->assertForbidden();
+        $this->withToken($narrow)->getJson('/api/v1/orders')->assertForbidden();
     }
 
     private function staffAdmin(): User

@@ -1,10 +1,11 @@
 <?php
 
-use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\ControlPanelController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StorefrontController;
+use App\Http\Controllers\Admin\TwoFactorController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\Wear\AnalyticsController;
 use App\Http\Controllers\Admin\Wear\CategoryController;
@@ -23,9 +24,16 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login/request-otp', [AuthController::class, 'requestOtp'])->middleware('throttle:5,1')->name('login.request-otp');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.submit');
+    Route::post('/login/two-factor', [AuthController::class, 'confirmTwoFactor'])->middleware('throttle:5,1')->name('login.two-factor');
 
     Route::middleware('admin.web')->group(function (): void {
         Route::get('/', [ControlPanelController::class, 'dashboard'])->name('dashboard');
+
+        Route::prefix('security')->name('security.')->group(function (): void {
+            Route::get('/two-factor', [TwoFactorController::class, 'index'])->name('two-factor.index');
+            Route::post('/two-factor/enable', [TwoFactorController::class, 'enable'])->middleware('throttle:10,15')->name('two-factor.enable');
+            Route::post('/two-factor/disable', [TwoFactorController::class, 'disable'])->middleware('throttle:10,15')->name('two-factor.disable');
+        });
 
         Route::prefix('users')->name('users.')->middleware('admin.permission:users.manage')->group(function (): void {
             Route::get('/', [UserController::class, 'index'])->name('index');
@@ -35,7 +43,6 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
             Route::put('/{user}', [UserController::class, 'update'])->name('update');
             Route::post('/{user}/status', [UserController::class, 'toggleStatus'])->name('status');
         });
-
 
         Route::prefix('wear')->name('wear.')->middleware('admin.permission:commerce.manage')->group(function (): void {
             Route::resource('products', ProductController::class)->except(['show']);

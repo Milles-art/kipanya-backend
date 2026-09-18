@@ -130,16 +130,18 @@
 (() => {
     const page = document.querySelector('[data-notifications-page]');
     if (!page) return;
+    if (document.querySelector('meta[name="kp-signed-in"]')?.getAttribute('content') !== '1') { location.href = '/login'; return; }
 
     const api = async (path, options = {}) => {
-        const token = localStorage.getItem('kp_api_token');
-        if (!token) { window.location.href = '/login'; return null; }
         const response = await fetch(`/api/v1${path}`, {
             ...options,
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) },
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(options.headers || {}) },
         });
         const data = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(data?.message || Object.values(data?.errors || {})?.flat?.()?.[0] || `Request failed (${response.status})`);
+        if (!response.ok) {
+            if (response.status === 401) { location.href = '/login'; return null; }
+            throw new Error(data?.message || Object.values(data?.errors || {})?.flat?.()?.[0] || `Request failed (${response.status})`);
+        }
         return data;
     };
 

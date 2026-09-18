@@ -34,8 +34,8 @@
 @push('scripts')
 <script nonce="{{ Vite::cspNonce() }}">
 (() => {
-    const page=document.querySelector('[data-security-page]'); if(!page)return; const token=localStorage.getItem('kp_api_token'); if(!token){location.href='/login';return;}
-    fetch('/api/v1/auth/me',{headers:{Accept:'application/json',Authorization:`Bearer ${token}`}}).then(async r=>{const d=await r.json().catch(()=>null);if(!r.ok)throw new Error(d?.message||'Session expired.');page.querySelector('[data-security-phone]').textContent=d.data?.phone||'—';}).catch(e=>{page.querySelector('[data-security-phone]').textContent=e.message;});
+    const page=document.querySelector('[data-security-page]'); if(!page)return; if(document.querySelector('meta[name="kp-signed-in"]')?.getAttribute('content')!=='1'){location.href='/login';return;}
+    fetch('/api/v1/auth/me',{headers:{Accept:'application/json'}}).then(async r=>{const d=await r.json().catch(()=>null);if(!r.ok){if(r.status===401){location.href='/login';return;}throw new Error(d?.message||'Session expired.');}page.querySelector('[data-security-phone]').textContent=d.data?.phone||'—';}).catch(e=>{page.querySelector('[data-security-phone]').textContent=e.message;});
 })();
 </script>
 @endpush

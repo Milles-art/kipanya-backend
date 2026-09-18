@@ -73,6 +73,9 @@ class SecurityHardeningTest extends TestCase
 
         $this->assertMatchesRegularExpression("/script-src [^;]*'nonce-[^']+'/", $policy);
         $this->assertDoesNotMatchRegularExpression("/script-src [^;]*'unsafe-inline'/", $policy);
+        $this->assertStringContainsString("worker-src 'none'", $policy);
+        $this->assertStringContainsString("manifest-src 'self'", $policy);
+        $this->assertStringContainsString("frame-src 'none'", $policy);
         $this->assertMatchesRegularExpression('/<script nonce="[^"]+">/', (string) $response->getContent());
     }
 

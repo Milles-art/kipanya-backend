@@ -37,10 +37,10 @@
 <script nonce="{{ Vite::cspNonce() }}">
 (() => {
     const page = document.querySelector('[data-account-addresses]'); if (!page) return;
-    const token = localStorage.getItem('kp_api_token'); if (!token) { location.href = '/login'; return; }
+    if (document.querySelector('meta[name="kp-signed-in"]')?.getAttribute('content') !== '1') { location.href = '/login'; return; }
     const list = page.querySelector('[data-addresses-list]'), form = page.querySelector('[data-address-form]'), error = page.querySelector('[data-address-error]');
     const add = page.querySelector('[data-address-add]'), cancel = page.querySelector('[data-address-cancel]'), title = page.querySelector('[data-address-form-title]');
-    const api = async (path, options = {}) => { const response = await fetch(`/api/v1${path}`, { ...options, headers: { Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${token}`, ...(options.headers||{}) } }); const data = await response.json().catch(()=>null); if(!response.ok) throw new Error(data?.message || Object.values(data?.errors||{}).flat?.()?.[0] || `Request failed (${response.status})`); return data; };
+    const api = async (path, options = {}) => { const response = await fetch(`/api/v1${path}`, { ...options, headers: { Accept:'application/json', 'Content-Type':'application/json', ...(options.headers||{}) } }); const data = await response.json().catch(()=>null); if(!response.ok){ if(response.status===401){ location.href='/login'; return null; } throw new Error(data?.message || Object.values(data?.errors||{}).flat?.()?.[0] || `Request failed (${response.status})`); } return data; };
     const field = n => form.querySelector(`[name="${n}"]`);
     const showError = e => { error.textContent = e.message || 'Unable to update addresses.'; error.classList.remove('hidden'); };
     const hideError = () => error.classList.add('hidden');

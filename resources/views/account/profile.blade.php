@@ -32,17 +32,19 @@
 (() => {
     const page = document.querySelector('[data-account-profile]');
     if (!page) return;
-    const token = localStorage.getItem('kp_api_token');
-    if (!token) { location.href = '/login'; return; }
+    if (document.querySelector('meta[name="kp-signed-in"]')?.getAttribute('content') !== '1') { location.href = '/login'; return; }
     const form = page.querySelector('[data-profile-form]');
     const input = page.querySelector('[data-profile-name-input]');
     const phone = page.querySelector('[data-profile-phone]');
     const error = page.querySelector('[data-profile-error]');
     const button = form?.querySelector('button[type="submit"]');
     const api = async (path, options = {}) => {
-        const response = await fetch(`/api/v1${path}`, { ...options, headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) } });
+        const response = await fetch(`/api/v1${path}`, { ...options, headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(options.headers || {}) } });
         const data = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(data?.message || Object.values(data?.errors || {}).flat?.()?.[0] || `Request failed (${response.status})`);
+        if (!response.ok) {
+            if (response.status === 401) { location.href = '/login'; return null; }
+            throw new Error(data?.message || Object.values(data?.errors || {}).flat?.()?.[0] || `Request failed (${response.status})`);
+        }
         return data;
     };
     (async () => {
@@ -61,7 +63,6 @@
         try {
             const data = await api('/account/profile', { method: 'PUT', body: JSON.stringify({ name: input.value.trim() }) });
             const user = data.data;
-            localStorage.setItem('kp_user', JSON.stringify(user));
             document.querySelectorAll('[data-profile-name], [data-sidebar-name]').forEach(n => n.textContent = user.name);
             document.querySelectorAll('[data-account-name]').forEach(n => n.textContent = `Welcome back, ${user.name}`);
             window.dispatchEvent(new CustomEvent('kp:toast', { detail: 'Profile updated.' }));

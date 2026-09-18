@@ -130,6 +130,9 @@ final class UserController extends Controller
                 'status' => $user->status,
             ];
 
+            $credentialsChanged = $user->phone !== $phone
+                || $user->email !== ($data['email'] ?: null);
+
             $user->update([
                 'name' => $data['name'],
                 'email' => $data['email'] ?: null,
@@ -138,7 +141,10 @@ final class UserController extends Controller
 
             $user->forceFill(['status' => $data['status']])->save();
 
-            if ($data['status'] !== 'active') {
+            // Revoke all API tokens when the account is deactivated or its
+            // identifying credentials change, so a token issued under the old
+            // identity cannot outlive the change.
+            if ($data['status'] !== 'active' || $credentialsChanged) {
                 $user->tokens()->delete();
             }
 

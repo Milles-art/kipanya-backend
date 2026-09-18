@@ -45,10 +45,11 @@
                     ['admin.storefront.index', 'Content', 'layout-dashboard', 'settings.manage'],
                     ['admin.settings.index', 'Settings', 'settings', 'settings.manage'],
                     ['admin.audit.index', 'Audit Log', 'shield-check', 'admin.dashboard.view'],
+                    ['admin.security.two-factor.index', 'Two-Factor Auth', 'lock', null],
                 ];
             @endphp
             @foreach($adminLinks as [$routeName, $label, $icon, $permission])
-                @if(Route::has($routeName) && auth()->user()->hasPermission($permission))
+                @if(Route::has($routeName) && (!$permission || auth()->user()->hasPermission($permission)))
                     <a href="{{ route($routeName) }}" class="kp-admin-nav-link {{ request()->routeIs($routeName) || request()->routeIs(str_replace('.index', '.*', $routeName)) ? 'is-active' : '' }}">
                         <x-dynamic-component :component="'tabler-'.$icon" size="19" stroke-width="1.8" />
                         <span>{{ $label }}</span>

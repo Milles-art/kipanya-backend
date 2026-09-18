@@ -1,21 +1,6 @@
 (() => {
   const API = '/api/v1';
-  const TOKEN_KEY = 'kp_api_token';
-  const USER_KEY = 'kp_user';
   const GUEST_KEY = 'kp_guest_cart_token';
-
-  const getJson = (key, fallback = null) => {
-    try {
-      return JSON.parse(
-        localStorage.getItem(key) ?? JSON.stringify(fallback)
-      );
-    } catch {
-      return fallback;
-    }
-  };
-
-  const setJson = (key, value) =>
-    localStorage.setItem(key, JSON.stringify(value));
 
   const toast = (message) => {
     const node = document.querySelector('#toast');
@@ -42,7 +27,11 @@
     .replaceAll('\"', '&quot;')
     .replaceAll("'", '&#039;');
 
-  const token = () => localStorage.getItem(TOKEN_KEY);
+  const signedIn = () =>
+    document
+      .querySelector('meta[name="kp-signed-in"]')
+      ?.getAttribute('content') === '1';
+
   const guestToken = () => localStorage.getItem(GUEST_KEY);
 
   const ensureGuestToken = () => {
@@ -74,14 +63,7 @@
       headers.set('Content-Type', 'application/json');
     }
 
-    if (token()) {
-      headers.set(
-        'Authorization',
-        `Bearer ${token()}`
-      );
-    }
-
-    if (!token()) {
+    if (!signedIn()) {
       headers.set(
         'X-Guest-Cart-Token',
         ensureGuestToken()
@@ -109,14 +91,21 @@
     }
 
     if (response.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-
       if (
         !location.pathname.includes('/login') &&
         !location.pathname.includes('/register')
       ) {
         toast('Please sign in to continue.');
+
+        if (
+          ['/account', '/checkout', '/wishlist', '/orders', '/returns'].some(
+            prefix => location.pathname.startsWith(prefix)
+          )
+        ) {
+          window.setTimeout(() => {
+            location.href = '/login';
+          }, 400);
+        }
       }
     }
 
@@ -132,22 +121,6 @@
 
     return data;
   };
-
-  const setAuth = (payload) => {
-    if (payload?.token) {
-      localStorage.setItem(
-        TOKEN_KEY,
-        payload.token
-      );
-    }
-
-    if (payload?.user) {
-      setJson(USER_KEY, payload.user);
-    }
-  };
-
-  const currentUser = () =>
-    getJson(USER_KEY, null);
 
   const syncToggleAria = (selector, expanded) => {
     document.querySelectorAll(selector).forEach(button => {
@@ -173,7 +146,7 @@
         });
     } catch {}
 
-    if (token()) {
+    if (signedIn()) {
       try {
         const wishlist =
           await api('/wishlist');
@@ -610,9 +583,6 @@
   const fetchCollections = async () =>
     (await api('/wear/collections'))?.data || [];
 
-  const fetchCollection = async slug =>
-    (await api(`/wear/collections/${encodeURIComponent(slug)}`))?.data || null;
-
   const findFirstVariant = product =>
     (product.variants || []).find(
       v => v.in_stock
@@ -647,7 +617,7 @@
     productId,
     button = null
   ) => {
-    if (!token()) {
+    if (!signedIn()) {
       location.href = '/login';
       return;
     }
@@ -1400,7 +1370,7 @@ const bootCatalog = async () => {
       }
 
       // Pre-select the customer's saved size when it matches an available variant.
-      if (token() && variants.length) {
+      if (signedIn() && variants.length) {
         try {
           const preferenceResponse = await api('/account/preferences');
           const saved = preferenceResponse?.data?.size_profile || {};
@@ -1701,8 +1671,6 @@ const bootCatalog = async () => {
               body
             });
 
-          setAuth(payload);
-
           const guest =
             guestToken();
 
@@ -1752,7 +1720,7 @@ const bootCatalog = async () => {
       const count =
         page.querySelector('[data-wishlist-page-count]');
 
-      if (!token()) {
+      if (!signedIn()) {
         loading?.classList.add('hidden');
         auth?.classList.remove('hidden');
         grid?.classList.add('hidden');
@@ -1925,7 +1893,7 @@ const bootCatalog = async () => {
 
     const clearError = () => errorBox?.classList.add('hidden');
 
-    if (!token()) {
+    if (!signedIn()) {
       authNotice?.classList.remove('hidden');
       addressForm?.classList.add('hidden');
       placeButton?.setAttribute('disabled', 'disabled');
@@ -2126,7 +2094,7 @@ const bootCatalog = async () => {
         return;
       }
 
-      if (!token()) {
+      if (!signedIn()) {
         if (account) {
           location.href =
             '/login';
@@ -2138,10 +2106,6 @@ const bootCatalog = async () => {
       try {
         const me =
           await api('/auth/me');
-
-        setAuth({
-          user: me.data
-        });
 
         document
           .querySelectorAll(
@@ -2232,7 +2196,7 @@ const bootCatalog = async () => {
   const bootReturns = async () => {
     const page = document.querySelector('[data-returns-page]');
     if (!page) return;
-    if (!token()) { location.href = '/login'; return; }
+    if (!signedIn()) { location.href = '/login'; return; }
 
     const list = page.querySelector('[data-returns-list]');
     const empty = page.querySelector('[data-returns-empty]');
@@ -2366,7 +2330,7 @@ const bootCatalog = async () => {
     const iconBox = page.querySelector('[data-order-status-icon]');
     const actions = page.querySelector('[data-order-status-actions]');
 
-    if (!token()) {
+    if (!signedIn()) {
       if (text) text.textContent = 'Please sign in to view this order.';
       return;
     }
@@ -2411,7 +2375,7 @@ const bootCatalog = async () => {
     const page = document.querySelector('[data-orders-page]');
     if (!page) return;
 
-    if (!token()) {
+    if (!signedIn()) {
       location.href = '/login';
       return;
     }
@@ -2473,7 +2437,7 @@ const bootCatalog = async () => {
     const page = document.querySelector('[data-order-detail]');
     if (!page) return;
 
-    if (!token()) {
+    if (!signedIn()) {
       location.href = '/login';
       return;
     }
@@ -2565,7 +2529,7 @@ const bootCatalog = async () => {
 
       if (!page) return;
 
-      if (!token()) {
+      if (!signedIn()) {
         location.href =
           '/login';
 
@@ -2639,14 +2603,6 @@ const bootCatalog = async () => {
                 }
               );
             } catch {}
-
-            localStorage.removeItem(
-              TOKEN_KEY
-            );
-
-            localStorage.removeItem(
-              USER_KEY
-            );
 
             location.href = '/';
           }

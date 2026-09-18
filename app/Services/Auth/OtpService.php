@@ -17,16 +17,33 @@ final class OtpService
     private ?string $lastPlainCode = null;
 
     public const TTL_MINUTES = 5;
+
     public const MAX_ATTEMPTS = 5;
+
     public const RESEND_COOLDOWN_SECONDS = 60;
+
     public const MAX_VERIFY_FAILURES = 10;
+
     public const VERIFY_LOCKOUT_SECONDS = 900;
+
+    public const MAX_SENDS_PER_HOUR = 5;
 
     public function __construct(private readonly SmsGateway $sms) {}
 
     public function send(string $phone, OtpPurpose $purpose): OtpCode
     {
         $normalized = PhoneNumber::normalize($phone)->value();
+
+        // A single per-phone budget shared by every flow (storefront login,
+        // registration, admin login) so an attacker cannot multiply SMS to one
+        // number by alternating endpoints/purposes.
+        $sendKey = 'otp-send:'.sha1($normalized);
+
+        if (RateLimiter::tooManyAttempts($sendKey, self::MAX_SENDS_PER_HOUR)) {
+            throw ValidationException::withMessages([
+                'phone' => ['Too many requests. Please try again later.'],
+            ]);
+        }
 
         $latest = OtpCode::query()
             ->where('phone', $normalized)
@@ -60,9 +77,11 @@ final class OtpService
             ]);
         });
 
+        RateLimiter::hit($sendKey, 3600);
+
         $this->sms->send(
             $normalized,
-            "Your Kipanya verification code is {$plainCode}. It expires in " . self::TTL_MINUTES . " minutes."
+            "Your Kipanya verification code is {$plainCode}. It expires in ".self::TTL_MINUTES.' minutes.'
         );
 
         // Never expose OTPs in production logs. This is intentionally limited to
@@ -78,7 +97,6 @@ final class OtpService
 
         return $otp;
     }
-
 
     public function lastPlainCode(): ?string
     {
@@ -107,11 +125,11 @@ final class OtpService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$otp || $otp->isExpired() || $otp->hasExceededAttempts()) {
+            if (! $otp || $otp->isExpired() || $otp->hasExceededAttempts()) {
                 return ['otp' => null, 'error' => true];
             }
 
-            if (!Hash::check($code, $otp->code_hash)) {
+            if (! Hash::check($code, $otp->code_hash)) {
                 $otp->increment('attempts');
 
                 return ['otp' => null, 'error' => true];

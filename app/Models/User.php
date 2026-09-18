@@ -44,6 +44,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
     ];
 
     protected function casts(): array
@@ -51,6 +52,8 @@ class User extends Authenticatable
         return [
             'phone_verified_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
+            'two_factor_enabled_at' => 'datetime',
+            'two_factor_secret' => 'encrypted',
             'password' => 'hashed',
             'role' => UserRole::class,
         ];
@@ -125,8 +128,21 @@ class User extends Authenticatable
         return $status === UserStatus::Active->value;
     }
 
-    public function isPhoneVerified(): bool
+    public function twoFactorEnabled(): bool
     {
-        return $this->phone_verified_at !== null;
+        return $this->two_factor_enabled_at !== null && ! empty($this->two_factor_secret);
+    }
+
+    public function enableTwoFactor(): void
+    {
+        $this->two_factor_enabled_at = now();
+        $this->save();
+    }
+
+    public function disableTwoFactor(): void
+    {
+        $this->two_factor_secret = null;
+        $this->two_factor_enabled_at = null;
+        $this->save();
     }
 }
