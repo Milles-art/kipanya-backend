@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Commerce\AddressController;
 use App\Http\Controllers\Api\V1\Commerce\CheckoutController;
 use App\Http\Controllers\Api\V1\Commerce\OrderController;
 use App\Http\Controllers\Api\V1\Commerce\ReturnRequestController;
+use App\Http\Controllers\Api\V1\Commerce\SelcomWebhookController;
 use App\Http\Controllers\Api\V1\Commerce\StorefrontController;
 use App\Http\Controllers\Api\V1\Commerce\WearCatalogController;
 use App\Http\Controllers\Api\V1\Commerce\WishlistController;
@@ -79,3 +80,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     });
 
 });
+
+// Selcom provider callbacks are signed and verified inside the controller, so
+// they intentionally live outside the authenticated and rate-limited v1 group.
+Route::post('/webhooks/selcom', [SelcomWebhookController::class, 'handle'])->name('selcom.webhook');

@@ -27,4 +27,20 @@ final class FakePaymentGateway implements PaymentGateway
             ],
         ];
     }
+
+    public function status(string $orderId): array
+    {
+        return [
+            'status' => 'pending',
+            'provider' => 'fake',
+            'payload' => [
+                'order_id' => $orderId,
+            ],
+        ];
+    }
+
+    public function cancel(string $orderId): bool
+    {
+        return true;
+    }
 }

@@ -155,6 +155,94 @@ final class PaymentService
         });
     }
 
+    /**
+     * Apply a provider-reported state to a payment after verifying it.
+     *
+     * The amount reported by the provider is verified against the server-side
+     * order total, and the currency (when provided) against the payment, before
+     * any state change. Only a verified COMPLETED state reaches markSuccessful;
+     * every other documented state leaves the payment pending/in-progress.
+     */
+    public function applyProviderStatus(PaymentTransaction $payment, array $providerState): PaymentTransaction
+    {
+        $payment->loadMissing('order');
+        $order = $payment->order;
+
+        $status = $this->normalizeProviderStatus((string) ($providerState['status'] ?? ''));
+        $amount = $providerState['amount'] ?? null;
+
+        if ($amount !== null && (string) $amount !== '') {
+            $expected = (string) ((int) round((float) $order->total));
+            if ((string) $amount !== $expected) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Provider callback amount does not match the order.',
+                ]);
+            }
+        }
+
+        if (isset($providerState['currency']) && $providerState['currency'] !== '') {
+            if (strtoupper((string) $providerState['currency']) !== strtoupper((string) $payment->currency)) {
+                throw ValidationException::withMessages([
+                    'currency' => 'Provider callback currency does not match the payment.',
+                ]);
+            }
+        }
+
+        $info = [
+            'provider' => 'selcom_checkout',
+            'transid' => $providerState['transid'] ?? null,
+            'reference' => $providerState['reference'] ?? null,
+            'channel' => $providerState['channel'] ?? null,
+            'amount' => $amount,
+            'raw' => $providerState['payload'] ?? [],
+        ];
+
+        return match ($status) {
+            'completed' => $this->markSuccessful($payment, $info),
+            'cancelled', 'user_cancelled', 'rejected' => $payment->status === PaymentStatus::Pending || $payment->status === PaymentStatus::Processing
+                ? $this->markFailed($payment, $info)
+                : $this->recordProviderState($payment, $info),
+            default => $this->recordProviderState($payment, $info),
+        };
+    }
+
+    /**
+     * Query the provider for the current state of a payment and apply the
+     * verified result. Payments are never assumed settled without the provider
+     * reporting COMPLETED.
+     */
+    public function refreshStatus(PaymentTransaction $payment): PaymentTransaction
+    {
+        $payment->loadMissing('order');
+        $orderId = $payment->payload['gateway_order_id'] ?? $payment->order->order_number;
+
+        $providerState = $this->gateway->status((string) $orderId);
+
+        return $this->applyProviderStatus($payment, $providerState);
+    }
+
+    private function recordProviderState(PaymentTransaction $payment, array $info): PaymentTransaction
+    {
+        $payment->update([
+            'payload' => array_merge($payment->payload ?? [], ['provider_state' => $info]),
+        ]);
+
+        return $payment->fresh('order');
+    }
+
+    private function normalizeProviderStatus(string $status): string
+    {
+        return match (strtoupper($status)) {
+            'COMPLETED' => 'completed',
+            'CANCELLED' => 'cancelled',
+            'USERCANCELED', 'USERCANCELLED' => 'user_cancelled',
+            'REJECTED' => 'rejected',
+            'INPROGRESS' => 'in_progress',
+            'PENDING' => 'pending',
+            default => 'pending',
+        };
+    }
+
     public function markFailed(PaymentTransaction $transaction, array $providerPayload = []): PaymentTransaction
     {
         return DB::transaction(function () use ($transaction, $providerPayload): PaymentTransaction {

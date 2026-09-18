@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Integrations\Payments\FakePaymentGateway;
 use App\Integrations\Payments\PaymentGateway;
+use App\Integrations\Payments\SelcomCheckoutGateway;
 use App\Integrations\Sms\LogSmsGateway;
 use App\Integrations\Sms\NotifyAfricaSmsGateway;
 use App\Integrations\Sms\SmsGateway;
@@ -19,7 +20,35 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(PaymentGateway::class, FakePaymentGateway::class);
+        $this->app->bind(PaymentGateway::class, function (Application $app): PaymentGateway {
+            $config = $app['config']->get('services.selcom', []);
+            $apiKey = $config['api_key'] ?? null;
+            $apiSecret = $config['api_secret'] ?? null;
+            $vendorId = $config['vendor_id'] ?? null;
+            $baseUrl = $config['base_url'] ?? null;
+
+            $configured = fn ($value): bool => is_string($value) && trim($value) !== '';
+
+            // Fully configured server-side credentials enable the real gateway;
+            // otherwise the fake gateway keeps local development/testing
+            // self-contained. Production refuses silent fallback because
+            // FakePaymentGateway throws in production environments.
+            if ($configured($apiKey) && $configured($apiSecret) && $configured($vendorId) && $configured($baseUrl)) {
+                return new SelcomCheckoutGateway(
+                    baseUrl: (string) $baseUrl,
+                    apiKey: (string) $apiKey,
+                    apiSecret: (string) $apiSecret,
+                    vendorId: (string) $vendorId,
+                    currency: (string) ($config['currency'] ?? 'TZS'),
+                    redirectUrl: (string) ($config['redirect_url'] ?? ''),
+                    cancelUrl: (string) ($config['cancel_url'] ?? ''),
+                    webhookUrl: ($config['webhook_url'] ?? null) ?: null,
+                    timeout: (int) ($config['timeout'] ?? 10),
+                );
+            }
+
+            return new FakePaymentGateway;
+        });
 
         $this->app->singleton(SmsGateway::class, function (Application $app): SmsGateway {
             $config = $app['config']->get('services.notify_africa', []);
