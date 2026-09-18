@@ -31,6 +31,7 @@ class ProductionSecurityGuardTest extends TestCase
             $this->assertStringContainsString('SESSION_ENCRYPT', $e->getMessage());
             $this->assertStringContainsString('CORS_ALLOWED_ORIGINS', $e->getMessage());
             $this->assertStringContainsString('OTP', $e->getMessage());
+            $this->assertStringContainsString('TRUSTED_PROXIES', $e->getMessage());
         }
     }
 
@@ -46,6 +47,7 @@ class ProductionSecurityGuardTest extends TestCase
         config()->set('cors.allowed_origins', ['https://app.kipanya.example']);
         config()->set('auth.expose_otp_codes', false);
         config()->set('auth.log_otp_codes', false);
+        config()->set('app.trusted_proxies', '*');
 
         $this->expectNotToPerformAssertions();
         ProductionSecurityGuard::assert();

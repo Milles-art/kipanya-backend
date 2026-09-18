@@ -89,8 +89,6 @@ final class AuthenticationController extends Controller
         return $this->withWebSessionCookie(response()->json([
             'message' => 'Registration successful.',
             'user' => new UserResource($user),
-            'token' => $token,
-            'token_type' => 'Bearer',
         ], 201), $token);
     }
 
@@ -155,8 +153,6 @@ final class AuthenticationController extends Controller
         return $this->withWebSessionCookie(response()->json([
             'message' => 'Login successful.',
             'user' => new UserResource($user),
-            'token' => $token,
-            'token_type' => 'Bearer',
         ]), $token);
     }
 

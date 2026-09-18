@@ -64,6 +64,10 @@ final class ProductionSecurityGuard
             $issues[] = 'OTP codes would be logged/exposed in production; clear config/auth.php debug flags.';
         }
 
+        if (empty(config('app.trusted_proxies'))) {
+            $issues[] = 'TRUSTED_PROXIES must list your reverse proxy IPs (or *) in production so client IPs cannot be spoofed through forwarded headers.';
+        }
+
         if ($issues !== []) {
             throw new RuntimeException("Insecure production configuration detected:\n - ".implode("\n - ", $issues));
         }

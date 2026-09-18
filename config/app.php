@@ -5,6 +5,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Reverse Proxies
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated IP/CIDR list (or "*") of the reverse proxies that sit in
+    | front of the app. Trusting forwarded headers without this can let a
+    | caller spoof its client IP and bypass IP-keyed security limits, so the
+    | production guard refuses to boot without it.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Name
     |--------------------------------------------------------------------------
     |

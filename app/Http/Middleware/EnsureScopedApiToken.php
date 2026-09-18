@@ -12,9 +12,9 @@ final class EnsureScopedApiToken
      * Enforce token ability scopes for token-authenticated requests while
      * staying permissive for web session and `actingAs` requests that carry no
      * access token (their scope is already bounded by their own guards).
-     * Tokens issued with a wildcard ability are treated as intentionally
-     * full-access; the production issuer never creates them, so any wildcard
-     * that appears on a scoped route is logged as a security signal.
+     * Tokens issued with a wildcard ability are always rejected with 403 and
+     * logged as a security signal, since the production issuer never creates
+     * them.
      */
     public function handle(Request $request, Closure $next, string ...$abilities)
     {
@@ -31,13 +31,13 @@ final class EnsureScopedApiToken
         }
 
         if (in_array('*', (array) $token->abilities, true)) {
-            Log::warning('Wildcard API token used on a scoped route', [
+            Log::warning('Wildcard API token rejected on a scoped route', [
                 'user_id' => $user->getKey(),
                 'token_id' => $token->id,
                 'request_id' => $request->attributes->get('request_id') ?? null,
             ]);
 
-            return $next($request);
+            abort(403, 'This token is not permitted for scoped API access.');
         }
 
         $granted = (array) $token->abilities;

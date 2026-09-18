@@ -11,6 +11,7 @@ use App\Models\Administration\Role;
 use App\Models\Cart\Cart;
 use App\Models\User;
 use App\Models\Wear\WearOrder;
+use App\Models\Wear\WearOrderItem;
 use App\Models\Wear\WearProduct;
 use App\Models\Wear\WearProductVariant;
 use App\Models\Wear\WearReturnRequest;
@@ -223,7 +224,7 @@ class SecurityAuditRegressionTest extends TestCase
     public function test_inactive_user_bearer_token_is_rejected_everywhere(): void
     {
         $user = User::factory()->create(['status' => 'active'])->fresh();
-        $token = $user->createToken('regression-test')->plainTextToken;
+        $token = $user->createToken('regression-test', ['auth', 'account'])->plainTextToken;
 
         $this->withToken($token)->getJson('/api/v1/auth/me')->assertOk();
         $this->withToken($token)->getJson('/api/v1/account/preferences')->assertOk();
@@ -350,6 +351,8 @@ class SecurityAuditRegressionTest extends TestCase
         $this->assertStringContainsString('kp_web_session=', $cookieHeader);
         $this->assertMatchesRegularExpression('/httponly/i', $cookieHeader);
         $this->assertMatchesRegularExpression('/samesite=lax/i', $cookieHeader);
+        $this->assertNull($response->json('token'));
+        $this->assertNull($response->json('token_type'));
 
         preg_match('/kp_web_session=([^;]+)/', $cookieHeader, $cookieMatch);
         $cookie = rawurldecode($cookieMatch[1]);
@@ -441,6 +444,16 @@ class SecurityAuditRegressionTest extends TestCase
         $this->assertNotContains('*', $record->abilities);
     }
 
+    public function test_wildcard_token_is_rejected_from_scoped_endpoints(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+        $wildcard = $user->createToken('legacy-wildcard', ['*'])->plainTextToken;
+
+        $this->withToken($wildcard)
+            ->getJson('/api/v1/account/preferences')
+            ->assertForbidden();
+    }
+
     public function test_narrow_token_is_blocked_from_out_of_scope_endpoints(): void
     {
         $user = User::factory()->create(['status' => 'active']);
@@ -449,6 +462,108 @@ class SecurityAuditRegressionTest extends TestCase
         $this->withToken($narrow)->getJson('/api/v1/account/preferences')->assertOk();
         $this->withToken($narrow)->getJson('/api/v1/auth/me')->assertForbidden();
         $this->withToken($narrow)->getJson('/api/v1/orders')->assertForbidden();
+    }
+
+    public function test_return_requests_are_windowed_and_terminal_after_rejection(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+        $token = (new IssueSanctumToken)->execute($user);
+
+        $makeOrder = function (string $number, int $daysAgo, string $paymentStatus = 'paid') use ($user): array {
+            $product = WearProduct::create([
+                'name' => 'Return Tee '.$number,
+                'slug' => 'return-tee-'.strtolower($number),
+                'price' => 25000,
+                'category' => 'shirts',
+                'is_active' => true,
+            ]);
+            $variant = WearProductVariant::create([
+                'wear_product_id' => $product->id,
+                'size' => 'M',
+                'color' => 'Black',
+                'stock' => 1,
+                'sku' => 'RET-'.strtoupper(bin2hex(random_bytes(4))),
+            ]);
+            $order = WearOrder::create([
+                'order_number' => $number,
+                'checkout_idempotency_key' => 'ret-'.strtolower($number),
+                'user_id' => $user->id,
+                'customer_name' => $user->name,
+                'customer_phone' => '+255712345678',
+                'delivery_address' => 'Kipanya Street, Dar es Salaam',
+                'delivery_city' => 'Dar es Salaam',
+                'status' => 'delivered',
+                'payment_status' => $paymentStatus,
+                'subtotal' => 25000,
+                'delivery_fee' => 0,
+                'total' => 25000,
+                'placed_at' => now()->subDays($daysAgo),
+                'delivered_at' => now()->subDays($daysAgo),
+            ]);
+            $item = WearOrderItem::create([
+                'wear_order_id' => $order->id,
+                'wear_product_id' => $product->id,
+                'wear_product_variant_id' => $variant->id,
+                'product_name' => 'Return Tee '.$number,
+                'sku' => $variant->sku,
+                'size' => 'M',
+                'color' => 'Black',
+                'quantity' => 1,
+                'unit_price' => 25000,
+                'line_total' => 25000,
+            ]);
+
+            return [$order, $item];
+        };
+
+        [$fresh, $freshItem] = $makeOrder('RET-BOUND-1', 3);
+
+        // Inside the window a request is accepted...
+        $this->withToken($token)
+            ->postJson('/api/v1/returns', [
+                'order_id' => $fresh->id,
+                'request_type' => 'return',
+                'reason' => 'wrong_size',
+                'item_ids' => [$freshItem->id],
+            ])
+            ->assertCreated();
+
+        // ...and a rejected request is terminal: the same items cannot be re-requested.
+        WearReturnRequest::query()->where('wear_order_id', $fresh->id)->update(['status' => 'rejected']);
+        $this->withToken($token)
+            ->postJson('/api/v1/returns', [
+                'order_id' => $fresh->id,
+                'request_type' => 'return',
+                'reason' => 'damaged',
+                'item_ids' => [$freshItem->id],
+            ])
+            ->assertStatus(422);
+
+        // Orders outside the return window are neither listed nor accepted.
+        [$old, $oldItem] = $makeOrder('RET-OLD-2', 31);
+        $this->withToken($token)->getJson('/api/v1/returns/eligible-orders')
+            ->assertJsonMissing(['order_number' => $old->order_number]);
+        $this->withToken($token)
+            ->postJson('/api/v1/returns', [
+                'order_id' => $old->id,
+                'request_type' => 'return',
+                'reason' => 'wrong_size',
+                'item_ids' => [$oldItem->id],
+            ])
+            ->assertStatus(422);
+
+        // Fully refunded orders are not eligible either.
+        [$refunded, $refundedItem] = $makeOrder('RET-REF-3', 2, 'refunded');
+        $this->withToken($token)->getJson('/api/v1/returns/eligible-orders')
+            ->assertJsonMissing(['order_number' => $refunded->order_number]);
+        $this->withToken($token)
+            ->postJson('/api/v1/returns', [
+                'order_id' => $refunded->id,
+                'request_type' => 'return',
+                'reason' => 'wrong_size',
+                'item_ids' => [$refundedItem->id],
+            ])
+            ->assertStatus(422);
     }
 
     private function staffAdmin(): User

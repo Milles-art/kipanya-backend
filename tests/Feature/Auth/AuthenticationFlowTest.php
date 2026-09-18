@@ -3,7 +3,6 @@
 namespace Tests\Feature\Auth;
 
 use App\Integrations\Sms\SmsGateway;
-use App\Models\Auth\OtpCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +16,8 @@ class AuthenticationFlowTest extends TestCase
         $sent = [];
 
         $this->app->bind(SmsGateway::class, function () use (&$sent) {
-            return new class($sent) implements SmsGateway {
+            return new class($sent) implements SmsGateway
+            {
                 public function __construct(private array &$sent) {}
 
                 public function send(string $phone, string $message): void
@@ -46,7 +46,8 @@ class AuthenticationFlowTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('user.phone', '+255712345678')
             ->assertJsonPath('user.name', 'Kipanya User')
-            ->assertJsonStructure(['token', 'token_type', 'user']);
+            ->assertJsonStructure(['user'])
+            ->assertJsonMissing(['token', 'token_type']);
 
         $this->assertDatabaseHas('users', [
             'phone' => '+255712345678',
@@ -77,7 +78,8 @@ class AuthenticationFlowTest extends TestCase
         $sent = [];
 
         $this->app->bind(SmsGateway::class, function () use (&$sent) {
-            return new class($sent) implements SmsGateway {
+            return new class($sent) implements SmsGateway
+            {
                 public function __construct(private array &$sent) {}
 
                 public function send(string $phone, string $message): void
@@ -98,7 +100,9 @@ class AuthenticationFlowTest extends TestCase
             'code' => $matches[0],
         ]);
 
-        $response->assertOk()->assertJsonStructure(['token', 'user']);
+        $response->assertOk()
+            ->assertJsonStructure(['user'])
+            ->assertJsonMissing(['token', 'token_type']);
 
         $this->assertDatabaseCount('personal_access_tokens', 1);
 
@@ -115,7 +119,7 @@ class AuthenticationFlowTest extends TestCase
             'status' => 'active',
         ]);
 
-        $token = $user->createToken('test')->plainTextToken;
+        $token = $user->createToken('test', ['auth'])->plainTextToken;
         $tokenId = (int) explode('|', $token, 2)[0];
 
         $this->withToken($token)

@@ -11,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 final class OrderStateService
 {
+    public function __construct(
+        private readonly InventoryReservationService $inventoryReservationService,
+    ) {}
+
     /** @return array<int, OrderStatus> */
     public function allowedTransitions(OrderStatus $current): array
     {
@@ -66,6 +70,12 @@ final class OrderStateService
                 'reason' => $reason,
                 'changed_by' => $actor?->id,
             ]);
+
+            // Cancelling a pending payment frees the stock reservation right
+            // away instead of leaving units locked until the 15-minute expiry.
+            if ($target === OrderStatus::Cancelled) {
+                $this->inventoryReservationService->release($locked);
+            }
 
             return $locked->fresh(['items', 'payments', 'stockReservation.items']);
         });

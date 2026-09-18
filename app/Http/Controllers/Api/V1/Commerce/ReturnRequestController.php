@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Commerce;
 
+use App\Enums\Commerce\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Wear\WearOrder;
 use App\Models\Wear\WearReturnRequest;
@@ -12,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 final class ReturnRequestController extends Controller
 {
+    private const RETURN_WINDOW_DAYS = 30;
+
     public function index(Request $request)
     {
         $items = WearReturnRequest::query()
@@ -32,12 +35,13 @@ final class ReturnRequestController extends Controller
         ]);
     }
 
-
     public function eligibleOrders(Request $request)
     {
         $orders = WearOrder::query()
             ->where('user_id', $request->user()->id)
             ->where('status', 'delivered')
+            ->where('payment_status', '!=', PaymentStatus::Refunded->value)
+            ->where('delivered_at', '>=', now()->subDays(self::RETURN_WINDOW_DAYS))
             ->latest('id')
             ->paginate(20);
 
@@ -73,6 +77,8 @@ final class ReturnRequestController extends Controller
             $order = WearOrder::query()->with('items')->lockForUpdate()->findOrFail($data['order_id']);
             abort_unless($order->user_id === $request->user()->id, 403);
             abort_unless($order->status->value === 'delivered', 422, 'Only delivered orders can be returned or exchanged.');
+            abort_if($order->payment_status->value === PaymentStatus::Refunded->value, 422, 'This order has already been fully refunded.');
+            abort_unless($order->delivered_at !== null && $order->delivered_at->gte(now()->subDays(self::RETURN_WINDOW_DAYS)), 422, 'This order is outside the return window.');
 
             $validItemIds = $order->items->pluck('id')->map(fn ($id) => (int) $id);
             $itemIds = collect($data['item_ids'])->map(fn ($id) => (int) $id)->unique()->values();
@@ -81,7 +87,7 @@ final class ReturnRequestController extends Controller
             $existing = WearReturnRequest::query()
                 ->where('user_id', $request->user()->id)
                 ->where('wear_order_id', $order->id)
-                ->whereIn('status', ['under_review', 'approved', 'received', 'processed', 'refunded', 'completed'])
+                ->whereIn('status', ['under_review', 'approved', 'received', 'processed', 'refunded', 'completed', 'rejected'])
                 ->get(['order_item_ids']);
 
             $alreadyRequested = $existing->flatMap(fn ($r) => $r->order_item_ids ?? [])->map(fn ($id) => (int) $id)->unique();
@@ -106,6 +112,7 @@ final class ReturnRequestController extends Controller
     private function serialize(WearReturnRequest $request): array
     {
         $items = collect($request->order?->items ?? [])->whereIn('id', $request->order_item_ids ?? [])->values();
+
         return [
             'id' => $request->id,
             'order_id' => $request->wear_order_id,
