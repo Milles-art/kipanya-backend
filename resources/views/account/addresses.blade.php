@@ -34,7 +34,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (() => {
     const page = document.querySelector('[data-account-addresses]'); if (!page) return;
     const token = localStorage.getItem('kp_api_token'); if (!token) { location.href = '/login'; return; }

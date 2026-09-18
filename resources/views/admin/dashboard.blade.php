@@ -181,7 +181,7 @@
     </section>
 </div>
 
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 document.addEventListener('DOMContentLoaded', () => {
     const salesData = @json($salesChart);
     const chart = document.getElementById('sales-chart');

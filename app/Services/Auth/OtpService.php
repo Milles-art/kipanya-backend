@@ -9,6 +9,7 @@ use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 final class OtpService
@@ -18,6 +19,8 @@ final class OtpService
     public const TTL_MINUTES = 5;
     public const MAX_ATTEMPTS = 5;
     public const RESEND_COOLDOWN_SECONDS = 60;
+    public const MAX_VERIFY_FAILURES = 10;
+    public const VERIFY_LOCKOUT_SECONDS = 900;
 
     public function __construct(private readonly SmsGateway $sms) {}
 
@@ -85,6 +88,15 @@ final class OtpService
     public function verify(string $phone, OtpPurpose $purpose, string $code): OtpCode
     {
         $normalized = PhoneNumber::normalize($phone)->value();
+        $lockoutKey = $this->verifyLockoutKey($normalized, $purpose);
+
+        // This counter is independent of any single OTP row, so requesting a
+        // fresh code cannot reset an attacker's brute-force attempt budget.
+        if (RateLimiter::tooManyAttempts($lockoutKey, self::MAX_VERIFY_FAILURES)) {
+            throw ValidationException::withMessages([
+                'code' => ['Too many incorrect attempts. Please try again later.'],
+            ]);
+        }
 
         $result = DB::transaction(function () use ($normalized, $purpose, $code): array {
             $otp = OtpCode::query()
@@ -111,12 +123,21 @@ final class OtpService
         });
 
         if ($result['error']) {
+            RateLimiter::hit($lockoutKey, self::VERIFY_LOCKOUT_SECONDS);
+
             throw ValidationException::withMessages([
                 'code' => ['The verification code is invalid or expired.'],
             ]);
         }
 
+        RateLimiter::clear($lockoutKey);
+
         /** @var OtpCode $otp */
         return $result['otp'];
+    }
+
+    private function verifyLockoutKey(string $normalizedPhone, OtpPurpose $purpose): string
+    {
+        return sprintf('otp-verify:%s:%s', $purpose->value, sha1($normalizedPhone));
     }
 }

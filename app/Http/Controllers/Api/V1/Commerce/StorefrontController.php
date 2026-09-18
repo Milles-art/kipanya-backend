@@ -13,6 +13,14 @@ use Illuminate\Support\Str;
 
 final class StorefrontController extends Controller
 {
+    /**
+     * Hard presentation caps so a large catalog can never make the public
+     * homepage (which renders every row it is given) an unbounded query.
+     */
+    private const MAX_HOMEPAGE_PRODUCTS = 48;
+    private const MAX_HOMEPAGE_COLLECTIONS = 24;
+    private const MAX_HOMEPAGE_CATEGORY_PRODUCTS = 60;
+
     public function show(): JsonResponse
     {
         $productIds = StorefrontSetting::json('homepage_featured_product_ids');
@@ -25,6 +33,7 @@ final class StorefrontController extends Controller
             ->orderByDesc('is_featured')
             ->orderBy('sort_order')
             ->orderBy('id')
+            ->limit(self::MAX_HOMEPAGE_PRODUCTS)
             ->get();
 
         // Admin selections are optional presentation controls. If they are empty
@@ -37,6 +46,7 @@ final class StorefrontController extends Controller
                 ->orderByDesc('is_featured')
                 ->orderBy('sort_order')
                 ->orderBy('id')
+                ->limit(self::MAX_HOMEPAGE_PRODUCTS)
                 ->get();
         } elseif ($productIds) {
             $productOrder = array_flip(array_map('intval', $productIds));
@@ -52,6 +62,7 @@ final class StorefrontController extends Controller
             ->withCount(['products' => fn ($query) => $query->where('is_active', true)])
             ->orderBy('sort_order')
             ->orderBy('id')
+            ->limit(self::MAX_HOMEPAGE_COLLECTIONS)
             ->get();
 
         if ($collections->isEmpty()) {
@@ -63,6 +74,7 @@ final class StorefrontController extends Controller
                 ->orderByDesc('is_featured')
                 ->orderBy('sort_order')
                 ->orderBy('id')
+                ->limit(self::MAX_HOMEPAGE_CATEGORY_PRODUCTS)
                 ->get()
                 ->groupBy('category');
 

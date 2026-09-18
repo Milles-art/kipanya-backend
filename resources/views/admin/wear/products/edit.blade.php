@@ -7,7 +7,7 @@
             <h2 class="mt-1 text-2xl font-black tracking-tight">Edit product</h2>
         </div>
         @if(!$product->variants()->exists())
-            <form method="POST" action="{{ route('admin.wear.products.destroy', $product) }}" onsubmit="return confirm('Delete this product permanently?')">
+            <form method="POST" action="{{ route('admin.wear.products.destroy', $product) }}" data-confirm="Delete this product permanently?">
                 @csrf @method('DELETE')
                 <button class="rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-50">Delete</button>
             </form>

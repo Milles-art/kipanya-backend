@@ -23,7 +23,7 @@ return [
 
     'expiration' => (int) env('SANCTUM_TOKEN_EXPIRATION', 10080),
 
-    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
+    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', 'kp_'),
 
     'middleware' => [
         'authenticate_session' => AuthenticateSession::class,

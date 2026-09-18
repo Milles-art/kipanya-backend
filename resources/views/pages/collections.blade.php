@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @push('head')
-<style>
+<style nonce="{{ Vite::cspNonce() }}">
     .kp-store-page{background:#fff;color:#111}
     .kp-store-wrap{max-width:1500px;margin:0 auto;padding:0 28px}
     .kp-store-hero{display:grid;grid-template-columns:1fr 2fr;gap:4px;margin-top:18px}
@@ -162,7 +162,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (function(){
     const items=document.querySelectorAll('.kp-reveal');
     if(items.length){

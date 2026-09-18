@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @push('head')
-<style>
+<style nonce="{{ Vite::cspNonce() }}">
   .kp-slide {
     opacity: 0;
     transform: translateX(60px);
@@ -426,7 +426,7 @@ $slides = [
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (function () {
   const HOLD = 2000;
   const DUR  = 300;

@@ -32,7 +32,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (() => {
     const page=document.querySelector('[data-security-page]'); if(!page)return; const token=localStorage.getItem('kp_api_token'); if(!token){location.href='/login';return;}
     fetch('/api/v1/auth/me',{headers:{Accept:'application/json',Authorization:`Bearer ${token}`}}).then(async r=>{const d=await r.json().catch(()=>null);if(!r.ok)throw new Error(d?.message||'Session expired.');page.querySelector('[data-security-phone]').textContent=d.data?.phone||'—';}).catch(e=>{page.querySelector('[data-security-phone]').textContent=e.message;});

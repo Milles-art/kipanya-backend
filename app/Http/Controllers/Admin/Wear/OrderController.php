@@ -63,7 +63,7 @@ final class OrderController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, WearOrder $order, OrderStateService $stateService): RedirectResponse
+    public function updateStatus(Request $request, WearOrder $order, OrderStateService $stateService, AuditLogger $auditLogger): RedirectResponse
     {
         abort_unless($request->user()?->hasPermission('commerce.manage'), 403);
 
@@ -78,7 +78,15 @@ final class OrderController extends Controller
             return back()->with('success', 'Order status is already '.$target->value.'.');
         }
 
-        $stateService->transition($order, $target, $request->user(), $validated['reason'] ?? null);
+        $from = $order->status->value;
+
+        $updated = $stateService->transition($order, $target, $request->user(), $validated['reason'] ?? null);
+
+        $auditLogger->log($request, 'admin.wear.order.status_changed', $updated, [
+            'from' => $from,
+            'to' => $target->value,
+            'reason' => $validated['reason'] ?? null,
+        ]);
 
         return back()->with('success', 'Order status updated to '.$target->value.'.');
     }

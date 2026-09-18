@@ -39,7 +39,7 @@ final class StorefrontController extends Controller
             'hero_cta_label' => ['required', 'string', 'max:60'],
             'hero_cta_url' => ['required', 'string', 'max:255', function (string $attribute, mixed $value, $fail): void {
                 $value = trim((string) $value);
-                if ($value === '' || str_starts_with($value, '//')) { $fail('The CTA URL is invalid.'); return; }
+                if ($value === '' || str_starts_with($value, '//') || str_contains($value, '\\')) { $fail('The CTA URL is invalid.'); return; }
                 if (str_starts_with($value, '/')) return;
                 $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
                 if (! in_array($scheme, ['http', 'https'], true) || ! filter_var($value, FILTER_VALIDATE_URL)) {
@@ -98,9 +98,7 @@ final class StorefrontController extends Controller
                 $setting->update(['value' => $value]);
                 $changed[] = $field;
 
-                if ($old && str_starts_with($old, '/storage/')) {
-                    Storage::disk('public')->delete(ltrim(substr($old, 9), '/'));
-                }
+                $this->deleteStoredImage($old);
             }
         });
 
@@ -117,5 +115,23 @@ final class StorefrontController extends Controller
             $request->user()?->isAdmin() && $request->user()->hasPermission('settings.manage'),
             403,
         );
+    }
+
+    /**
+     * Delete a previously stored storefront image, refusing any path that is
+     * not a genuine `/storage/` location without traversal segments.
+     */
+    private function deleteStoredImage(?string $value): void
+    {
+        if (
+            ! is_string($value)
+            || ! str_starts_with($value, '/storage/')
+            || str_contains($value, '..')
+            || str_contains($value, '\\')
+        ) {
+            return;
+        }
+
+        Storage::disk('public')->delete(ltrim(substr($value, 9), '/'));
     }
 }

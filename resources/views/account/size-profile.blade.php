@@ -84,7 +84,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (() => {
     const page = document.querySelector('[data-size-profile-page]');
     if (!page) return;

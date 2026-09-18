@@ -414,7 +414,7 @@
                     src="${escapeHtml(image)}"
                     alt="${escapeHtml(p.name || 'Product')}"
                     loading="lazy"
-                    onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'"
+                    data-fallback="/assets/wear/catalog/generated/product-01.jpg"
                     class="h-full w-full object-contain p-4 transition duration-500 ease-out group-hover:scale-105"
                   >
                 </a>
@@ -736,7 +736,7 @@ const bootHome = async () => {
               alt="${escapeHtml(collection.name || 'Collection')}"
               class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
               loading="lazy"
-              onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'"
+              data-fallback="/assets/wear/catalog/generated/product-01.jpg"
             >
             <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"></div>
             <div class="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
@@ -1506,7 +1506,7 @@ const bootCatalog = async () => {
         return `
           <article class="flex gap-4 py-5 sm:gap-6">
             <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-50 sm:h-32 sm:w-28">
-              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'">
+              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" data-fallback="/assets/wear/catalog/generated/product-01.jpg">
             </a>
 
             <div class="min-w-0 flex-1">
@@ -2585,10 +2585,7 @@ const bootCatalog = async () => {
                 <div class="rounded-2xl border border-gray-100 p-5">
                   <div class="flex items-center justify-between">
                     <strong>
-                      ${
-                        a.label ||
-                        'Shipping address'
-                      }
+                      ${escapeHtml(a.label || 'Shipping address')}
                     </strong>
 
                     ${

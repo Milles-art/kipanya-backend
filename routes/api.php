@@ -26,7 +26,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('/login', [AuthenticationController::class, 'login'])
             ->middleware('throttle:10,1');
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/logout', [AuthenticationController::class, 'logout']);
             Route::get('/me', [AuthenticationController::class, 'me']);
         });
@@ -49,11 +49,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::put('/items/{variant}', [CartController::class, 'update']);
         Route::delete('/items/{variant}', [CartController::class, 'destroy']);
         Route::delete('/', [CartController::class, 'clear']);
-        Route::middleware('auth:sanctum')->post('/merge', [CartController::class, 'merge']);
-        Route::middleware('auth:sanctum')->get('/checkout/preview', [CheckoutController::class, 'preview']);
+        Route::middleware(['auth:sanctum', 'active'])->post('/merge', [CartController::class, 'merge']);
+        Route::middleware(['auth:sanctum', 'active'])->get('/checkout/preview', [CheckoutController::class, 'preview']);
     });
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/checkout', [CheckoutController::class, 'store']);
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order:order_number}', [OrderController::class, 'show']);

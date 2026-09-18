@@ -7,7 +7,6 @@ use App\Models\Administration\Role;
 use App\Models\User;
 use App\Support\PhoneNumber;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
@@ -38,7 +37,6 @@ class AdminUserSeeder extends Seeder
                 'email' => $email,
                 'phone_verified_at' => now(),
                 'onboarding_completed_at' => now(),
-                'password' => Hash::make(bin2hex(random_bytes(24))),
             ],
         );
 

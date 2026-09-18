@@ -126,7 +126,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (() => {
     const page = document.querySelector('[data-notifications-page]');
     if (!page) return;

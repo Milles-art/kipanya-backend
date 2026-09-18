@@ -12,8 +12,8 @@ use App\Support\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 final class UserController extends Controller
@@ -26,7 +26,7 @@ final class UserController extends Controller
         $status = $request->string('status')->toString();
 
         $users = User::query()
-            ->where('role', UserRole::Admin)
+            ->whereHas('roles', static fn ($query) => $query->where('slug', '!=', 'user'))
             ->with(['roles' => fn ($query) => $query->orderBy('name')])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
@@ -48,7 +48,7 @@ final class UserController extends Controller
         $this->authorizeUsers($request);
 
         return view('admin.users.create', [
-            'roles' => $this->staffRoles(),
+            'roles' => $this->staffRoles($request),
         ]);
     }
 
@@ -65,7 +65,6 @@ final class UserController extends Controller
             'phone' => $phone,
             'phone_verified_at' => null,
             'onboarding_completed_at' => now(),
-            'password' => Hash::make(bin2hex(random_bytes(24))),
         ]);
 
         $user->forceFill([
@@ -73,7 +72,7 @@ final class UserController extends Controller
             'status' => $data['status'],
         ])->save();
 
-        $role = Role::query()->whereKey($data['role_id'])->where('slug', '!=', 'user')->firstOrFail();
+        $role = $this->resolveRole($request, (int) $data['role_id']);
         $user->roles()->sync([$role->id]);
 
         $auditLogger->log($request, 'admin.users.created', $user, [
@@ -91,7 +90,7 @@ final class UserController extends Controller
 
         return view('admin.users.edit', [
             'user' => $user->load('roles'),
-            'roles' => $this->staffRoles(),
+            'roles' => $this->staffRoles($request),
         ]);
     }
 
@@ -102,6 +101,7 @@ final class UserController extends Controller
 
         $data = $this->validated($request, $user);
         $phone = PhoneNumber::normalize($data['phone'])->value();
+        $role = $this->resolveRole($request, (int) $data['role_id']);
 
         if ($request->user()->is($user)) {
             if ($data['status'] !== 'active') {
@@ -109,33 +109,48 @@ final class UserController extends Controller
             }
 
             $currentRole = $user->roles()->where('slug', '!=', 'user')->first();
-            if ($currentRole && (int) $data['role_id'] !== $currentRole->id) {
+            if ($currentRole && $role->id !== $currentRole->id) {
                 return back()->withErrors(['role_id' => 'You cannot change your own administrator role.'])->withInput();
             }
         }
 
-        $old = [
-            'role' => $user->roles()->where('slug', '!=', 'user')->value('slug'),
-            'status' => $user->status,
-        ];
+        return DB::transaction(function () use ($request, $user, $auditLogger, $data, $phone, $role): RedirectResponse {
+            $losesSuperAdmin = $user->hasRole('super_admin')
+                && ($role->slug !== 'super_admin' || $data['status'] !== 'active');
 
-        $user->update([
-            'name' => $data['name'],
-            'email' => $data['email'] ?: null,
-            'phone' => $phone,
-        ]);
+            if ($losesSuperAdmin) {
+                $this->assertAnotherActiveSuperAdminExists(
+                    $user,
+                    'The last active super administrator cannot be demoted or deactivated.',
+                );
+            }
 
-        $user->forceFill(['status' => $data['status']])->save();
+            $old = [
+                'role' => $user->roles()->where('slug', '!=', 'user')->value('slug'),
+                'status' => $user->status,
+            ];
 
-        $role = Role::query()->whereKey($data['role_id'])->where('slug', '!=', 'user')->firstOrFail();
-        $user->roles()->sync([$role->id]);
+            $user->update([
+                'name' => $data['name'],
+                'email' => $data['email'] ?: null,
+                'phone' => $phone,
+            ]);
 
-        $auditLogger->log($request, 'admin.users.updated', $user, [
-            'before' => $old,
-            'after' => ['role' => $role->slug, 'status' => $user->status],
-        ]);
+            $user->forceFill(['status' => $data['status']])->save();
 
-        return redirect()->route('admin.users.index')->with('success', 'Admin user updated successfully.');
+            if ($data['status'] !== 'active') {
+                $user->tokens()->delete();
+            }
+
+            $user->roles()->sync([$role->id]);
+
+            $auditLogger->log($request, 'admin.users.updated', $user, [
+                'before' => $old,
+                'after' => ['role' => $role->slug, 'status' => $user->status],
+            ]);
+
+            return redirect()->route('admin.users.index')->with('success', 'Admin user updated successfully.');
+        });
     }
 
     public function toggleStatus(Request $request, User $user, AuditLogger $auditLogger): RedirectResponse
@@ -151,25 +166,41 @@ final class UserController extends Controller
 
         return DB::transaction(function () use ($request, $user, $auditLogger, $next): RedirectResponse {
             if ($next === 'inactive' && $user->hasRole('super_admin')) {
-                // Lock every active super administrator row (not just this one)
-                // so two concurrent deactivations cannot both pass the check.
-                $activeSuperAdminIds = User::query()
-                    ->where('status', 'active')
-                    ->whereHas('roles', static fn ($query) => $query->where('slug', 'super_admin'))
-                    ->lockForUpdate()
-                    ->pluck('id');
-
-                if ($activeSuperAdminIds->count() <= 1 && $activeSuperAdminIds->contains($user->id)) {
-                    return back()->withErrors(['user' => 'The last active super administrator cannot be deactivated.']);
-                }
+                $this->assertAnotherActiveSuperAdminExists(
+                    $user,
+                    'The last active super administrator cannot be deactivated.',
+                );
             }
 
             $user->forceFill(['status' => $next])->save();
+
+            if ($next === 'inactive') {
+                $user->tokens()->delete();
+            }
 
             $auditLogger->log($request, 'admin.users.status_changed', $user, ['status' => $next]);
 
             return back()->with('success', "Admin user {$next} successfully.");
         });
+    }
+
+    /**
+     * Ensure at least one other active super administrator remains once the
+     * given target loses that role/status. The active super administrator rows
+     * are locked so two concurrent demotions or deactivations cannot both pass
+     * the check and leave the platform without one.
+     */
+    private function assertAnotherActiveSuperAdminExists(User $target, string $message): void
+    {
+        $activeSuperAdminIds = User::query()
+            ->where('status', 'active')
+            ->whereHas('roles', static fn ($query) => $query->where('slug', 'super_admin'))
+            ->lockForUpdate()
+            ->pluck('id');
+
+        if ($activeSuperAdminIds->count() <= 1 && $activeSuperAdminIds->contains($target->id)) {
+            throw ValidationException::withMessages(['user' => $message]);
+        }
     }
 
     private function authorizeUsers(Request $request): void
@@ -179,12 +210,32 @@ final class UserController extends Controller
 
     private function ensureAdminUser(User $user): void
     {
-        abort_unless($user->role === UserRole::Admin, 404);
+        abort_unless($user->isAdmin(), 403);
     }
 
-    private function staffRoles()
+    /**
+     * Roles an actor may assign. `super_admin` is only assignable by an
+     * existing super administrator so a holder of `users.manage` can never
+     * grant it to themselves or others.
+     */
+    private function resolveRole(Request $request, int $roleId): Role
     {
-        return Role::query()->where('slug', '!=', 'user')->orderBy('name')->get();
+        return $this->assignableRoleQuery($request)->whereKey($roleId)->firstOrFail();
+    }
+
+    private function staffRoles(Request $request)
+    {
+        return $this->assignableRoleQuery($request)->orderBy('name')->get();
+    }
+
+    private function assignableRoleQuery(Request $request)
+    {
+        return Role::query()
+            ->where('slug', '!=', 'user')
+            ->when(
+                ! $request->user()?->hasRole('super_admin'),
+                static fn ($query) => $query->where('slug', '!=', 'super_admin'),
+            );
     }
 
     private function validated(Request $request, ?User $user = null): array
@@ -194,7 +245,13 @@ final class UserController extends Controller
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
             'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber, Rule::unique('users', 'phone')->ignore($user?->id)],
             'status' => ['required', Rule::in(['active', 'inactive'])],
-            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(fn ($query) => $query->where('slug', '!=', 'user'))],
+            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(function ($query) use ($request): void {
+                $query->where('slug', '!=', 'user');
+
+                if (! $request->user()?->hasRole('super_admin')) {
+                    $query->where('slug', '!=', 'super_admin');
+                }
+            })],
         ]);
     }
 }

@@ -119,9 +119,7 @@ final class ProductController extends Controller
             if ($request->hasFile('image')) {
                 $old = $product->image_path;
                 $data['image_path'] = '/storage/'.$request->file('image')->store('wear/products', 'public');
-                if ($old && str_starts_with($old, '/storage/')) {
-                    Storage::disk('public')->delete(ltrim(substr($old, 9), '/'));
-                }
+                $this->deleteStoredImage($old);
             }
 
             $product->update($data);
@@ -151,9 +149,7 @@ final class ProductController extends Controller
             $name = $product->name;
             $oldImage = $product->image_path;
             $product->delete();
-            if ($oldImage && str_starts_with($oldImage, '/storage/')) {
-                Storage::disk('public')->delete(ltrim(substr($oldImage, 9), '/'));
-            }
+            $this->deleteStoredImage($oldImage);
 
             app(\App\Support\AuditLogger::class)->log(
                 $request,
@@ -184,6 +180,10 @@ final class ProductController extends Controller
             'image_path' => ['nullable', 'string', 'max:500', function (string $attribute, mixed $value, $fail): void {
                 $value = trim((string) $value);
                 if ($value === '') return;
+                if (str_contains($value, '..') || str_contains($value, '\\')) {
+                    $fail('The image path is invalid.');
+                    return;
+                }
                 if (preg_match('/^https?:\/\//i', $value)) return;
                 if (str_starts_with($value, '/storage/')) return;
                 if (str_starts_with($value, 'assets/')) return;
@@ -208,5 +208,24 @@ final class ProductController extends Controller
             $request->user()?->isAdmin() && $request->user()->hasPermission('commerce.manage'),
             403,
         );
+    }
+
+    /**
+     * Delete a previously stored product image. Only genuine `/storage/` paths
+     * are accepted and traversal segments are refused so a crafted value can
+     * never delete files outside the public disk.
+     */
+    private function deleteStoredImage(?string $path): void
+    {
+        if (
+            ! is_string($path)
+            || ! str_starts_with($path, '/storage/')
+            || str_contains($path, '..')
+            || str_contains($path, '\\')
+        ) {
+            return;
+        }
+
+        Storage::disk('public')->delete(ltrim(substr($path, 9), '/'));
     }
 }

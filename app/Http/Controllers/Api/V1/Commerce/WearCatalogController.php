@@ -63,6 +63,7 @@ final class WearCatalogController extends Controller
             ->withCount(['products' => fn (Builder $query) => $query->where('is_active', true)])
             ->orderBy('sort_order')
             ->orderBy('id')
+            ->limit(200)
             ->get();
 
         return WearCollectionResource::collection($collections);
@@ -89,18 +90,16 @@ final class WearCatalogController extends Controller
     {
         $categoryNames = ['Hoodies', 'Long Sleeves', 'T-Shirts', 'Shirts', 'Polos'];
 
-        $products = WearProduct::query()
-            ->where('is_active', true)
-            ->whereIn('category', $categoryNames)
-            ->orderByDesc('is_featured')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get(['category', 'image_path']);
-
-        $byCategory = $products->groupBy('category');
-
-        $categories = collect($categoryNames)->map(function (string $name) use ($byCategory): array {
-            $product = $byCategory->get($name, collect())->first();
+        // Resolve one representative product per category with a LIMIT 1 query
+        // instead of hydrating the whole catalog just to pick the first row.
+        $categories = collect($categoryNames)->map(function (string $name): array {
+            $product = WearProduct::query()
+                ->where('is_active', true)
+                ->where('category', $name)
+                ->orderByDesc('is_featured')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->first(['category', 'image_path']);
 
             return [
                 'name' => $name,

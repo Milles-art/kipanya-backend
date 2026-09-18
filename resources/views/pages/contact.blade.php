@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @push('head')
-<style>
+<style nonce="{{ Vite::cspNonce() }}">
   .kp-reveal {
     opacity: 0;
     transform: translateY(30px);
@@ -286,7 +286,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (function () {
   const form = document.querySelector('[data-contact-form]');
   if (!form) return;
@@ -313,7 +313,7 @@
   });
 })();
 </script>
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (function () {
   const reveals  = document.querySelectorAll('.kp-reveal');
   const staggers = document.querySelectorAll('.kp-stagger');

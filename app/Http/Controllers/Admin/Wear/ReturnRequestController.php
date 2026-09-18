@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Wear;
 use App\Http\Controllers\Controller;
 use App\Models\Wear\WearReturnRequest;
 use App\Services\Commerce\WearReturnService;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -42,13 +43,15 @@ final class ReturnRequestController extends Controller
         return view('admin.wear.returns.show', ['returnRequest' => $returnRequest]);
     }
 
-    public function updateStatus(Request $request, WearReturnRequest $returnRequest, WearReturnService $service): RedirectResponse
+    public function updateStatus(Request $request, WearReturnRequest $returnRequest, WearReturnService $service, AuditLogger $auditLogger): RedirectResponse
     {
         $this->authorize($request);
         $data = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'received', 'processed', 'completed'])],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        $from = $returnRequest->status;
 
         $updated = match ($data['status']) {
             'approved' => $service->approve($returnRequest, $request->user()->id),
@@ -62,14 +65,32 @@ final class ReturnRequestController extends Controller
             $updated->update(['notes' => $data['notes']]);
         }
 
+        $auditLogger->log($request, 'admin.wear.return.status_changed', $updated, [
+            'from' => $from,
+            'to' => $updated->status,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
         return back()->with('success', 'Return request updated to '.$updated->status.'.');
     }
 
-    public function markRefunded(Request $request, WearReturnRequest $returnRequest, WearReturnService $service): RedirectResponse
+    public function markRefunded(Request $request, WearReturnRequest $returnRequest, WearReturnService $service, AuditLogger $auditLogger): RedirectResponse
     {
         $this->authorize($request);
+
+        // Defense in depth: the route also requires `payments.manage`, but the
+        // controller enforces it so a future routing change cannot silently
+        // let a commerce-only operator record refunds.
+        abort_unless($request->user()?->hasPermission('payments.manage'), 403);
+
         $data = $request->validate(['refund_reference' => ['required', 'string', 'max:120']]);
-        $service->markRefunded($returnRequest, $data['refund_reference'], $request->user()->id);
+        $updated = $service->markRefunded($returnRequest, $data['refund_reference'], $request->user()->id);
+
+        $auditLogger->log($request, 'admin.wear.return.refund_recorded', $updated, [
+            'refund_reference' => $updated->refund_reference,
+            'refund_amount' => $updated->refund_amount,
+        ]);
+
         return back()->with('success', 'Refund recorded successfully.');
     }
 }

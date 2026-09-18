@@ -10,7 +10,7 @@
         </div>
         <form method="GET" class="flex items-center gap-2">
             <label for="period" class="sr-only">Period</label>
-            <select id="period" name="period" onchange="this.form.submit()" class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400">
+            <select id="period" name="period" data-submit-on-change class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400">
                 @foreach([7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 90 days'] as $value => $label)
                     <option value="{{ $value }}" @selected($period === $value)>{{ $label }}</option>
                 @endforeach
@@ -97,7 +97,7 @@
     </section>
 </div>
 
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
     document.addEventListener('DOMContentLoaded', () => {
         const data = @json($dailySales);
         const width = 1000, height = 320, padX = 34, padTop = 22, padBottom = 28;

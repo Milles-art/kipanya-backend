@@ -52,7 +52,7 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
             Route::get('/returns', [ReturnRequestController::class, 'index'])->name('returns.index');
             Route::get('/returns/{returnRequest}', [ReturnRequestController::class, 'show'])->name('returns.show');
             Route::post('/returns/{returnRequest}/status', [ReturnRequestController::class, 'updateStatus'])->name('returns.status');
-            Route::post('/returns/{returnRequest}/refund', [ReturnRequestController::class, 'markRefunded'])->name('returns.refund');
+            Route::post('/returns/{returnRequest}/refund', [ReturnRequestController::class, 'markRefunded'])->middleware('admin.permission:payments.manage')->name('returns.refund');
             Route::get('/enquiries', [EnquiryController::class, 'index'])->name('enquiries.index');
             Route::get('/enquiries/{message}', [EnquiryController::class, 'show'])->name('enquiries.show');
             Route::post('/enquiries/{message}/status', [EnquiryController::class, 'updateStatus'])->name('enquiries.status');

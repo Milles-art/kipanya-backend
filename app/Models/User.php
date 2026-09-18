@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Auth\UserRole;
+use App\Enums\Auth\UserStatus;
 use App\Models\Administration\Role;
 use App\Models\Auth\NotificationPreference;
 use App\Models\Auth\UserProfile;
@@ -85,9 +86,16 @@ class User extends Authenticatable
         return $this->hasMany(WishlistItem::class);
     }
 
+    /**
+     * Roles that grant access to the admin surface. Using an explicit
+     * allow-list (instead of "any role other than `user`") means a future
+     * non-staff role can never silently gain admin access.
+     */
+    public const ADMIN_ROLE_SLUGS = ['super_admin', 'commerce_manager', 'support'];
+
     public function isAdmin(): bool
     {
-        return $this->role === UserRole::Admin || $this->hasRole('super_admin');
+        return $this->roles()->whereIn('slug', self::ADMIN_ROLE_SLUGS)->exists();
     }
 
     public function hasRole(string $role): bool
@@ -108,7 +116,13 @@ class User extends Authenticatable
 
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        // The legacy `role`/`status` columns are intentionally un-cast. Accept
+        // both the raw string and the UserStatus enum so an in-memory model
+        // built with the enum (e.g. a factory or freshly created row) is
+        // treated the same as one hydrated from the database.
+        $status = $this->status instanceof \BackedEnum ? $this->status->value : $this->status;
+
+        return $status === UserStatus::Active->value;
     }
 
     public function isPhoneVerified(): bool

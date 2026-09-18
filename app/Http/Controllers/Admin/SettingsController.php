@@ -31,7 +31,7 @@ final class SettingsController extends Controller
             'support_email' => ['nullable', 'email', 'max:255'],
             'support_phone' => ['nullable', 'string', 'max:30'],
             'currency' => ['required', 'string', 'in:TZS,USD'],
-            'timezone' => ['required', 'string', 'max:64'],
+            'timezone' => ['required', 'timezone'],
         ]);
 
         $changed = [];

@@ -31,12 +31,18 @@ final class InventoryReservationService
                 ]);
             }
 
+            // Lock the matching reservation rows so this availability check
+            // reads the latest committed quantities rather than the
+            // transaction's older snapshot (MySQL REPEATABLE READ). Without the
+            // lock, a concurrent commit can be missed and the variant oversold.
             $reserved = (int) StockReservationItem::query()
                 ->where('wear_product_variant_id', $variant->id)
                 ->whereHas('reservation', function ($query): void {
                     $query->where('status', ReservationStatus::Active->value)
                         ->where('expires_at', '>', now());
                 })
+                ->lockForUpdate()
+                ->get(['quantity'])
                 ->sum('quantity');
 
             $available = (int) $variant->stock - $reserved;

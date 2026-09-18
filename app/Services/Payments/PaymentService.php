@@ -8,8 +8,8 @@ use App\Enums\Commerce\ReservationStatus;
 use App\Integrations\Payments\PaymentGateway;
 use App\Models\Commerce\PaymentTransaction;
 use App\Models\Commerce\StockReservation;
-use App\Models\Wear\WearOrder;
 use App\Models\Wear\WearInventoryMovement;
+use App\Models\Wear\WearOrder;
 use App\Services\Commerce\InventoryReservationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -143,9 +143,9 @@ final class PaymentService
                 'status' => OrderStatus::Confirmed,
             ]);
 
-            if ($from !== OrderStatus::Confirmed->value) {
+            if ($from !== OrderStatus::Confirmed) {
                 $order->statusHistory()->create([
-                    'from_status' => $from,
+                    'from_status' => $from?->value,
                     'to_status' => OrderStatus::Confirmed->value,
                     'reason' => 'Payment confirmed.',
                 ]);
