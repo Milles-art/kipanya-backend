@@ -35,4 +35,22 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notify Africa
+    |--------------------------------------------------------------------------
+    |
+    | Server-side SMS delivery for OTP codes. An empty API key is allowed in
+    | local development so the app keeps using LogSmsGateway; production
+    | refuses to boot without a real key (see ProductionSecurityGuard).
+    |
+    */
+
+    'notify_africa' => [
+        'base_url' => env('NOTIFY_AFRICA_BASE_URL', 'https://api.notify.africa'),
+        'api_key' => env('NOTIFY_AFRICA_API_KEY'),
+        'sender_id' => env('NOTIFY_AFRICA_SENDER_ID'),
+        'timeout' => (int) env('NOTIFY_AFRICA_TIMEOUT', 10),
+    ],
+
 ];

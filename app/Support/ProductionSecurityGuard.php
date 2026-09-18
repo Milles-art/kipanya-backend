@@ -68,6 +68,10 @@ final class ProductionSecurityGuard
             $issues[] = 'TRUSTED_PROXIES must list your reverse proxy IPs (or *) in production so client IPs cannot be spoofed through forwarded headers.';
         }
 
+        if (empty(config('services.notify_africa.api_key'))) {
+            $issues[] = 'NOTIFY_AFRICA_API_KEY must be set in production so OTP SMS can be delivered instead of the log gateway.';
+        }
+
         if ($issues !== []) {
             throw new RuntimeException("Insecure production configuration detected:\n - ".implode("\n - ", $issues));
         }
