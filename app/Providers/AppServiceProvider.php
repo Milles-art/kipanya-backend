@@ -8,6 +8,7 @@ use App\Integrations\Payments\SelcomCheckoutGateway;
 use App\Integrations\Sms\LogSmsGateway;
 use App\Integrations\Sms\NotifyAfricaSmsGateway;
 use App\Integrations\Sms\SmsGateway;
+use App\Services\Payments\PaymentStateMachine;
 use App\Support\ProductionSecurityGuard;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
@@ -49,6 +50,8 @@ class AppServiceProvider extends ServiceProvider
 
             return new FakePaymentGateway;
         });
+
+        $this->app->singleton(PaymentStateMachine::class, fn (): PaymentStateMachine => new PaymentStateMachine);
 
         $this->app->singleton(SmsGateway::class, function (Application $app): SmsGateway {
             $config = $app['config']->get('services.notify_africa', []);

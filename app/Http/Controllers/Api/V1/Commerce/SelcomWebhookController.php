@@ -4,17 +4,13 @@ namespace App\Http\Controllers\Api\V1\Commerce;
 
 use App\Http\Controllers\Controller;
 use App\Models\Commerce\PaymentTransaction;
+use App\Models\SelcomWebhookLog;
 use App\Services\Payments\PaymentService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
-/**
- * Receives Selcom Checkout payment callbacks. Selcom signs callbacks with the
- * same SELCOM headers (Authorization, Timestamp, Digest-Method, Digest and
- * Signed-Fields) used for the Checkout API, and the signature is verified
- * before any payment state change is attempted.
- */
 final class SelcomWebhookController extends Controller
 {
     public function __construct(private readonly PaymentService $payments) {}
@@ -25,10 +21,16 @@ final class SelcomWebhookController extends Controller
             return response()->json(['verified' => false, 'error' => 'invalid_signature'], 401);
         }
 
+        // Timestamp freshness check (prevent replay attacks)
+        if (! $this->verifyTimestampFreshness($request)) {
+            return response()->json(['verified' => false, 'error' => 'timestamp_expired'], 401);
+        }
+
         $payload = $request->json()->all();
 
         $orderId = (string) ($payload['order_id'] ?? '');
         $reference = $payload['reference'] ?? null;
+        $transid = $payload['transid'] ?? null;
 
         $payment = PaymentTransaction::query()
             ->whereHas('order', fn ($query) => $query->where('order_number', $orderId))
@@ -45,25 +47,99 @@ final class SelcomWebhookController extends Controller
             return response()->json(['verified' => true, 'error' => 'reference_mismatch'], 404);
         }
 
+        // Replay protection: if this transid was already processed, return success idempotently
+        if ($transid !== null) {
+            $alreadyProcessed = SelcomWebhookLog::query()
+                ->where('transid', $transid)
+                ->where('processed_successfully', true)
+                ->exists();
+            if ($alreadyProcessed) {
+                return response()->json(['verified' => true, 'result' => 'OK', 'duplicate' => true]);
+            }
+        }
+
         try {
-            $this->payments->applyProviderStatus($payment, [
+            $providerState = [
                 'status' => (string) ($payload['payment_status'] ?? ''),
-                'transid' => $payload['transid'] ?? null,
+                'transid' => $transid,
                 'reference' => $payment->provider_reference,
                 'channel' => $payload['channel'] ?? null,
                 'amount' => $payload['amount'] ?? null,
                 'currency' => $payload['currency'] ?? null,
                 'payload' => $payload,
-            ]);
+            ];
+
+            $result = $this->payments->applyProviderStatus($payment, $providerState);
+
+            // Log successful webhook processing
+            if ($transid !== null) {
+                SelcomWebhookLog::query()->create([
+                    'transid' => $transid,
+                    'order_id' => $orderId,
+                    'payment_transaction_id' => $payment->id,
+                    'payment_status' => $payload['payment_status'] ?? 'unknown',
+                    'processed_successfully' => true,
+                    'raw_payload' => $payload,
+                ]);
+            }
+
+            return response()->json(['verified' => true, 'result' => 'OK']);
         } catch (ValidationException $e) {
+            // Log failed validation but don't retry
+            if ($transid !== null) {
+                SelcomWebhookLog::query()->create([
+                    'transid' => $transid,
+                    'order_id' => $orderId,
+                    'payment_transaction_id' => $payment->id,
+                    'payment_status' => $payload['payment_status'] ?? 'unknown',
+                    'processed_successfully' => false,
+                    'error' => $e->getMessage(),
+                    'raw_payload' => $payload,
+                ]);
+            }
+
             return response()->json([
                 'verified' => true,
                 'error' => 'invalid_callback',
                 'errors' => $e->errors(),
             ], 422);
         }
+    }
 
-        return response()->json(['verified' => true, 'result' => 'OK']);
+    private function verifyTimestampFreshness(Request $request): bool
+    {
+        $timestampHeader = $request->header('Timestamp');
+
+        if (! is_string($timestampHeader) || $timestampHeader === '') {
+            return false;
+        }
+
+        try {
+            // Parse timestamp in UTC to ensure consistent comparison
+            $timestamp = Carbon::parse($timestampHeader, 'UTC');
+        } catch (\Throwable) {
+            return false;
+        }
+
+        // Use UTC now for consistent comparison
+        $now = Carbon::now('UTC');
+
+        // Allow up to 10 minutes in the past and 2 minutes in the future (clock skew)
+        $maxAge = 10 * 60; // 10 minutes
+        $maxFuture = 2 * 60; // 2 minutes
+
+        $age = $now->diffInSeconds($timestamp, absolute: true);
+        $isFuture = $timestamp->gt($now);
+
+        if ($isFuture && $age > $maxFuture) {
+            return false; // Timestamp too far in the future
+        }
+
+        if (! $isFuture && $age > $maxAge) {
+            return false; // Timestamp too old
+        }
+
+        return true;
     }
 
     private function verifySignature(Request $request): bool

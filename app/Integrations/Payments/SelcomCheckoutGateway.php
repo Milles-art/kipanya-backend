@@ -2,7 +2,10 @@
 
 namespace App\Integrations\Payments;
 
+use App\Exceptions\SelcomGatewayException;
 use App\Models\Wear\WearOrder;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -67,12 +70,16 @@ final class SelcomCheckoutGateway implements PaymentGateway
 
         $timestamp = $this->timestamp();
 
-        $response = Http::baseUrl($this->baseUrl)
-            ->timeout($this->timeout)
-            ->withHeaders($this->headers($timestamp, array_keys($payload), $payload))
-            ->acceptJson()
-            ->asJson()
-            ->post('/v1/checkout/create-order-minimal', $payload);
+        try {
+            $response = Http::baseUrl($this->baseUrl)
+                ->timeout($this->timeout)
+                ->withHeaders($this->headers($timestamp, array_keys($payload), $payload))
+                ->acceptJson()
+                ->asJson()
+                ->post('/v1/checkout/create-order-minimal', $payload);
+        } catch (\Throwable $e) {
+            throw $this->wrapTimeoutException($e);
+        }
 
         if (! $response->successful()) {
             throw $this->failedResponseException($response);
@@ -112,11 +119,15 @@ final class SelcomCheckoutGateway implements PaymentGateway
         $timestamp = $this->timestamp();
         $query = ['order_id' => $orderId];
 
-        $response = Http::baseUrl($this->baseUrl)
-            ->timeout($this->timeout)
-            ->withHeaders($this->headers($timestamp, array_keys($query), $query))
-            ->acceptJson()
-            ->get('/v1/checkout/order-status?'.http_build_query($query));
+        try {
+            $response = Http::baseUrl($this->baseUrl)
+                ->timeout($this->timeout)
+                ->withHeaders($this->headers($timestamp, array_keys($query), $query))
+                ->acceptJson()
+                ->get('/v1/checkout/order-status?'.http_build_query($query));
+        } catch (\Throwable $e) {
+            throw $this->wrapTimeoutException($e);
+        }
 
         if (! $response->successful()) {
             throw $this->failedResponseException($response);
@@ -141,11 +152,15 @@ final class SelcomCheckoutGateway implements PaymentGateway
         $timestamp = $this->timestamp();
         $query = ['order_id' => $orderId];
 
-        $response = Http::baseUrl($this->baseUrl)
-            ->timeout($this->timeout)
-            ->withHeaders($this->headers($timestamp, array_keys($query), $query))
-            ->acceptJson()
-            ->delete('/v1/checkout/cancel-order?'.http_build_query($query));
+        try {
+            $response = Http::baseUrl($this->baseUrl)
+                ->timeout($this->timeout)
+                ->withHeaders($this->headers($timestamp, array_keys($query), $query))
+                ->acceptJson()
+                ->delete('/v1/checkout/cancel-order?'.http_build_query($query));
+        } catch (\Throwable $e) {
+            throw $this->wrapTimeoutException($e);
+        }
 
         if (! $response->successful()) {
             throw $this->failedResponseException($response);
@@ -213,8 +228,10 @@ final class SelcomCheckoutGateway implements PaymentGateway
     /**
      * Build a failure exception that never includes the api key, api secret or
      * request digest. Only the HTTP status and safe provider fields are used.
+     * Timeouts and connection failures are wrapped in SelcomGatewayException
+     * so callers can distinguish and trigger reconciliation instead of failing.
      */
-    private function failedResponseException(Response $response): RuntimeException
+    private function failedResponseException(Response $response): SelcomGatewayException
     {
         $body = $response->json();
         $detail = '';
@@ -227,11 +244,30 @@ final class SelcomCheckoutGateway implements PaymentGateway
             ], fn ($value): bool => is_string($value) && $value !== '')));
         }
 
-        $message = 'Selcom Checkout request failed with HTTP '.$response->status();
-        if ($detail !== '') {
-            $message .= ' ('.$detail.')';
+        return SelcomGatewayException::providerError(
+            httpStatus: $response->status(),
+            providerCode: $body['resultcode'] ?? null,
+            providerMessage: $body['message'] ?? null,
+        );
+    }
+
+    /**
+     * Wrap timeout/connection exceptions in SelcomGatewayException.
+     */
+    private function wrapTimeoutException(\Throwable $e): SelcomGatewayException
+    {
+        if ($e instanceof ConnectionException) {
+            return SelcomGatewayException::connectionFailed($e->getMessage());
+        }
+        if ($e instanceof RequestException) {
+            // Check if it's a timeout
+            $message = $e->getMessage();
+            if (stripos($message, 'timeout') !== false || stripos($message, 'timed out') !== false) {
+                return SelcomGatewayException::timeout($message);
+            }
         }
 
-        return new RuntimeException($message);
+        // Re-wrap other exceptions
+        return SelcomGatewayException::connectionFailed($e->getMessage());
     }
 }
