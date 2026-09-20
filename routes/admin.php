@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login/request-otp', [AuthController::class, 'requestOtp'])->middleware('throttle:5,1')->name('login.request-otp');
+    Route::post('/login/request-otp', [AuthController::class, 'requestOtp'])->middleware('throttle:otp-request')->name('login.request-otp');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.submit');
     Route::post('/login/two-factor', [AuthController::class, 'confirmTwoFactor'])->middleware('throttle:5,1')->name('login.two-factor');
 

@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Requests\Api\V1\Auth\RegisterRequest;
 use App\Http\Requests\Api\V1\Auth\RequestLoginOtpRequest;
 use App\Http\Requests\Api\V1\Auth\RequestRegistrationOtpRequest;
+use App\Jobs\SendOtpJob;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
 use App\Services\Auth\OtpService;
@@ -35,6 +36,16 @@ final class AuthenticationController extends Controller
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
 
         $this->limitOtpRequest('registration', $phone);
+
+        // Production path: identical response for known/unknown numbers (no timing,
+        // status or cooldown oracle); the SMS is sent after the response.
+        if (! $this->exposesDevOtp()) {
+            SendOtpJob::dispatch($phone, OtpPurpose::Registration)->afterResponse();
+
+            return response()->json([
+                'message' => 'If the request is valid, a verification code has been sent.',
+            ]);
+        }
 
         if (User::query()->where('phone', $phone)->exists()) {
             return response()->json([
@@ -99,6 +110,14 @@ final class AuthenticationController extends Controller
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
 
         $this->limitOtpRequest('login', $phone);
+
+        if (! $this->exposesDevOtp()) {
+            SendOtpJob::dispatch($phone, OtpPurpose::Login)->afterResponse();
+
+            return response()->json([
+                'message' => 'If the request is valid, a verification code has been sent.',
+            ]);
+        }
 
         if (! User::query()->where('phone', $phone)->where('status', UserStatus::Active->value)->exists()) {
             return response()->json([
@@ -186,6 +205,15 @@ final class AuthenticationController extends Controller
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    /**
+     * Local/testing only: return the OTP in the response for browser testing. This
+     * needs the code synchronously, so it bypasses the constant-response path.
+     */
+    private function exposesDevOtp(): bool
+    {
+        return app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false);
     }
 
     private function limitOtpRequest(string $purpose, string $phone): void

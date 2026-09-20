@@ -18,7 +18,7 @@ return [
     | Per-IP and global ceilings on requests that send an SMS. Per-phone limits
     | live in OtpService.
     */
-    'otp_ip_per_minute' => (int) env('OTP_IP_PER_MINUTE', 5),
+    'otp_ip_per_minute' => (int) env('OTP_IP_PER_MINUTE', 10),
     'otp_ip_per_hour' => (int) env('OTP_IP_PER_HOUR', 20),
     'otp_global_per_day' => (int) env('OTP_GLOBAL_PER_DAY', 3000),
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\Auth\OtpPurpose;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendOtpJob;
 use App\Models\User;
 use App\Rules\ValidTanzanianPhoneNumber;
 use App\Services\Auth\OtpService;
@@ -42,14 +43,11 @@ final class AuthController extends Controller
             throw ValidationException::withMessages(['phone' => ['Too many requests. Please try again later.']]);
         }
 
-        $adminExists = User::query()->where('phone', $phone)->where('status', 'active')->get()
-            ->contains(fn (User $user) => $user->isAdmin());
-
         RateLimiter::hit($key, 3600);
 
-        if ($adminExists) {
-            $otpService->send($phone, OtpPurpose::AdminLogin);
-        }
+        // Eligibility check and SMS happen after the response so the reply is identical
+        // (status, body, timing, cooldown errors) for admin and non-admin numbers.
+        SendOtpJob::dispatch($phone, OtpPurpose::AdminLogin)->afterResponse();
 
         return back()->with('otp_sent', true)->with('phone', $request->string('phone')->toString());
     }
