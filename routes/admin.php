@@ -26,7 +26,7 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.submit');
     Route::post('/login/two-factor', [AuthController::class, 'confirmTwoFactor'])->middleware('throttle:5,1')->name('login.two-factor');
 
-    Route::middleware('admin.web')->group(function (): void {
+    Route::middleware(['admin.web', 'admin.2fa'])->group(function (): void {
         Route::get('/', [ControlPanelController::class, 'dashboard'])->name('dashboard');
 
         Route::prefix('security')->name('security.')->group(function (): void {

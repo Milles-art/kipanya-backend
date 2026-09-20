@@ -53,7 +53,8 @@ class SecurityAuditRegressionTest extends TestCase
                 'role_id' => $support->id,
                 'status' => 'active',
             ])
-            ->assertSessionHasErrors('user');
+            // F-04: a non-super `users.manage` holder is refused outright.
+            ->assertForbidden();
 
         $this->assertTrue($target->fresh()->hasRole('super_admin'));
         $this->assertSame(1, $this->activeSuperAdminCount());
@@ -96,7 +97,8 @@ class SecurityAuditRegressionTest extends TestCase
 
     public function test_changing_an_admin_credentials_through_update_revokes_token(): void
     {
-        $actor = $this->userWithPermissions(['users.manage']);
+        // F-04: only a super administrator may change an admin's login credentials.
+        $actor = User::factory()->admin()->create();
         $target = $this->staffAdmin();
         $target->createToken('regression-test');
 

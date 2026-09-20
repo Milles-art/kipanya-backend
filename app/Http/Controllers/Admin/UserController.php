@@ -86,7 +86,7 @@ final class UserController extends Controller
     public function edit(Request $request, User $user): View
     {
         $this->authorizeUsers($request);
-        $this->ensureAdminUser($user);
+        $this->ensureManageable($request, $user);
 
         return view('admin.users.edit', [
             'user' => $user->load('roles'),
@@ -97,7 +97,7 @@ final class UserController extends Controller
     public function update(Request $request, User $user, AuditLogger $auditLogger): RedirectResponse
     {
         $this->authorizeUsers($request);
-        $this->ensureAdminUser($user);
+        $this->ensureManageable($request, $user);
 
         $data = $this->validated($request, $user);
         $phone = PhoneNumber::normalize($data['phone'])->value();
@@ -133,6 +133,14 @@ final class UserController extends Controller
             $credentialsChanged = $user->phone !== $phone
                 || $user->email !== ($data['email'] ?: null);
 
+            // The phone number is the admin's login credential: changing it lets the
+            // editor sign in as that admin. Only a super administrator may do that.
+            if ($credentialsChanged && ! $request->user()->hasRole('super_admin')) {
+                throw ValidationException::withMessages([
+                    'phone' => 'Only a super administrator can change an administrator\'s phone number or email.',
+                ]);
+            }
+
             $user->update([
                 'name' => $data['name'],
                 'email' => $data['email'] ?: null,
@@ -146,6 +154,15 @@ final class UserController extends Controller
             // identity cannot outlive the change.
             if ($data['status'] !== 'active' || $credentialsChanged) {
                 $user->tokens()->delete();
+            }
+
+            // A changed credential invalidates the second factor: the account must
+            // enrol a fresh authenticator on its next sign-in.
+            if ($credentialsChanged && $user->twoFactorEnabled()) {
+                $user->forceFill([
+                    'two_factor_secret' => null,
+                    'two_factor_enabled_at' => null,
+                ])->save();
             }
 
             $user->roles()->sync([$role->id]);
@@ -162,7 +179,7 @@ final class UserController extends Controller
     public function toggleStatus(Request $request, User $user, AuditLogger $auditLogger): RedirectResponse
     {
         $this->authorizeUsers($request);
-        $this->ensureAdminUser($user);
+        $this->ensureManageable($request, $user);
 
         if ($request->user()->is($user)) {
             return back()->withErrors(['user' => 'You cannot change your own administrator status.']);
@@ -217,6 +234,21 @@ final class UserController extends Controller
     private function ensureAdminUser(User $user): void
     {
         abort_unless($user->isAdmin(), 403);
+    }
+
+    /**
+     * The target must be an administrator, and only a super administrator may
+     * touch another super administrator (edit, demote, deactivate).
+     */
+    private function ensureManageable(Request $request, User $target): void
+    {
+        $this->ensureAdminUser($target);
+
+        abort_if(
+            $target->hasRole('super_admin') && ! $request->user()?->hasRole('super_admin'),
+            403,
+            'Only a super administrator can manage another super administrator.',
+        );
     }
 
     /**

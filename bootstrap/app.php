@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AddRequestId;
 use App\Http\Middleware\EnsureAdminPermission;
+use App\Http\Middleware\EnsureAdminTwoFactor;
 use App\Http\Middleware\EnsureAdminWebAccess;
 use App\Http\Middleware\EnsureScopedApiToken;
 use App\Http\Middleware\EnsureUserHasPermission;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsureUserHasPermission::class,
             'admin.permission' => EnsureAdminPermission::class,
             'admin.web' => EnsureAdminWebAccess::class,
+            'admin.2fa' => EnsureAdminTwoFactor::class,
             'active' => EnsureUserIsActive::class,
             'scoped.token' => EnsureScopedApiToken::class,
         ]);
