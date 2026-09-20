@@ -127,13 +127,17 @@ final class AuthenticationController extends Controller
     ): JsonResponse {
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
 
-        $user = DB::transaction(function () use ($request, $otpService, $phone): User {
-            $otpService->verify(
-                $phone,
-                OtpPurpose::Login,
-                $request->string('code')->toString(),
-            );
+        // SECURITY: verify() must NEVER run inside a database transaction. A wrong
+        // code makes it throw after recording the failure (per-code attempts and
+        // the lockout counter). Wrapping it in a transaction rolled those writes
+        // back, silently disabling brute-force protection on this endpoint.
+        $otpService->verify(
+            $phone,
+            OtpPurpose::Login,
+            $request->string('code')->toString(),
+        );
 
+        $user = DB::transaction(function () use ($phone): User {
             $user = User::query()->where('phone', $phone)->lockForUpdate()->first();
 
             if (! $user || ! $user->isActive()) {
@@ -142,10 +146,11 @@ final class AuthenticationController extends Controller
                 ]);
             }
 
+            $user->tokens()->delete();
+
             return $user;
         });
 
-        $user->tokens()->delete();
         $token = $tokenIssuer->execute($user);
 
         $auditLogger->log($request, 'auth.login', $user, ['user_id' => $user->id], $user);

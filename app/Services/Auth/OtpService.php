@@ -103,6 +103,13 @@ final class OtpService
         return $this->lastPlainCode;
     }
 
+    /**
+     * Verify a code.
+     *
+     * IMPORTANT: never call this inside DB::transaction(). On failure it records
+     * the attempt (row counter + rate limiter) and then throws; an enclosing
+     * transaction would roll those writes back and disable brute-force protection.
+     */
     public function verify(string $phone, OtpPurpose $purpose, string $code): OtpCode
     {
         $normalized = PhoneNumber::normalize($phone)->value();

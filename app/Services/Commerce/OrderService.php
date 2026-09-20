@@ -161,6 +161,17 @@ final class OrderService
                 ]);
             }
 
+            // A payment that is already in flight at the provider (mobile-money prompt
+            // open) may still succeed. Cancelling now would strand the customer's money.
+            if ($locked->payments()->whereIn('status', [
+                PaymentStatus::InProgress->value,
+                PaymentStatus::Processing->value,
+            ])->exists()) {
+                throw ValidationException::withMessages([
+                    'order' => 'A payment is still in progress. Please wait a few minutes before cancelling this order.',
+                ]);
+            }
+
             $locked->update([
                 'status' => OrderStatus::Cancelled,
                 'payment_status' => PaymentStatus::Cancelled,

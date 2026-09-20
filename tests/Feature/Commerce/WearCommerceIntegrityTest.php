@@ -108,11 +108,14 @@ class WearCommerceIntegrityTest extends TestCase
         $payment = PaymentTransaction::findOrFail($response->json('data.payment.0.id'));
         $payment->order->stockReservation()->update(['expires_at' => now()->subMinute()]);
 
+        // The provider has already captured the money, so this must NOT be recorded as
+        // a plain "failed" payment: it is flagged for refund/reconciliation (F-02).
         $result = app(PaymentService::class)->markSuccessful($payment, ['fake' => true]);
-        $this->assertSame('failed', $result->status->value);
+        $this->assertSame('reconciliation_required', $result->status->value);
+        $this->assertTrue($result->payload['needs_refund'] ?? false);
 
-        $this->assertDatabaseHas('payment_transactions', ['id' => $payment->id, 'status' => 'failed']);
-        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'cancelled', 'payment_status' => 'failed']);
+        $this->assertDatabaseHas('payment_transactions', ['id' => $payment->id, 'status' => 'reconciliation_required']);
+        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'cancelled', 'payment_status' => 'reconciliation_required']);
     }
 
 }
