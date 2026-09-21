@@ -53,4 +53,29 @@ return [
         'timeout' => (int) env('NOTIFY_AFRICA_TIMEOUT', 10),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Selcom Checkout API
+    |--------------------------------------------------------------------------
+    |
+    | Server-side payment gateway for the Checkout API (developers.selcommobile.com).
+    | Credentials stay server-side; an empty API key/secret/vendor in local
+    | development keeps the FakePaymentGateway active. Production must provide
+    | all of SELCOM_BASE_URL, SELCOM_API_KEY, SELCOM_API_SECRET and
+    | SELCOM_VENDOR_ID or checkout will refuse to run.
+    |
+    */
+
+    'selcom' => [
+        'base_url' => env('SELCOM_BASE_URL'),
+        'api_key' => env('SELCOM_API_KEY'),
+        'api_secret' => env('SELCOM_API_SECRET'),
+        'vendor_id' => env('SELCOM_VENDOR_ID'),
+        'currency' => env('SELCOM_CURRENCY', 'TZS'),
+        'redirect_url' => env('SELCOM_REDIRECT_URL'),
+        'cancel_url' => env('SELCOM_CANCEL_URL'),
+        'webhook_url' => env('SELCOM_WEBHOOK_URL'),
+        'timeout' => (int) env('SELCOM_TIMEOUT', 10),
+    ],
+
 ];

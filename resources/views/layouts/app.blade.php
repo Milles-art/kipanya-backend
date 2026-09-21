@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="kp-signed-in" content="{{ Auth::guard('sanctum')->check() ? '1' : '0' }}">
+    @php
+        $user = Auth::guard('sanctum')->user();
+        $kpUser = $user ? [
+            'name' => $user->name,
+            'phone' => $user->phone,
+            'email' => $user->email,
+        ] : null;
+    @endphp
+    <script nonce="{{ Vite::cspNonce() }}">window.KP_USER = @json($kpUser)</script>
     <title>{{ $title ?? 'KP Wear' }}</title>
     <meta name="description" content="KP Wear — everyday fashion made for movement, comfort and confidence.">
     @vite(['resources/css/app.css', 'resources/js/app.js'])

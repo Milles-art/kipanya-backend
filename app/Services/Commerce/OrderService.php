@@ -7,7 +7,6 @@ use App\Enums\Commerce\CartStatus;
 use App\Enums\Commerce\OrderStatus;
 use App\Enums\Commerce\PaymentStatus;
 use App\Enums\Commerce\ReservationStatus;
-use App\Models\Commerce\PaymentTransaction;
 use App\Models\Cart\Cart;
 use App\Models\Commerce\Address;
 use App\Models\User;
@@ -168,7 +167,7 @@ final class OrderService
             ]);
 
             $locked->payments()
-                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::InProgress->value])
                 ->update(['status' => PaymentStatus::Cancelled]);
 
             $locked->statusHistory()->create([
@@ -187,7 +186,7 @@ final class OrderService
     private function orderNumber(): string
     {
         do {
-            $candidate = 'KP-' . now()->format('ymd') . '-' . Str::upper(Str::random(8));
+            $candidate = 'KP-'.now()->format('ymd').'-'.Str::upper(Str::random(8));
         } while (WearOrder::query()->where('order_number', $candidate)->exists());
 
         return $candidate;
@@ -196,6 +195,7 @@ final class OrderService
     private function isUniqueConstraintViolation(QueryException $exception): bool
     {
         $message = strtolower($exception->getMessage());
+
         return str_contains($message, '1062') || str_contains($message, 'unique constraint') || str_contains($message, 'duplicate');
     }
 }

@@ -12,6 +12,9 @@ class PaymentTransactionResource extends JsonResource
             'id' => $this->id,
             'provider' => $this->provider,
             'provider_reference' => $this->provider_reference,
+            'payment_gateway_url' => isset($this->payload['payment_gateway_url'])
+                ? (string) $this->payload['payment_gateway_url']
+                : null,
             'amount' => (float) $this->amount,
             'currency' => $this->currency,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,

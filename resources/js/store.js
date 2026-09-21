@@ -1769,107 +1769,150 @@ const bootCatalog = async () => {
   const bootCheckout = async () => {
     const page = document.querySelector('[data-checkout-page]');
     if (!page) return;
+    // The checkout page is now fully self-managed by its own inline
+    // script (renders summary, payment cards, address/note modals,
+    // and posts to POST /api/v1/checkout). Bail here so this legacy
+    // wiring never double-binds or writes into [data-checkout-error].
+    if (page.querySelector('[data-place-order]')) return;
 
     const authNotice = page.querySelector('[data-checkout-auth]');
-    const addressList = page.querySelector('[data-address-list]');
-    const addressForm = page.querySelector('[data-address-form]');
-    const summary = page.querySelector('[data-checkout-summary]');
-    const itemCount = page.querySelector('[data-checkout-item-count]');
-    const errorBox = page.querySelector('[data-checkout-error]');
-    const placeButton = page.querySelector('[data-place-order]');
+    const addressSummary = page.querySelector('[data-address-summary]');
+    const addressTrigger = page.querySelector('[data-address-trigger]');
+    const addressModal = page.querySelector('[data-address-modal]');
+    const addressModalClose = page.querySelector('[data-address-modal-close]');
+    const addressEditBtn = page.querySelector('[data-address-edit]');
+    const geolocationStatus = page.querySelector('[data-geolocation-status]');
+    const noteSummary = page.querySelector('[data-note-summary]');
+    const noteTrigger = page.querySelector('[data-note-trigger]');
+    const noteModal = page.querySelector('[data-note-modal]');
+    const noteModalClose = page.querySelector('[data-note-modal-close]');
+    const noteSave = page.querySelector('[data-note-save]');
+    const noteCancel = page.querySelector('[data-note-cancel]');
+    const notesTextarea = page.querySelector('[data-order-notes]');
+    const paymentMethodsContainer = page.querySelector('[data-payment-methods]');
+    const payBtn = page.querySelector('[data-pay-btn]');
+    const payAmount = page.querySelector('#pay-amount');
 
     const showError = (message) => {
+      const errorBox = page.querySelector('[data-checkout-error]');
       if (!errorBox) return;
       errorBox.textContent = message;
       errorBox.classList.remove('hidden');
     };
 
-    const clearError = () => errorBox?.classList.add('hidden');
+    const clearError = () => {
+      const errorBox = page.querySelector('[data-checkout-error]');
+      if (errorBox) errorBox.classList.add('hidden');
+    };
 
     if (!signedIn()) {
       authNotice?.classList.remove('hidden');
-      addressForm?.classList.add('hidden');
-      placeButton?.setAttribute('disabled', 'disabled');
-      summary.innerHTML = '<p class="text-sm text-gray-500">Sign in to continue to checkout.</p>';
       return;
     }
 
+    // ---- Selected state ----
     let selectedAddress = null;
+    let selectedPaymentMethod = null; // 'mobile_money' | 'card'
+    let noteValue = '';
 
-    const renderAddresses = (addresses) => {
-      const list = Array.isArray(addresses) ? addresses : [];
-      if (!list.length) {
-        selectedAddress = null;
-        addressList.innerHTML = '<div class="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-500">No saved addresses yet. Add your delivery address below.</div>';
-        return;
+    // ---- Delivery address ----
+    const updateAddressSummary = () => {
+      if (!addressSummary) return;
+      if (selectedAddress) {
+        addressSummary.classList.remove('hidden');
+        // Try to fetch address details
+        fetch(`/api/v1/addresses/${selectedAddress}`)
+          .then(r => r.json())
+          .then(d => {
+            const addr = d.data || null;
+            if (addr) {
+              addressSummary.querySelector('[data-address-text]').textContent =
+                `${escapeHtml(addr.recipient_name)} · ${escapeHtml(addr.phone)} · ${escapeHtml(addr.region || '')}, ${escapeHtml(addr.district || '')}${addr.ward ? ', ' + escapeHtml(addr.ward) : ''} · ${escapeHtml(addr.street)}`;
+            } else {
+              addressSummary.querySelector('[data-address-text]').textContent = 'Address saved';
+            }
+          })
+          .catch(() => {
+            addressSummary.querySelector('[data-address-text]').textContent = 'Address saved';
+          });
+      } else {
+        addressSummary.classList.add('hidden');
+        addressSummary.querySelector('[data-address-text]').textContent = 'No delivery address selected';
       }
-
-      const defaultIndex = Math.max(0, list.findIndex(a => a.is_default));
-      selectedAddress = Number(list[defaultIndex].id);
-
-      addressList.innerHTML = list.map((a, i) => `
-        <label class="flex cursor-pointer gap-3 rounded-xl border p-4 transition ${i === defaultIndex ? 'border-gray-950 bg-gray-50' : 'border-gray-200 hover:border-gray-400'}">
-          <input type="radio" name="address_id" value="${Number(a.id)}" ${i === defaultIndex ? 'checked' : ''} class="mt-1">
-          <span class="min-w-0">
-            <strong class="text-sm">${escapeHtml(a.recipient_name)}</strong>
-            <span class="mt-1 block text-sm leading-6 text-gray-500">${escapeHtml(a.phone)} · ${escapeHtml(a.region)}, ${escapeHtml(a.district)}${a.ward ? `, ${escapeHtml(a.ward)}` : ''} · ${escapeHtml(a.street)}</span>
-          </span>
-        </label>
-      `).join('');
-
-      addressList.querySelectorAll('input[name="address_id"]').forEach(input => {
-        input.addEventListener('change', () => {
-          selectedAddress = Number(input.value);
-          if (placeButton && !placeButton.dataset.checkoutBlocked) placeButton.removeAttribute('disabled');
-          addressList.querySelectorAll('label').forEach(label => label.classList.remove('border-gray-950', 'bg-gray-50'));
-          input.closest('label')?.classList.add('border-gray-950', 'bg-gray-50');
-          clearError();
-        });
-      });
     };
 
-    try {
-      const [addresses, preview] = await Promise.all([
-        api('/addresses'),
-        api('/cart/checkout/preview')
-      ]);
-
-      const addressData = addresses?.data || [];
-      renderAddresses(addressData);
-
-      const d = preview?.data || {};
-      const items = Array.isArray(d.items) ? d.items : [];
-      const count = items.reduce((total, item) => total + Number(item.quantity || 0), 0);
-      if (itemCount) itemCount.textContent = `${count} item${count === 1 ? '' : 's'}`;
-
-      summary.innerHTML = `
-        ${items.length ? `<div class="divide-y divide-gray-200 border-b border-gray-200">${items.map(item => `
-          <div class="flex justify-between gap-4 py-3">
-            <span class="text-gray-600">Item × ${Number(item.quantity || 0)}</span>
-            <strong>${Number(item.line_total || 0).toLocaleString()} TZS</strong>
-          </div>
-        `).join('')}</div>` : ''}
-        <div class="flex justify-between pt-1"><span>Subtotal</span><strong>${Number(d.subtotal || 0).toLocaleString()} TZS</strong></div>
-        <div class="flex justify-between"><span>Delivery</span><strong>${Number(d.delivery_fee || 0).toLocaleString()} TZS</strong></div>
-        <div class="mt-3 flex justify-between border-t border-gray-200 pt-3 text-base"><span>Total</span><strong>${Number(d.total || 0).toLocaleString()} TZS</strong></div>
-      `;
-
-      if (items.length && selectedAddress) placeButton?.removeAttribute('disabled');
-    } catch (e) {
-      summary.innerHTML = '<p class="text-sm text-red-600">We could not load your checkout summary. Please return to your cart and try again.</p>';
-      placeButton?.setAttribute('disabled', 'disabled');
-      showError(e.message);
-    }
-
-    addressForm?.addEventListener('submit', async e => {
-      e.preventDefault();
-      clearError();
-      const submit = e.currentTarget.querySelector('button');
-      submit?.setAttribute('disabled', 'disabled');
-      const fd = new FormData(e.currentTarget);
-
+    const loadAddresses = async () => {
       try {
-        const created = await api('/addresses', {
+        const data = await api('/addresses');
+        const addresses = data?.data || [];
+        if (!selectedAddress && addresses.length > 0) {
+          const def = addresses.find(a => a.is_default);
+          if (def) selectedAddress = Number(def.id);
+        }
+        updateAddressSummary();
+      } catch {
+        // Silently fail - address may not be saved yet
+      }
+    };
+
+    // ---- Geolocation ----
+    const handleGeolocation = async () => {
+      if (!navigator.geolocation) return showError('Geolocation not supported by your browser.');
+
+      geolocationStatus.classList.add('hidden');
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          // Geolocation succeeded - mark as location-sourced
+          addressSource = 'location';
+          // We don't create a DB address record automatically;
+          // just show the modal so user can confirm/edit
+          selectedAddress = null;
+          updateAddressSummary();
+          addressModal.classList.remove('hidden');
+          addressModal.classList.add('flex');
+        },
+        (err) => {
+          geolocationStatus.classList.remove('hidden');
+          geolocationStatus.textContent = 'Location permission denied';
+        },
+        { timeout: 15000 }
+      );
+    };
+
+    addressTrigger?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (addressSource === 'location') {
+        // User already chose location - show modal for editing
+        addressModal.classList.remove('hidden');
+        addressModal.classList.add('flex');
+      } else {
+        handleGeolocation();
+      }
+    });
+
+    addressModalClose?.addEventListener('click', () => {
+      addressModal.classList.add('hidden');
+      addressModal.classList.remove('flex');
+    });
+
+    // Click outside modal to close
+    addressModal?.addEventListener('click', (e) => {
+      if (e.target === addressModal) {
+        addressModal.classList.add('hidden');
+        addressModal.classList.remove('flex');
+      }
+    });
+
+    // Manual address save
+    // We listen on the modal itself for the save button since it may be rendered dynamically
+    addressModal?.addEventListener('click', (e) => {
+      const saveBtn = e.target.closest('[data-address-manual-save]');
+      if (saveBtn) {
+        e.stopPropagation();
+        if (!addressManualForm) return;
+        clearError();
+        const fd = new FormData(addressManualForm);
+        api('/addresses', {
           method: 'POST',
           body: {
             type: 'shipping',
@@ -1881,81 +1924,194 @@ const bootCatalog = async () => {
             street: fd.get('street'),
             is_default: true
           }
+        }).then(async (created) => {
+          const data = created?.data || null;
+          if (data?.id) {
+            selectedAddress = Number(data.id);
+            addressSource = 'manual';
+            addressModal.classList.add('hidden');
+            addressModal.classList.remove('flex');
+            updateAddressSummary();
+            toast('Address saved');
+          }
+        }).catch((err) => {
+          showError(err.message || 'Failed to save address');
         });
-
-        const savedAddress = created?.data || null;
-        if (savedAddress?.id) {
-          selectedAddress = Number(savedAddress.id);
-          const existing = Array.from(addressList.querySelectorAll('input[name="address_id"]'))
-            .map(input => input.closest('label'))
-            .filter(Boolean);
-          const card = document.createElement('label');
-          card.className = 'flex cursor-pointer gap-3 rounded-xl border border-gray-950 bg-gray-50 p-4 transition';
-          card.innerHTML = `
-            <input type="radio" name="address_id" value="${Number(savedAddress.id)}" checked class="mt-1">
-            <span class="min-w-0">
-              <strong class="text-sm">${escapeHtml(savedAddress.recipient_name)}</strong>
-              <span class="mt-1 block text-sm leading-6 text-gray-500">${escapeHtml(savedAddress.phone)} · ${escapeHtml(savedAddress.region)}, ${escapeHtml(savedAddress.district)}${savedAddress.ward ? `, ${escapeHtml(savedAddress.ward)}` : ''} · ${escapeHtml(savedAddress.street)}</span>
-            </span>`;
-
-          addressList.querySelectorAll('label').forEach(label => label.classList.remove('border-gray-950', 'bg-gray-50'));
-          addressList.prepend(card);
-          addressList.querySelectorAll('input[name="address_id"]').forEach(input => {
-            input.checked = Number(input.value) === selectedAddress;
-            input.onchange = () => {
-              selectedAddress = Number(input.value);
-              addressList.querySelectorAll('label').forEach(label => label.classList.remove('border-gray-950', 'bg-gray-50'));
-              input.closest('label')?.classList.add('border-gray-950', 'bg-gray-50');
-              if (placeButton && !placeButton.dataset.checkoutBlocked) placeButton.removeAttribute('disabled');
-              clearError();
-            };
-          });
-          if (placeButton && !placeButton.dataset.checkoutBlocked) placeButton.removeAttribute('disabled');
-          addressForm.reset();
-        }
-
-        toast('Address saved');
-      } catch (err) {
-        showError(err.message);
-        submit?.removeAttribute('disabled');
       }
     });
 
-    placeButton?.addEventListener('click', async () => {
+    // ---- Order note ----
+    const updateNoteSummary = () => {
+      if (!noteSummary) return;
+      if (noteValue) {
+        noteSummary.classList.remove('hidden');
+        noteSummary.querySelector('[data-note-text]').textContent = escapeHtml(noteValue);
+      } else {
+        noteSummary.classList.add('hidden');
+        noteSummary.querySelector('[data-note-text]').textContent = 'No order note';
+      }
+    };
+
+    noteTrigger?.addEventListener('click', () => {
+      if (noteModal) {
+        noteModal.classList.remove('hidden');
+        noteModal.classList.add('flex');
+        const textarea = noteModal.querySelector('[data-order-notes]');
+        if (textarea) textarea.focus();
+      }
+    });
+
+    noteModalClose?.addEventListener('click', () => {
+      if (noteModal) {
+        noteModal.classList.add('hidden');
+        noteModal.classList.remove('flex');
+      }
+    });
+
+    noteModal?.addEventListener('click', (e) => {
+      if (e.target === noteModal) {
+        noteModal.classList.add('hidden');
+        noteModal.classList.remove('flex');
+      }
+    });
+
+    // Note save - use event delegation on the modal
+    noteModal?.addEventListener('click', (e) => {
+      const saveBtn = e.target.closest('[data-note-save]');
+      if (saveBtn) {
+        e.stopPropagation();
+        clearError();
+        noteValue = (notesTextarea ? notesTextarea.value : '') || '';
+        if (noteModal) {
+          noteModal.classList.add('hidden');
+          noteModal.classList.remove('flex');
+        }
+        updateNoteSummary();
+        toast('Note saved');
+      }
+    });
+
+    noteCancel?.addEventListener('click', () => {
+      if (noteModal) {
+        noteModal.classList.add('hidden');
+        noteModal.classList.remove('flex');
+      }
+      if (notesTextarea) notesTextarea.value = '';
+      noteValue = '';
+      updateNoteSummary();
+    });
+
+    // ---- Payment methods rendering ----
+    // Render payment method cards from available options.
+    // The existing backend/payment integration (Selcom Checkout) supports
+    // mobile money and card payments. We render two selectable cards.
+    const renderPaymentMethods = () => {
+      if (!paymentMethodsContainer) return;
+
+      const methods = [
+        { id: 'mobile_money', name: 'Mobile Money', description: 'Pay with M-Pesa or similar', icon: 'mobile phone' },
+        { id: 'card', name: 'Card', description: 'Pay with debit/credit card', icon: 'credit card' }
+      ];
+
+      paymentMethodsContainer.innerHTML = methods.map(m => `
+        <label class="payment-method-item relative rounded border border-gray-200 bg-white py-3 px-4 cursor-pointer select-none ${selectedPaymentMethod === m.id ? 'border-emerald-600' : ''}" data-payment-method="${m.id}">
+          <span class="flex items-center gap-3">
+            <x-tabler-${m.icon} class="h-5 w-5 text-emerald-600" />
+            <div>
+              <p class="font-medium text-gray-900">${m.name}</p>
+              <p class="text-xs text-gray-500">${m.description}</p>
+            </div>
+          </span>
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full w-3 h-3 border-2 transition-colors ${selectedPaymentMethod === m.id ? 'bg-emerald-600 border-emerald-600' : 'border-transparent'}"></span>
+        </label>
+      `).join('');
+
+      // Attach click handlers to method items
+      paymentMethodsContainer.querySelectorAll('.payment-method-item').forEach(item => {
+        item.addEventListener('click', () => {
+          // Deselect all
+          paymentMethodsContainer.querySelectorAll('.payment-method-item').forEach(i => {
+            i.classList.remove('border-emerald-600');
+            i.querySelector('span:last-child')?.classList.remove('bg-emerald-600', 'border-emerald-600');
+            i.querySelector('span:last-child')?.classList.add('border-transparent');
+          });
+          // Select clicked
+          item.classList.add('border-emerald-600');
+          item.querySelector('span:last-child')?.classList.add('bg-emerald-600', 'border-emerald-600');
+          item.querySelector('span:last-child')?.classList.remove('border-transparent');
+          selectedPaymentMethod = item.dataset.paymentMethod;
+        });
+      });
+    };
+
+    // Initial render of payment methods
+    renderPaymentMethods();
+
+    // Update payment amount from order total
+    const updatePayAmount = async () => {
+      try {
+        const preview = await api('/cart/checkout/preview');
+        const total = (preview?.data?.total || 0);
+        if (payAmount) payAmount.textContent = `Pay TZS ${total.toLocaleString()}`;
+      } catch (e) {
+        // If preview fails, keep display but mark as error
+        if (payAmount) payAmount.textContent = 'Pay TZS 0';
+        showError('Unable to load checkout total. Please try again.');
+      }
+    };
+
+    // Initial amount load
+    await updatePayAmount();
+
+    // Pay button click - initiate payment
+    payBtn?.addEventListener('click', async () => {
+      if (!payBtn || payBtn.disabled) return;
+
       clearError();
-      if (!selectedAddress) return showError('Add or select a delivery address before placing your order.');
-      if (placeButton.disabled) return;
-
-      placeButton.setAttribute('disabled', 'disabled');
-      placeButton.setAttribute('aria-busy', 'true');
-      const originalText = placeButton.textContent;
-      placeButton.textContent = 'Placing order…';
-
-      let key = sessionStorage.getItem('kp_checkout_idempotency_key');
-      if (!key) {
-        key = `kp-${Date.now()}-${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`;
-        sessionStorage.setItem('kp_checkout_idempotency_key', key);
+      if (!selectedAddress) {
+        return showError('Add or select a delivery address before placing your order.');
+      }
+      if (!selectedPaymentMethod) {
+        return showError('Select a payment method before placing your order.');
       }
 
+      // Disable repeated clicks
+      payBtn.disabled = true;
+      payBtn.setAttribute('aria-busy', 'true');
+      const originalText = payBtn.textContent;
+
       try {
+        // Initiate payment via the API
         const order = await api('/checkout', {
           method: 'POST',
-          headers: { 'Idempotency-Key': key },
+          headers: { 'Idempotency-Key': `kp-${Date.now()}-${Math.random().toString(36).slice(2, 18)}` },
           body: {
-            address_id: Number(selectedAddress),
-            notes: page.querySelector('[data-order-notes]')?.value || null
+            address_id: selectedAddress,
+            notes: notesTextarea ? notesTextarea.value || null : null,
+            payment_method: selectedPaymentMethod
           }
         });
 
-        sessionStorage.removeItem('kp_checkout_idempotency_key');
-        location.href = `/orders/${order.data.order_number}`;
+        // Navigate to order detail / confirmation page
+        if (order?.data?.order_number) {
+          sessionStorage.setItem('kp_last_order_number', order.data.order_number);
+          sessionStorage.setItem('kp_last_idempotency_key', order.data.idempotencyKey ?? '');
+          location.href = `/orders/${order.data.order_number}`;
+        } else {
+          throw new Error('Order creation failed - no order number returned');
+        }
       } catch (e) {
-        placeButton.removeAttribute('disabled');
-        placeButton.removeAttribute('aria-busy');
-        placeButton.textContent = originalText;
-        showError(e.message);
+        payBtn.disabled = false;
+        payBtn.removeAttribute('aria-busy');
+        payBtn.textContent = originalText;
+        showError(e.message || 'Payment initiation failed. Please try again.');
       }
     });
+
+    // ---- Init ----
+    await loadAddresses();
+    updateAddressSummary();
+    updateNoteSummary();
   };
 
   const bootAccount =
