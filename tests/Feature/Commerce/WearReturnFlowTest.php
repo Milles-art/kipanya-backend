@@ -76,4 +76,39 @@ class WearReturnFlowTest extends TestCase
         $this->expectException(\Illuminate\Validation\ValidationException::class);
         app(WearReturnService::class)->process($request);
     }
+
+    // ----------------------------------------------------------------- F-10
+
+    private function pendingRefund(\App\Models\User $user): WearReturnRequest
+    {
+        [$order] = $this->deliveredOrder($user, 1);
+        $item = $order->items->first();
+
+        return WearReturnRequest::create(['wear_order_id' => $order->id, 'user_id' => $user->id, 'request_type' => 'return', 'reason' => 'damaged', 'order_item_ids' => [$item->id], 'status' => 'processed', 'refund_amount' => $item->line_total, 'refund_status' => 'pending', 'processed_at' => now()]);
+    }
+
+    public function test_a_refund_reference_cannot_be_reused_for_another_return(): void
+    {
+        $user = $this->user();
+        $first = $this->pendingRefund($user);
+        $second = $this->pendingRefund($user);
+
+        app(WearReturnService::class)->markRefunded($first, 'SELCOM-REF-9001', $user->id);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        try {
+            app(WearReturnService::class)->markRefunded($second, 'SELCOM-REF-9001', $user->id);
+        } finally {
+            $this->assertDatabaseHas('wear_return_requests', ['id' => $second->id, 'refund_status' => 'pending']);
+        }
+    }
+
+    public function test_a_trivial_refund_reference_is_rejected(): void
+    {
+        $user = $this->user();
+        $return = $this->pendingRefund($user);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(WearReturnService::class)->markRefunded($return, ' x ', $user->id);
+    }
 }

@@ -20,6 +20,9 @@ final class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        // Isolate this site's browsing context group from cross-origin windows (Spectre-class
+        // and window.opener attacks). The payment redirect is a top-level navigation, not a popup.
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
         // Inline <script>/<style> blocks carry a per-request nonce and inline
         // event-handler attributes were removed, so `script-src` no longer
         // needs 'unsafe-inline'. Inline style attributes (style="...") cannot
@@ -41,7 +44,7 @@ final class SecurityHeaders
             "style-src-elem 'self' 'nonce-{$nonce}' https://fonts.googleapis.com",
             "style-src-attr 'unsafe-inline'",
             "font-src 'self' data: https://fonts.gstatic.com",
-            "img-src 'self' data: blob: https:",
+            'img-src '.config('security.csp_img_src', "'self' data: blob: https:"),
             "connect-src 'self'",
             "worker-src 'none'",
             "manifest-src 'self'",
