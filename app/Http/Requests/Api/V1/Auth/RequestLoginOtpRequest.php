@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Auth;
 
+use App\Rules\ValidTanzanianPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RequestLoginOtpRequest extends FormRequest
@@ -14,7 +15,7 @@ class RequestLoginOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'max:30'],
+            'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber()],
         ];
     }
 }

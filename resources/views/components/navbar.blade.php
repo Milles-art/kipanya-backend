@@ -42,6 +42,7 @@
             <button
                 data-search-toggle
                 type="button"
+                aria-expanded="false"
                 class="rounded-xl p-2.5 text-gray-700 transition-all duration-200 hover:bg-gray-100 hover:text-gray-950"
                 aria-label="Search">
                 <x-tabler-search size="20" stroke-width="1.8" />
@@ -76,6 +77,7 @@
             <button
                 data-menu-toggle
                 type="button"
+                aria-expanded="false"
                 class="rounded-xl p-2.5 text-gray-700 transition-all duration-200 hover:bg-gray-100 hover:text-gray-950 md:hidden"
                 aria-label="Open menu">
                 <x-tabler-menu-2 size="20" stroke-width="1.8" />

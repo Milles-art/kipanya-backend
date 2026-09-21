@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Api\V1\Commerce;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Commerce\WearProductIndexRequest;
-use App\Http\Resources\Api\V1\Commerce\WearProductResource;
 use App\Http\Resources\Api\V1\Commerce\WearCollectionResource;
+use App\Http\Resources\Api\V1\Commerce\WearProductResource;
 use App\Models\Wear\WearCollection;
 use App\Models\Wear\WearProduct;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Builder;
 
 final class WearCatalogController extends Controller
 {
@@ -31,13 +31,27 @@ final class WearCatalogController extends Controller
                     });
                 }
             )
-            ->when(
-                $request->boolean('featured'),
-                fn ($query) => $query->where('is_featured', true)
-            )
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->paginate($request->integer('per_page', 20));
+            ->when($request->boolean('featured'), fn (Builder $query) => $query->where('is_featured', true))
+            ->when($request->filled('q'), function (Builder $query) use ($request): void {
+                $term = '%'.Str::lower($request->string('q')->trim()->toString()).'%';
+                $query->where(function (Builder $search) use ($term): void {
+                    $search->whereRaw('LOWER(name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(description) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(category) LIKE ?', [$term]);
+                });
+            })
+            ->when($request->filled('price_min'), fn (Builder $query) => $query->where('price', '>=', $request->input('price_min')))
+            ->when($request->filled('price_max'), fn (Builder $query) => $query->where('price', '<=', $request->input('price_max')))
+            ->when($request->boolean('sale'), fn (Builder $query) => $query->whereNotNull('compare_at_price')->whereColumn('compare_at_price', '>', 'price'));
+
+        match ($request->input('sort', 'featured')) {
+            'price-asc' => $products->orderBy('price')->orderBy('id'),
+            'price-desc' => $products->orderByDesc('price')->orderBy('id'),
+            'newest' => $products->orderByDesc('id'),
+            default => $products->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('id'),
+        };
+
+        $products = $products->paginate($request->integer('per_page', 20));
 
         return WearProductResource::collection($products);
     }
@@ -49,6 +63,7 @@ final class WearCatalogController extends Controller
             ->withCount(['products' => fn (Builder $query) => $query->where('is_active', true)])
             ->orderBy('sort_order')
             ->orderBy('id')
+            ->limit(200)
             ->get();
 
         return WearCollectionResource::collection($collections);
@@ -58,33 +73,41 @@ final class WearCatalogController extends Controller
     {
         abort_unless($collection->is_active, 404);
 
-        // Load the many-to-many relation without a constrained eager-load closure.
-        // This keeps the endpoint compatible with the current Laravel relationship
-        // loader and avoids passing the BelongsToMany relation into a Builder-typed
-        // callback. Filter inactive products after eager loading.
-        $collection->load(['products.variants']);
-        $collection->setRelation(
-            'products',
-            $collection->products->where('is_active', true)->values(),
-        );
+        // Bound public collection payloads so a large collection cannot cause
+        // unbounded product/variant hydration on a single anonymous request.
+        $collection->load([
+            'products' => fn ($query) => $query
+                ->where('is_active', true)
+                ->with('variants')
+                ->orderBy('wear_products.sort_order')
+                ->orderBy('wear_products.id')
+                ->limit(60),
+        ]);
 
         return new WearCollectionResource($collection);
     }
 
     public function categories(): JsonResponse
     {
-        // Wear currently supports these five customer-facing categories.
-        // Keep this API contract stable even when one category temporarily has no products.
-        $categories = collect([
-            'Hoodies',
-            'Long Sleeves',
-            'T-Shirts',
-            'Shirts',
-            'Polos',
-        ])->map(fn (string $category) => [
-            'name' => $category,
-            'slug' => Str::slug($category),
-        ])->values();
+        $categoryNames = ['Hoodies', 'Long Sleeves', 'T-Shirts', 'Shirts', 'Polos'];
+
+        // Resolve one representative product per category with a LIMIT 1 query
+        // instead of hydrating the whole catalog just to pick the first row.
+        $categories = collect($categoryNames)->map(function (string $name): array {
+            $product = WearProduct::query()
+                ->where('is_active', true)
+                ->where('category', $name)
+                ->orderByDesc('is_featured')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->first(['category', 'image_path']);
+
+            return [
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'image' => $product?->image_url,
+            ];
+        })->values();
 
         return response()->json(['data' => $categories]);
     }

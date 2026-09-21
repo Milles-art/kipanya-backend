@@ -22,6 +22,7 @@ class WearOrder extends Model
         'order_number', 'checkout_idempotency_key', 'user_id', 'customer_name', 'customer_phone', 'customer_email',
         'delivery_address', 'delivery_city', 'notes', 'subtotal', 'delivery_fee', 'total',
         'status', 'payment_status', 'payment_method', 'placed_at',
+        'delivery_provider', 'tracking_number', 'fulfillment_notes', 'shipped_at', 'delivered_at',
     ];
 
     protected function casts(): array
@@ -31,6 +32,8 @@ class WearOrder extends Model
             'delivery_fee' => 'decimal:2',
             'total' => 'decimal:2',
             'placed_at' => 'datetime',
+            'shipped_at' => 'datetime',
+            'delivered_at' => 'datetime',
             'status' => OrderStatus::class,
             'payment_status' => PaymentStatus::class,
         ];

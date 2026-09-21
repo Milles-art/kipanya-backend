@@ -14,7 +14,8 @@ final class WearCollectionResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
-            'cover' => $this->cover_url,
+            'cover' => $this->cover_url
+                ?? ($this->relationLoaded('products') ? $this->products->first()?->image_url : null),
             'sort_order' => (int) $this->sort_order,
             'product_count' => isset($this->products_count)
                 ? (int) $this->products_count

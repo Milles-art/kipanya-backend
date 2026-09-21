@@ -19,8 +19,9 @@ final class RegisterUser
                 'name' => $data->name,
                 'phone' => $data->phone,
                 'phone_verified_at' => now(),
-                'status' => UserStatus::Active->value,
             ]);
+
+            $user->forceFill(['status' => UserStatus::Active->value])->save();
 
             $this->assignRole->execute($user, 'user');
 

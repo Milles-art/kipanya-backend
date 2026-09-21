@@ -9,7 +9,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            CartoonDemoSeeder::class,
             WearDemoSeeder::class,
             WearCollectionSeeder::class,
         ]);

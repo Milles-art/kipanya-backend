@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @push('head')
-<style>
+<style nonce="{{ Vite::cspNonce() }}">
   .kp-slide {
     opacity: 0;
     transform: translateX(60px);
-    transition: opacity 650ms cubic-bezier(0.4,0,0.2,1),
-                transform 650ms cubic-bezier(0.4,0,0.2,1);
+    transition: opacity 300ms cubic-bezier(0.4,0,0.2,1),
+                transform 300ms cubic-bezier(0.4,0,0.2,1);
   }
   .kp-slide.is-entering { opacity: 0; transform: translateX(60px); }
   .kp-slide.is-visible  { opacity: 1; transform: translateX(0); }
@@ -33,7 +33,6 @@
   }
   .kp-dot.active { width: 28px; background: #fff; }
 
-  /* ── Hero shell (width increased, height kept close to original) ── */
   .kp-hero-section { min-height: 600px; }
   #kp-hero-card {
     min-height: 540px;
@@ -45,7 +44,6 @@
     outline-offset: -3px;
   }
 
-  /* ── Dots, positioned by JS once moved out of slide 0 ── */
   .kp-dots-positioned {
     position: absolute;
     bottom: 2.5rem;
@@ -55,33 +53,66 @@
     z-index: 30;
   }
 
-  /* ── Mobile: stack the slide instead of forcing a 300px+ right column
-       into whatever's left of the viewport, which was overflowing/crushing
-       the copy on small screens. ── */
   @media (max-width: 860px) {
-    .kp-hero-section { min-height: 0; padding-top: 1rem; padding-bottom: 1rem; }
-    #kp-hero-card { min-height: 0; }
-
+    .kp-hero-section { min-height: 0; padding-top: .5rem; padding-bottom: 1rem; }
+    .kp-hero-section > .mx-auto { border-radius: 1.25rem; }
+    .kp-hero-section > .mx-auto > div:first-child { min-height: auto !important; align-items: flex-start !important; padding: 1rem 1rem 1.1rem !important; }
+    .kp-hero-section > .mx-auto > div:first-child > div { width: 100%; }
+    .kp-hero-section > .mx-auto > div:first-child .mt-7 { margin-top: 1rem !important; }
+    #kp-hero-card { min-height: 455px; }
     .kp-slide-grid { grid-template-columns: 1fr !important; }
-
-    .kp-hero-visual {
-      min-width: 0 !important;
-      align-items: center !important;
-      padding: 0 1.25rem 1.5rem !important;
-    }
-
+    .kp-slide-grid > div:first-child { justify-content: flex-start !important; padding: 1.5rem 1.25rem .5rem !important; }
+    .kp-hero-visual { min-width: 0 !important; min-height: 300px; align-items: center !important; justify-content: center !important; padding: .25rem 1rem 2.75rem !important; }
     .kp-hero-img-wrap { margin: 0 !important; }
-    .kp-hero-img { width: 62vw !important; max-width: 260px !important; height: auto !important; aspect-ratio: 3 / 4; }
+    .kp-hero-img { width: min(64vw, 270px) !important; max-width: 270px !important; height: 300px !important; aspect-ratio: 3 / 4; object-fit: contain !important; object-position: center !important; }
+    .kp-hero-float { display: block !important; left: 1rem !important; bottom: 2.25rem !important; width: 68px !important; border-width: 3px !important; animation: none !important; }
+    .kp-dots-positioned { position: absolute; bottom: .9rem; left: 50%; transform: translateX(-50%); margin-top: 0; justify-content: center; }
+  }
 
-    /* Bobbing alt-colorway thumbnail is a nice-to-have on desktop; on a
-       narrow single-column layout it just floats over the main image. */
-    .kp-hero-float { display: none !important; }
+  /* ── Scroll-reveal, site-wide ───────────────────────────────── */
+  .kp-reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 650ms cubic-bezier(0.4,0,0.2,1), transform 650ms cubic-bezier(0.4,0,0.2,1);
+  }
+  .kp-reveal.is-visible { opacity: 1; transform: none; }
+  .kp-stagger > * {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 550ms cubic-bezier(0.4,0,0.2,1), transform 550ms cubic-bezier(0.4,0,0.2,1);
+  }
+  .kp-stagger.is-visible > * { opacity: 1; transform: none; }
+  .kp-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
+  .kp-stagger.is-visible > *:nth-child(2) { transition-delay: 80ms; }
+  .kp-stagger.is-visible > *:nth-child(3) { transition-delay: 160ms; }
+  .kp-stagger.is-visible > *:nth-child(4) { transition-delay: 240ms; }
+  .kp-stagger.is-visible > *:nth-child(5) { transition-delay: 320ms; }
+  .kp-stagger.is-visible > *:nth-child(6) { transition-delay: 400ms; }
 
-    .kp-dots-positioned {
-      position: static;
-      margin-top: 1.25rem;
-      justify-content: center;
-    }
+  /* ── Marquee ticker ───────────────────────────────────────────── */
+  .kp-marquee { overflow: hidden; }
+  .kp-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: kpMarquee 22s linear infinite;
+  }
+  .kp-marquee:hover .kp-marquee-track { animation-play-state: paused; }
+  @keyframes kpMarquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ── 3D tilt (CSS + lightweight JS, no library) ─────────────── */
+  .kp-tilt { transform-style: preserve-3d; transition: transform 200ms ease, box-shadow 300ms ease; will-change: transform; }
+  .kp-tilt:hover { box-shadow: 0 24px 48px rgba(15,23,42,0.14); }
+
+  /* ── Magnetic buttons ─────────────────────────────────────────── */
+  .kp-magnetic { transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kp-reveal, .kp-stagger > * { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .kp-marquee-track { animation: none !important; }
+    .kp-tilt, .kp-magnetic { transition: none !important; transform: none !important; }
   }
 </style>
 @endpush
@@ -92,8 +123,8 @@
 $slides = [
   [
     'eyebrow'   => 'New Drop · AW26',
-    'heading'   => "Built for the<br><span style='opacity:.75'>coldest days.</span>",
-    'body'      => 'The Alpine Puffer uses recycled 700-fill down and a weather-sealed shell — warm enough to earn the silence.',
+    'heading'   => "Built for<br><span style='opacity:.75'>layering.</span>",
+    'body'      => 'Premium puffer that works for any season. Layer it, wear it solo, make it yours.',
     'cta'       => 'Shop the Drop',
     'cta_url'   => route('shop'),
     'price'     => '$279',
@@ -102,12 +133,12 @@ $slides = [
     'btn_bg'    => '#7c2d12',
     'img_main'  => asset('assets/wear/catalog/generated/product-09.jpg'),
     'img_thumb' => asset('assets/wear/catalog/generated/product-05.jpg'),
-    'side_words'=> ['DOWN', 'WARMTH'],
+    'side_words'=> ['PUFFER', 'BOLD'],
   ],
   [
     'eyebrow'   => 'Limited Edition',
-    'heading'   => "Street-ready<br><span style='opacity:.75'>all winter.</span>",
-    'body'      => 'The Urban Shell repels rain and locks heat — designed for city movement, finished for standing still.',
+    'heading'   => "A street staple<br><span style='opacity:.75'>for every day.</span>",
+    'body'      => 'Designed for the everyday hustle. Versatile, comfortable, built to be worn.',
     'cta'       => 'Explore the Edit',
     'cta_url'   => route('collections'),
     'price'     => '$319',
@@ -116,12 +147,12 @@ $slides = [
     'btn_bg'    => '#1e3a5f',
     'img_main'  => asset('assets/wear/catalog/generated/product-02.jpg'),
     'img_thumb' => asset('assets/wear/catalog/generated/product-07.jpg'),
-    'side_words'=> ['SHELL', 'RAIN'],
+    'side_words'=> ['SHELL', 'STREET'],
   ],
   [
     'eyebrow'   => 'Best Seller',
-    'heading'   => "Wear the<br><span style='opacity:.75'>mountain home.</span>",
-    'body'      => "Compression-packable, wind-resistant, and surprisingly light — the one jacket you'll reach for every time.",
+    'heading'   => "Your everyday<br><span style='opacity:.75'>outer layer.</span>",
+    'body'      => 'The jacket you reach for every time. Simple, reliable, always ready.',
     'cta'       => 'Add to Bag',
     'cta_url'   => route('shop'),
     'price'     => '$249',
@@ -130,47 +161,46 @@ $slides = [
     'btn_bg'    => '#14532d',
     'img_main'  => asset('assets/wear/catalog/generated/product-04.jpg'),
     'img_thumb' => asset('assets/wear/catalog/generated/product-01.jpg'),
-    'side_words'=> ['LIGHT', 'TRAIL'],
+    'side_words'=> ['JACKET', 'ESSENTIAL'],
   ],
 ];
 @endphp
 
 {{-- ── Hero carousel ──────────────────────────────────────────── --}}
 <section class="kp-hero-section bg-white px-4 py-6 sm:px-6 lg:px-8">
-  {{-- Same 540px hero height, widened to 1280px for a fuller desktop presentation --}}
   <div class="mx-auto grid w-full max-w-[1900px] overflow-hidden rounded-3xl bg-white shadow-[0_28px_80px_rgba(15,23,42,0.10)] lg:grid-cols-[0.95fr_1.05fr]">
 
-    {{-- LEFT: restored word-led hero treatment --}}
     <div class="flex min-h-[540px] items-center bg-white px-4 py-10 sm:px-8 lg:px-10 xl:px-12">
       <div class="max-w-[520px]">
-        <span class="mb-5 block text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">
+        <span data-storefront-hero-eyebrow class="mb-5 block text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">
           KP Wear
         </span>
 
         <h1 class="text-[clamp(3rem,5vw,5.6rem)] font-black leading-[0.9] tracking-[-0.055em] text-slate-950">
-          <span class="block">WEAR THE</span>
+          <span data-storefront-hero-title class="block">WEAR THE</span>
           <span class="block text-emerald-600">CULTURE.</span>
           <span class="block">LIVE THE</span>
           <span class="block text-emerald-600">STORY.</span>
         </h1>
 
-        <p class="mt-7 max-w-[470px] text-base leading-7 text-slate-600 sm:text-lg">
+        <p data-storefront-hero-description class="mt-7 max-w-[470px] text-base leading-7 text-slate-600 sm:text-lg">
           Premium quality. Bold designs.<br>
           Made for everyday legends.
         </p>
 
         <div class="mt-7 flex flex-wrap gap-3">
           <a
+            data-storefront-hero-cta
             href="{{ route('shop') }}"
-            class="inline-flex items-center justify-center rounded-xl bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-emerald-600"
+            class="kp-magnetic inline-flex items-center justify-center rounded-xl bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-emerald-600"
           >
-            Shop Collection
+            <span data-storefront-hero-cta-label>Shop Collection</span>
             <span class="ml-2 text-base">→</span>
           </a>
 
           <a
             href="{{ route('collections') }}"
-            class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-950 transition hover:border-slate-300 hover:bg-slate-50"
+            class="kp-magnetic inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-950 transition hover:border-slate-300 hover:bg-slate-50"
           >
             Explore
           </a>
@@ -178,7 +208,6 @@ $slides = [
       </div>
     </div>
 
-    {{-- RIGHT: existing visual carousel stays here --}}
     <div class="relative min-h-[540px] bg-stone-100">
       <div id="kp-hero-card" class="relative h-full min-h-[540px] overflow-hidden" tabindex="0" role="region" aria-label="Featured product carousel — use left and right arrow keys to navigate">
 
@@ -221,9 +250,10 @@ $slides = [
               ></div>
 
               <img
+                data-storefront-hero-image
                 src="{{ $slide['img_main'] }}"
                 alt="{{ $slide['eyebrow'] }}"
-                class="kp-hero-img relative z-10 h-[330px] w-[220px] rounded-2xl object-cover object-top sm:h-[380px] sm:w-[250px] lg:h-[400px] lg:w-[265px]"
+                class="kp-hero-img relative z-10 h-[330px] w-[220px] rounded-2xl object-contain object-center sm:h-[380px] sm:w-[250px] lg:h-[400px] lg:w-[265px]"
                 style="filter:drop-shadow(0 20px 40px rgba(0,0,0,0.28))"
               >
             </div>
@@ -263,9 +293,25 @@ $slides = [
   </div>
 </section>
 
+{{-- ── Marquee ticker ────────────────────────────────────────────── --}}
+<section class="border-y border-gray-100 bg-slate-950 py-3">
+  <div class="kp-marquee">
+    <div class="kp-marquee-track">
+      @for($r = 0; $r < 2; $r++)
+        @foreach(['NEW DROP · AW26', 'MADE FOR EVERYDAY LEGENDS', 'SHOP THE FULL EDIT'] as $msg)
+          <span class="mx-6 flex items-center gap-3 whitespace-nowrap text-xs font-bold uppercase tracking-[0.2em] text-white/80">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            {{ $msg }}
+          </span>
+        @endforeach
+      @endfor
+    </div>
+  </div>
+</section>
+
 {{-- ── Categories ─────────────────────────────────────────────── --}}
 <section class="mx-auto max-w-[1600px] px-6 py-14 sm:px-8 lg:px-10">
-  <div class="mb-8 flex items-end justify-between">
+  <div class="kp-reveal mb-8 flex items-end justify-between">
     <div>
       <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
         Browse
@@ -278,7 +324,7 @@ $slides = [
 
     <a
       href="{{ route('shop') }}"
-      class="inline-flex items-center gap-1.5 rounded-full border border-emerald-600 px-5 py-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-600 hover:text-white"
+      class="kp-magnetic inline-flex items-center gap-1.5 rounded-full border border-emerald-600 px-5 py-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-600 hover:text-white"
     >
       View all <span aria-hidden="true">→</span>
     </a>
@@ -299,7 +345,7 @@ $slides = [
 {{-- ── Featured pieces ────────────────────────────────────────── --}}
 <section class="bg-gray-50 py-14">
   <div class="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-10">
-    <div class="mb-8 flex items-end justify-between">
+    <div class="kp-reveal mb-8 flex items-end justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
           The edit
@@ -317,8 +363,11 @@ $slides = [
       </a>
     </div>
 
+    {{-- kp-tilt-group flags these cards for the 3D tilt-on-hover script
+         once JS replaces the skeletons with real product cards. --}}
     <div
       data-home-featured
+      data-tilt-group
       class="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-4 lg:gap-8"
     >
       {{-- Skeleton shown until JS replaces this content --}}
@@ -333,16 +382,54 @@ $slides = [
   </div>
 </section>
 
+{{-- ── Styling / Inspiration ──────────────────────────────────── --}}
+<section class="bg-gray-50 py-14">
+  <div class="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-10">
+    <div class="kp-reveal mb-10">
+      <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">Style guide</p>
+      <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-950">How to wear it</h2>
+    </div>
+
+    <div class="kp-reveal grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      @foreach([
+        [
+          'The Puffer',
+          'Layer it over anything. Street style meets comfort.',
+          asset('assets/wear/catalog/generated/product-09.jpg'),
+        ],
+        [
+          'The Shell',
+          'Your go-to for everyday. Works with everything in your wardrobe.',
+          asset('assets/wear/catalog/generated/product-02.jpg'),
+        ],
+        [
+          'The Jacket',
+          'Simple. Reliable. The piece you always come back to.',
+          asset('assets/wear/catalog/generated/product-04.jpg'),
+        ],
+      ] as [$title, $desc, $img])
+        <div class="kp-tilt group relative block overflow-hidden rounded-2xl bg-slate-100">
+          <img src="{{ $img }}" alt="{{ $title }}" class="aspect-[4/5] w-full object-cover transition duration-300 group-hover:scale-105">
+          <div class="absolute inset-0 flex flex-col items-start justify-end bg-gradient-to-t from-black/60 via-black/0 to-transparent p-6 text-white">
+            <h3 class="text-lg font-bold">{{ $title }}</h3>
+            <p class="mt-2 text-sm text-white/85">{{ $desc }}</p>
+          </div>
+        </div>
+      @endforeach
+    </div>
+  </div>
+</section>
+
 {{-- ── Editorial banner ───────────────────────────────────────── --}}
 @include('components.editorial-banner')
 
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
 (function () {
-  const HOLD = 4000;
-  const DUR  = 650;
+  const HOLD = 2000;
+  const DUR  = 300;
 
   const card   = document.getElementById('kp-hero-card');
   const slides = document.querySelectorAll('[data-slide]');
@@ -352,15 +439,10 @@ $slides = [
   let current = 0;
   let locked  = false;
 
-  // Move dots out of slide 0 so they survive slide transitions.
-  // Positioning now lives in the .kp-dots-positioned CSS class (with its
-  // own mobile override) instead of an inline cssText, so it responds to
-  // the viewport instead of always being absolute bottom-left.
   const dotsEl = document.getElementById('kp-dots');
   card.appendChild(dotsEl);
   dotsEl.classList.add('kp-dots-positioned');
 
-  // Boot first slide
   slides[0].classList.add('is-visible');
   card.style.background = bgs[0];
 
@@ -392,24 +474,20 @@ $slides = [
     }, DUR);
   }
 
-  // Dot clicks
   dots.forEach(d => d.addEventListener('click', () => {
     goTo(+d.dataset.goto);
     resetTimer();
   }));
 
-  // Auto-advance
   function advance() { goTo((current + 1) % slides.length); }
   let timer = setInterval(advance, HOLD + DUR);
   function resetTimer() { clearInterval(timer); timer = setInterval(advance, HOLD + DUR); }
 
-  // Pause auto-advance while the user is hovering or focused on the carousel
   card.addEventListener('mouseenter', () => clearInterval(timer));
   card.addEventListener('mouseleave', () => resetTimer());
   card.addEventListener('focusin', () => clearInterval(timer));
   card.addEventListener('focusout', () => resetTimer());
 
-  // Keyboard navigation (left/right arrows) when the carousel is focused
   card.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight') {
       goTo((current + 1) % slides.length);
@@ -420,5 +498,82 @@ $slides = [
     }
   });
 })();
+
+// ── Scroll-reveal (site-wide) ─────────────────────────────────────
+(function () {
+  const reveals  = document.querySelectorAll('.kp-reveal');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduceMotion || !('IntersectionObserver' in window)) {
+    reveals.forEach(el => el.classList.add('is-visible'));
+    return;
+  }
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+  reveals.forEach(el => obs.observe(el));
+})();
+
+// ── 3D tilt on hover (CSS transform + pointer tracking, no library) ─
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (window.matchMedia('(hover: none)').matches) return; // skip on touch devices
+
+  function attachTilt(el) {
+    const MAX_TILT = 8;
+    el.addEventListener('mousemove', (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      el.style.transform = `perspective(800px) rotateY(${x * MAX_TILT}deg) rotateX(${-y * MAX_TILT}deg) translateZ(0)`;
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.transform = 'perspective(800px) rotateY(0deg) rotateX(0deg)';
+    });
+  }
+
+  // Attach tilt to static cards (brand story, coming soon, styling, payments)
+  document.querySelectorAll('.kp-tilt:not([data-tilt-bound])').forEach(el => {
+    el.dataset.tiltBound = '1';
+    attachTilt(el);
+  });
+
+  // Featured pieces are JS-populated later — watch the container and
+  // attach tilt to any new .kp-tilt cards that appear inside it.
+  const tiltGroup = document.querySelector('[data-tilt-group]');
+  if (tiltGroup && 'MutationObserver' in window) {
+    new MutationObserver(() => {
+      tiltGroup.querySelectorAll('.kp-tilt:not([data-tilt-bound])').forEach(el => {
+        el.dataset.tiltBound = '1';
+        attachTilt(el);
+      });
+    }).observe(tiltGroup, { childList: true });
+  }
+})();
+
+// ── Magnetic buttons ─────────────────────────────────────────────
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (window.matchMedia('(hover: none)').matches) return;
+
+  document.querySelectorAll('.kp-magnetic').forEach((el) => {
+    const STRENGTH = 0.25;
+    el.addEventListener('mousemove', (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left - rect.width / 2) * STRENGTH;
+      const y = (e.clientY - rect.top - rect.height / 2) * STRENGTH;
+      el.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    el.addEventListener('mouseleave', () => { el.style.transform = 'translate(0, 0)'; });
+  });
+})();
+
 </script>
 @endpush

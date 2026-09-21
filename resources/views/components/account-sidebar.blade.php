@@ -1,5 +1,20 @@
 <aside class="h-fit rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:sticky lg:top-24">
 
+    <details class="mb-4 lg:hidden">
+        <summary class="flex cursor-pointer list-none items-center justify-between rounded-xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900">
+            Account menu <span aria-hidden="true">⌄</span>
+        </summary>
+        <div class="mt-2 space-y-1 rounded-xl border border-gray-100 p-2">
+            <a href="{{ route('account') }}" class="block rounded-lg px-3 py-2.5 text-sm {{ request()->routeIs('account') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600' }}">Dashboard</a>
+            <a href="{{ route('account.orders') }}" class="block rounded-lg px-3 py-2.5 text-sm {{ request()->routeIs('account.orders') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600' }}">My Orders</a>
+            <a href="{{ route('wishlist') }}" class="block rounded-lg px-3 py-2.5 text-sm {{ request()->routeIs('wishlist') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600' }}">Wishlist</a>
+            <a href="{{ route('account.addresses') }}" class="block rounded-lg px-3 py-2.5 text-sm {{ request()->routeIs('account.addresses') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600' }}">Addresses</a>
+            <a href="{{ route('account.profile') }}" class="block rounded-lg px-3 py-2.5 text-sm {{ request()->routeIs('account.profile') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600' }}">Profile</a>
+            <a href="{{ route('account.notifications') }}" class="block rounded-lg px-3 py-2.5 text-sm {{ request()->routeIs('account.notifications') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600' }}">Notifications</a>
+            <button data-logout type="button" class="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-rose-500">Sign out</button>
+        </div>
+    </details>
+
     {{-- Profile summary --}}
     <div class="mb-4 flex items-center gap-3 border-b border-gray-100 pb-4">
         <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-semibold text-emerald-700">
@@ -11,6 +26,7 @@
         </div>
     </div>
 
+    <div class="hidden lg:block">
     {{-- Main navigation --}}
     <nav class="space-y-1">
         <a href="{{ route('account') }}"
@@ -86,5 +102,6 @@
             <x-tabler-logout size="17" />
             Sign out
         </button>
+    </div>
     </div>
 </aside>

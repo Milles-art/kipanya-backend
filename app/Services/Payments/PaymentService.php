@@ -8,14 +8,19 @@ use App\Enums\Commerce\ReservationStatus;
 use App\Integrations\Payments\PaymentGateway;
 use App\Models\Commerce\PaymentTransaction;
 use App\Models\Commerce\StockReservation;
+use App\Models\Wear\WearInventoryMovement;
 use App\Models\Wear\WearOrder;
+use App\Services\Commerce\InventoryReservationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class PaymentService
 {
-    public function __construct(private readonly PaymentGateway $gateway) {}
+    public function __construct(
+        private readonly PaymentGateway $gateway,
+        private readonly InventoryReservationService $inventoryReservationService,
+    ) {}
 
     public function createPending(WearOrder $order, string $idempotencyKey): PaymentTransaction
     {
@@ -81,9 +86,26 @@ final class PaymentService
 
             if (! $reservation || $reservation->status !== ReservationStatus::Active || $reservation->expires_at?->isPast()) {
                 if ($reservation && $reservation->status === ReservationStatus::Active) {
-                    $reservation->update(['status' => ReservationStatus::Expired]);
+                    $reservation->update([
+                        'status' => ReservationStatus::Expired,
+                    ]);
                 }
-                throw ValidationException::withMessages(['payment' => 'The order reservation has expired.']);
+
+                $payment->update([
+                    'status' => PaymentStatus::Failed,
+                    'payload' => array_merge($payment->payload ?? [], [
+                        'provider_callback' => $providerPayload,
+                        'reconciliation_required' => true,
+                    ]),
+                    'failed_at' => now(),
+                ]);
+
+                $order->update([
+                    'status' => OrderStatus::Cancelled,
+                    'payment_status' => PaymentStatus::Failed,
+                ]);
+
+                return $payment->fresh('order');
             }
 
             foreach ($reservation->items as $item) {
@@ -91,7 +113,17 @@ final class PaymentService
                 if (! $variant || $variant->stock < $item->quantity) {
                     throw ValidationException::withMessages(['payment' => 'Stock is no longer available for this order.']);
                 }
-                $variant->decrement('stock', $item->quantity);
+                $before = (int) $variant->stock;
+                $quantity = (int) $item->quantity;
+                $variant->decrement('stock', $quantity);
+                WearInventoryMovement::query()->create([
+                    'wear_product_variant_id' => $variant->id,
+                    'quantity' => -$quantity,
+                    'stock_before' => $before,
+                    'stock_after' => $before - $quantity,
+                    'reason' => 'Sale',
+                    'notes' => 'Order '.$order->order_number,
+                ]);
             }
 
             $reservation->update([
@@ -111,9 +143,9 @@ final class PaymentService
                 'status' => OrderStatus::Confirmed,
             ]);
 
-            if ($from !== OrderStatus::Confirmed->value) {
+            if ($from !== OrderStatus::Confirmed) {
                 $order->statusHistory()->create([
-                    'from_status' => $from,
+                    'from_status' => $from?->value,
                     'to_status' => OrderStatus::Confirmed->value,
                     'reason' => 'Payment confirmed.',
                 ]);
@@ -138,7 +170,24 @@ final class PaymentService
                 'failed_at' => now(),
             ]);
 
-            return $payment->fresh();
+            $order = WearOrder::query()->lockForUpdate()->findOrFail($payment->wear_order_id);
+            if ($order->payment_status !== PaymentStatus::Paid) {
+                $order->update([
+                    'status' => OrderStatus::Cancelled,
+                    'payment_status' => PaymentStatus::Failed,
+                ]);
+            }
+
+            $reservation = StockReservation::query()
+                ->lockForUpdate()
+                ->where('wear_order_id', $order->id)
+                ->where('status', ReservationStatus::Active->value)
+                ->first();
+            if ($reservation) {
+                $this->inventoryReservationService->release($order, ReservationStatus::Released);
+            }
+
+            return $payment->fresh('order');
         });
     }
 }

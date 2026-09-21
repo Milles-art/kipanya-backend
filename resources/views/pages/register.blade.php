@@ -7,6 +7,8 @@
         <p class="mt-2 text-sm text-gray-500">Use your phone number to register.</p>
     </div>
 
+    <input type="hidden" name="redirect" value="{{ request('redirect') }}">
+
     <form novalidate data-register-form class="space-y-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
         <div data-primary-step class="space-y-4">
             <div>

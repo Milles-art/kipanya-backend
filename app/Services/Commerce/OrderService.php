@@ -8,6 +8,7 @@ use App\Enums\Commerce\OrderStatus;
 use App\Enums\Commerce\PaymentStatus;
 use App\Enums\Commerce\ReservationStatus;
 use App\Models\Commerce\PaymentTransaction;
+use App\Models\Cart\Cart;
 use App\Models\Commerce\Address;
 use App\Models\User;
 use App\Models\Wear\WearOrder;
@@ -50,7 +51,13 @@ final class OrderService
                 ->where('type', 'shipping')
                 ->findOrFail($data->addressId);
 
-            $cart = $this->cartService->current($user, null)->load('items.variant.product');
+            $cart = $this->cartService->current($user, null);
+            $cart = Cart::query()->lockForUpdate()->findOrFail($cart->id);
+            $cart->load('items.variant.product');
+
+            if ($cart->status !== CartStatus::Active) {
+                throw ValidationException::withMessages(['cart' => 'Your cart is no longer available for checkout.']);
+            }
 
             if ($cart->items->isEmpty()) {
                 throw ValidationException::withMessages(['cart' => 'Your cart is empty.']);
@@ -125,6 +132,15 @@ final class OrderService
                 'reason' => 'Order created and inventory reserved pending payment.',
             ]);
 
+            // A user can have only one cart per status. Converted carts are historical
+            // containers; the order already stores immutable item/price snapshots, so
+            // stale converted carts can be safely removed before converting the current cart.
+            Cart::query()
+                ->where('user_id', $user->id)
+                ->where('status', CartStatus::Converted)
+                ->whereKeyNot($cart->id)
+                ->delete();
+
             $cart->update(['status' => CartStatus::Converted]);
 
             return $order->fresh(['items', 'payments', 'stockReservation.items.variant.product']);
@@ -146,7 +162,15 @@ final class OrderService
                 ]);
             }
 
-            $locked->update(['status' => OrderStatus::Cancelled]);
+            $locked->update([
+                'status' => OrderStatus::Cancelled,
+                'payment_status' => PaymentStatus::Cancelled,
+            ]);
+
+            $locked->payments()
+                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+                ->update(['status' => PaymentStatus::Cancelled]);
+
             $locked->statusHistory()->create([
                 'from_status' => OrderStatus::PendingPayment->value,
                 'to_status' => OrderStatus::Cancelled->value,

@@ -40,7 +40,7 @@ class WearProduct extends Model
     public function getImageUrlAttribute(): string
     {
         if (! $this->image_path) {
-            return asset('assets/wear/catalog/generated/product-01.jpg');
+            return asset('assets/wear/catalog/placeholder.svg');
         }
 
         if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
@@ -53,11 +53,11 @@ class WearProduct extends Model
 
             return file_exists(public_path($relative))
                 ? asset($relative)
-                : asset('assets/wear/catalog/generated/product-01.jpg');
+                : asset('assets/wear/catalog/placeholder.svg');
         }
 
         return file_exists(public_path($this->image_path))
             ? asset($this->image_path)
-            : asset('assets/wear/catalog/generated/product-01.jpg');
+            : asset('assets/wear/catalog/placeholder.svg');
     }
 }

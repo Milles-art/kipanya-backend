@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\Auth\UserRole;
+use App\Models\Administration\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -43,5 +45,24 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Create a fully-privileged administrator. Permission checks are driven by
+     * the roles/permissions pivot, so the super_admin role is attached
+     * explicitly rather than inferred from the legacy users.role column.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::Admin,
+            'status' => 'active',
+        ])->afterCreating(function (User $user): void {
+            $superAdmin = Role::query()->where('slug', 'super_admin')->first();
+
+            if ($superAdmin) {
+                $user->roles()->syncWithoutDetaching([$superAdmin->id]);
+            }
+        });
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\Commerce\OrderStatus;
+use App\Enums\Commerce\PaymentStatus;
 use App\Enums\Commerce\ReservationStatus;
 use App\Models\Commerce\StockReservation;
 use App\Services\Commerce\InventoryReservationService;
@@ -35,7 +36,13 @@ class ExpireStockReservations extends Command
                         ]);
 
                         if ($order && $order->status === OrderStatus::PendingPayment) {
-                            $order->update(['status' => OrderStatus::Cancelled]);
+                            $order->update([
+                                'status' => OrderStatus::Cancelled,
+                                'payment_status' => PaymentStatus::Cancelled,
+                            ]);
+                            $order->payments()
+                                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+                                ->update(['status' => PaymentStatus::Cancelled]);
                             $order->statusHistory()->create([
                                 'from_status' => OrderStatus::PendingPayment->value,
                                 'to_status' => OrderStatus::Cancelled->value,

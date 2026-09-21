@@ -33,11 +33,6 @@ class OtpCode extends Model
         return $this->expires_at->isPast();
     }
 
-    public function isVerified(): bool
-    {
-        return $this->verified_at !== null;
-    }
-
     public function hasExceededAttempts(int $maximum = 5): bool
     {
         return $this->attempts >= $maximum;

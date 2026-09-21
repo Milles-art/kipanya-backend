@@ -9,10 +9,10 @@ use Illuminate\Support\Str;
 
 final class AuditLogger
 {
-    public function log(?Request $request, string $action, ?Model $auditable = null, array $metadata = []): AuditLog
+    public function log(?Request $request, string $action, ?Model $auditable = null, array $metadata = [], ?Model $actor = null): AuditLog
     {
         return AuditLog::create([
-            'actor_id' => $request?->user()?->id,
+            'actor_id' => $actor?->getKey() ?? $request?->user()?->id,
             'action' => $action,
             'auditable_type' => $auditable ? $auditable::class : null,
             'auditable_id' => $auditable?->getKey(),

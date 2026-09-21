@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="kp-signed-in" content="{{ Auth::guard('sanctum')->check() ? '1' : '0' }}">
     <title>{{ $title ?? 'KP Wear' }}</title>
     <meta name="description" content="KP Wear — everyday fashion made for movement, comfort and confidence.">
     @vite(['resources/css/app.css', 'resources/js/app.js'])

@@ -1,1 +1,0 @@
-<div class="border-b border-gray-100 bg-gray-50/70 pt-24 md:pt-28"><div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8"><h1 class="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">{{ $title }}</h1>@isset($subtitle)<p class="mt-2 text-gray-500">{{ $subtitle }}</p>@endisset</div></div>

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Actions\Auth\IssueSanctumToken;
+use App\Actions\Auth\RegisterUser;
+use App\DTOs\Auth\RegisterUserData;
 use App\Enums\Auth\OtpPurpose;
 use App\Enums\Auth\UserStatus;
 use App\Http\Controllers\Controller;
@@ -11,14 +14,13 @@ use App\Http\Requests\Api\V1\Auth\RequestLoginOtpRequest;
 use App\Http\Requests\Api\V1\Auth\RequestRegistrationOtpRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
-use App\Actions\Auth\IssueSanctumToken;
-use App\Actions\Auth\RegisterUser;
-use App\DTOs\Auth\RegisterUserData;
 use App\Services\Auth\OtpService;
+use App\Support\AuditLogger;
 use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -58,6 +60,7 @@ final class AuthenticationController extends Controller
         OtpService $otpService,
         RegisterUser $registerUser,
         IssueSanctumToken $tokenIssuer,
+        AuditLogger $auditLogger,
     ): JsonResponse {
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
 
@@ -79,14 +82,14 @@ final class AuthenticationController extends Controller
             referralCode: $request->string('referral_code')->trim()->toString() ?: null,
         ));
 
-        $token = $tokenIssuer->execute($user, 'api-client');
+        $token = $tokenIssuer->execute($user);
 
-        return response()->json([
+        $auditLogger->log($request, 'auth.registered', $user, ['user_id' => $user->id], $user);
+
+        return $this->withWebSessionCookie(response()->json([
             'message' => 'Registration successful.',
             'user' => new UserResource($user),
-            'token' => $token,
-            'token_type' => 'Bearer',
-        ], 201);
+        ], 201), $token);
     }
 
     public function requestLoginOtp(
@@ -97,7 +100,7 @@ final class AuthenticationController extends Controller
 
         $this->limitOtpRequest('login', $phone);
 
-        if (!User::query()->where('phone', $phone)->where('status', UserStatus::Active->value)->exists()) {
+        if (! User::query()->where('phone', $phone)->where('status', UserStatus::Active->value)->exists()) {
             return response()->json([
                 'message' => 'If the request is valid, a verification code has been sent.',
             ]);
@@ -120,6 +123,7 @@ final class AuthenticationController extends Controller
         LoginRequest $request,
         OtpService $otpService,
         IssueSanctumToken $tokenIssuer,
+        AuditLogger $auditLogger,
     ): JsonResponse {
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
 
@@ -132,7 +136,7 @@ final class AuthenticationController extends Controller
 
             $user = User::query()->where('phone', $phone)->lockForUpdate()->first();
 
-            if (!$user || !$user->isActive()) {
+            if (! $user || ! $user->isActive()) {
                 throw ValidationException::withMessages([
                     'phone' => ['Unable to authenticate this account.'],
                 ]);
@@ -142,21 +146,22 @@ final class AuthenticationController extends Controller
         });
 
         $user->tokens()->delete();
-        $token = $tokenIssuer->execute($user, 'api-client');
+        $token = $tokenIssuer->execute($user);
 
-        return response()->json([
+        $auditLogger->log($request, 'auth.login', $user, ['user_id' => $user->id], $user);
+
+        return $this->withWebSessionCookie(response()->json([
             'message' => 'Login successful.',
             'user' => new UserResource($user),
-            'token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+        ]), $token);
     }
 
-    public function logout(Request $request): JsonResponse
+    public function logout(Request $request, AuditLogger $auditLogger): JsonResponse
     {
         $plainTextToken = $request->bearerToken();
 
         if ($plainTextToken !== null) {
+            $auditLogger->log($request, 'auth.logout', $request->user());
             PersonalAccessToken::findToken($plainTextToken)?->delete();
         }
 
@@ -168,9 +173,9 @@ final class AuthenticationController extends Controller
          */
         Auth::forgetGuards();
 
-        return response()->json([
+        return $this->withoutWebSessionCookie(response()->json([
             'message' => 'Logout successful.',
-        ]);
+        ]));
     }
 
     public function me(Request $request): UserResource
@@ -189,5 +194,29 @@ final class AuthenticationController extends Controller
         }
 
         RateLimiter::hit($key, 3600);
+    }
+
+    private function withWebSessionCookie(JsonResponse $response, string $plainTextToken): JsonResponse
+    {
+        return $response->withCookie(
+            Cookie::make(
+                config('web_session.cookie'),
+                $plainTextToken,
+                (int) (config('sanctum.expiration') ?? 43200),
+                config('web_session.path'),
+                config('web_session.domain'),
+                config('web_session.secure'),
+                config('web_session.http_only'),
+                false,
+                config('web_session.same_site'),
+            ),
+        );
+    }
+
+    private function withoutWebSessionCookie(JsonResponse $response): JsonResponse
+    {
+        return $response->withCookie(
+            Cookie::forget(config('web_session.cookie'), config('web_session.path'), config('web_session.domain')),
+        );
     }
 }

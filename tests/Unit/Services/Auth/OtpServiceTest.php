@@ -4,7 +4,6 @@ namespace Tests\Unit\Services\Auth;
 
 use App\Enums\Auth\OtpPurpose;
 use App\Integrations\Sms\SmsGateway;
-use App\Models\Auth\OtpCode;
 use App\Services\Auth\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -21,8 +20,7 @@ class OtpServiceTest extends TestCase
         $sms = Mockery::mock(SmsGateway::class);
         $sms->shouldReceive('send')
             ->once()
-            ->withArgs(fn (string $phone, string $message) =>
-                $phone === '+255712345678' && str_contains($message, 'Kipanya')
+            ->withArgs(fn (string $phone, string $message) => $phone === '+255712345678' && str_contains($message, 'Kipanya')
             );
 
         $service = new OtpService($sms);
@@ -65,6 +63,31 @@ class OtpServiceTest extends TestCase
 
         $this->assertThrows(
             fn () => $service->verify('0712345678', OtpPurpose::Registration, '123456'),
+            ValidationException::class
+        );
+    }
+
+    public function test_phone_hits_global_send_limit_across_purposes(): void
+    {
+        $sms = Mockery::mock(SmsGateway::class);
+        $sms->shouldReceive('send')->times(OtpService::MAX_SENDS_PER_HOUR);
+
+        $service = new OtpService($sms);
+        $purposes = [
+            OtpPurpose::Login,
+            OtpPurpose::Registration,
+            OtpPurpose::AdminLogin,
+            OtpPurpose::PasswordReset,
+            OtpPurpose::PhoneChange,
+        ];
+
+        // One send per flow fills the shared per-phone hourly budget.
+        foreach ($purposes as $purpose) {
+            $service->send('0712345678', $purpose);
+        }
+
+        $this->assertThrows(
+            fn () => $service->send('0712345678', OtpPurpose::AdminLogin),
             ValidationException::class
         );
     }

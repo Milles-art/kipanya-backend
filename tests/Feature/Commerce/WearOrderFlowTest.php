@@ -7,6 +7,8 @@ use App\Models\Commerce\Address;
 use App\Models\Commerce\PaymentTransaction;
 use App\Models\Wear\WearProduct;
 use App\Models\Wear\WearProductVariant;
+use App\Models\Wear\WearInventoryMovement;
+use App\Models\Commerce\StockReservation;
 use App\Models\User;
 use App\Services\Payments\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,6 +78,40 @@ class WearOrderFlowTest extends TestCase
         $this->assertDatabaseHas('wear_orders', ['checkout_idempotency_key' => 'checkout-00000000000001']);
     }
 
+    public function test_user_can_checkout_again_after_a_previous_cart_was_converted(): void
+    {
+        $user = $this->user();
+        [, $variant] = $this->product(5);
+        $address = $this->address($user);
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', [
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->withHeader('Idempotency-Key', 'checkout-repeat-0001')
+            ->postJson('/api/v1/checkout', ['address_id' => $address->id])
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', [
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->withHeader('Idempotency-Key', 'checkout-repeat-0002')
+            ->postJson('/api/v1/checkout', ['address_id' => $address->id])
+            ->assertOk();
+
+        $this->assertDatabaseCount('wear_orders', 2);
+        $this->assertDatabaseCount('carts', 1);
+        $this->assertDatabaseHas('carts', [
+            'user_id' => $user->id,
+            'status' => 'converted',
+        ]);
+    }
+
     public function test_same_idempotency_key_returns_same_order(): void
     {
         $user = $this->user();
@@ -130,6 +166,7 @@ class WearOrderFlowTest extends TestCase
         $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'confirmed', 'payment_status' => 'paid']);
         $this->assertDatabaseHas('wear_stock_reservations', ['wear_order_id' => $payment->wear_order_id, 'status' => 'fulfilled']);
         $this->assertDatabaseHas('wear_product_variants', ['id' => $variant->id, 'stock' => 1]);
+        $this->assertDatabaseHas('wear_inventory_movements', ['wear_product_variant_id' => $variant->id, 'quantity' => -2, 'stock_before' => 3, 'stock_after' => 1, 'reason' => 'Sale']);
     }
 
     public function test_pending_order_can_be_cancelled_and_releases_reservation(): void
@@ -150,5 +187,21 @@ class WearOrderFlowTest extends TestCase
 
         $this->assertDatabaseHas('wear_stock_reservations', ['status' => 'released']);
         $this->assertDatabaseHas('wear_product_variants', ['id' => $variant->id, 'stock' => 3]);
+    }
+
+
+
+    public function test_failed_payment_releases_active_reservation_and_marks_payment_failed(): void
+    {
+        $user = $this->user();
+        [, $variant] = $this->product(3);
+        $address = $this->address($user);
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', ['variant_id' => $variant->id, 'quantity' => 2]);
+        $response = $this->actingAs($user, 'sanctum')->withHeader('Idempotency-Key', 'checkout-failed-0001')->postJson('/api/v1/checkout', ['address_id' => $address->id])->assertOk();
+        $payment = PaymentTransaction::findOrFail($response->json('data.payment.0.id'));
+        app(PaymentService::class)->markFailed($payment, ['fake' => true]);
+        $this->assertDatabaseHas('payment_transactions', ['id' => $payment->id, 'status' => 'failed']);
+        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'payment_status' => 'failed']);
+        $this->assertDatabaseHas('wear_stock_reservations', ['wear_order_id' => $payment->wear_order_id, 'status' => 'released']);
     }
 }

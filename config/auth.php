@@ -2,13 +2,18 @@
 
 use App\Models\User;
 
+// OTP codes may only ever be logged or exposed in local/testing. Outside those
+// environments both flags are forced off, even if the environment variables are
+// mistakenly set to true (e.g. a copied local .env deployed to production).
+$otpDebuggingAllowed = in_array(env('APP_ENV', 'production'), ['local', 'testing'], true);
+
 return [
 
     // Local development only: expose OTP codes in laravel.log for browser login testing.
-    'log_otp_codes' => env('AUTH_LOG_OTP_CODES', in_array(env('APP_ENV'), ['local', 'testing'], true)),
+    'log_otp_codes' => $otpDebuggingAllowed && (bool) env('AUTH_LOG_OTP_CODES', true),
 
     // Browser-visible OTPs are strictly limited to local/testing by default.
-    'expose_otp_codes' => env('AUTH_EXPOSE_OTP_CODES', in_array(env('APP_ENV'), ['local', 'testing'], true)),
+    'expose_otp_codes' => $otpDebuggingAllowed && (bool) env('AUTH_EXPOSE_OTP_CODES', true),
 
     /*
     |--------------------------------------------------------------------------
