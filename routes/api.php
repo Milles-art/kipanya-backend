@@ -17,19 +17,20 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/register/request-otp', [AuthenticationController::class, 'requestRegistrationOtp'])
-            ->middleware('throttle:10,1');
+            ->middleware('throttle:otp-request');
 
         Route::post('/register', [AuthenticationController::class, 'register'])
             ->middleware('throttle:10,1');
 
         Route::post('/login/request-otp', [AuthenticationController::class, 'requestLoginOtp'])
-            ->middleware('throttle:10,1');
+            ->middleware('throttle:otp-request');
 
         Route::post('/login', [AuthenticationController::class, 'login'])
             ->middleware('throttle:10,1');
 
         Route::middleware(['auth:sanctum', 'active', 'scoped.token:auth'])->group(function () {
             Route::post('/logout', [AuthenticationController::class, 'logout']);
+            Route::post('/logout-all', [AuthenticationController::class, 'logoutAll']);
             Route::get('/me', [AuthenticationController::class, 'me']);
         });
     });

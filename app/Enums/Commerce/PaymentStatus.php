@@ -95,6 +95,7 @@ enum PaymentStatus: string
             ],
             self::ReconciliationRequired => [
                 self::Paid,
+                self::Refunded,
                 self::Cancelled,
                 self::UserCancelled,
                 self::Rejected,

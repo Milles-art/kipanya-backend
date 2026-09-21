@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Requests\Api\V1\Auth\RegisterRequest;
 use App\Http\Requests\Api\V1\Auth\RequestLoginOtpRequest;
 use App\Http\Requests\Api\V1\Auth\RequestRegistrationOtpRequest;
+use App\Jobs\SendOtpJob;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
 use App\Services\Auth\OtpService;
@@ -35,6 +36,16 @@ final class AuthenticationController extends Controller
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
 
         $this->limitOtpRequest('registration', $phone);
+
+        // Production path: identical response for known/unknown numbers (no timing,
+        // status or cooldown oracle); the SMS is sent after the response.
+        if (! $this->exposesDevOtp()) {
+            SendOtpJob::dispatch($phone, OtpPurpose::Registration)->afterResponse();
+
+            return response()->json([
+                'message' => 'If the request is valid, a verification code has been sent.',
+            ]);
+        }
 
         if (User::query()->where('phone', $phone)->exists()) {
             return response()->json([
@@ -100,6 +111,14 @@ final class AuthenticationController extends Controller
 
         $this->limitOtpRequest('login', $phone);
 
+        if (! $this->exposesDevOtp()) {
+            SendOtpJob::dispatch($phone, OtpPurpose::Login)->afterResponse();
+
+            return response()->json([
+                'message' => 'If the request is valid, a verification code has been sent.',
+            ]);
+        }
+
         if (! User::query()->where('phone', $phone)->where('status', UserStatus::Active->value)->exists()) {
             return response()->json([
                 'message' => 'If the request is valid, a verification code has been sent.',
@@ -127,13 +146,17 @@ final class AuthenticationController extends Controller
     ): JsonResponse {
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
 
-        $user = DB::transaction(function () use ($request, $otpService, $phone): User {
-            $otpService->verify(
-                $phone,
-                OtpPurpose::Login,
-                $request->string('code')->toString(),
-            );
+        // SECURITY: verify() must NEVER run inside a database transaction. A wrong
+        // code makes it throw after recording the failure (per-code attempts and
+        // the lockout counter). Wrapping it in a transaction rolled those writes
+        // back, silently disabling brute-force protection on this endpoint.
+        $otpService->verify(
+            $phone,
+            OtpPurpose::Login,
+            $request->string('code')->toString(),
+        );
 
+        $user = DB::transaction(function () use ($phone): User {
             $user = User::query()->where('phone', $phone)->lockForUpdate()->first();
 
             if (! $user || ! $user->isActive()) {
@@ -142,10 +165,11 @@ final class AuthenticationController extends Controller
                 ]);
             }
 
+            $user->tokens()->delete();
+
             return $user;
         });
 
-        $user->tokens()->delete();
         $token = $tokenIssuer->execute($user);
 
         $auditLogger->log($request, 'auth.login', $user, ['user_id' => $user->id], $user);
@@ -178,9 +202,33 @@ final class AuthenticationController extends Controller
         ]));
     }
 
+    /** Sign the user out everywhere: revokes every token belonging to the account. */
+    public function logoutAll(Request $request, AuditLogger $auditLogger): JsonResponse
+    {
+        $user = $request->user();
+
+        $auditLogger->log($request, 'auth.logout_all', $user);
+        $user->tokens()->delete();
+
+        Auth::forgetGuards();
+
+        return $this->withoutWebSessionCookie(response()->json([
+            'message' => 'Signed out of all devices.',
+        ]));
+    }
+
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    /**
+     * Local/testing only: return the OTP in the response for browser testing. This
+     * needs the code synchronously, so it bypasses the constant-response path.
+     */
+    private function exposesDevOtp(): bool
+    {
+        return app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false);
     }
 
     private function limitOtpRequest(string $purpose, string $phone): void

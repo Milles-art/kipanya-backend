@@ -22,11 +22,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login/request-otp', [AuthController::class, 'requestOtp'])->middleware('throttle:5,1')->name('login.request-otp');
+    Route::post('/login/request-otp', [AuthController::class, 'requestOtp'])->middleware('throttle:otp-request')->name('login.request-otp');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.submit');
     Route::post('/login/two-factor', [AuthController::class, 'confirmTwoFactor'])->middleware('throttle:5,1')->name('login.two-factor');
 
-    Route::middleware('admin.web')->group(function (): void {
+    Route::middleware(['admin.web', 'admin.2fa'])->group(function (): void {
         Route::get('/', [ControlPanelController::class, 'dashboard'])->name('dashboard');
 
         Route::prefix('security')->name('security.')->group(function (): void {
@@ -72,6 +72,8 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::prefix('wear')->name('wear.')->middleware('admin.permission:payments.manage')->group(function (): void {
             Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
             Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+            Route::post('/payments/{payment}/recheck', [PaymentController::class, 'recheck'])->name('payments.recheck');
+            Route::post('/payments/{payment}/refund', [PaymentController::class, 'refund'])->name('payments.refund');
         });
 
         Route::middleware('admin.permission:settings.manage')->group(function (): void {

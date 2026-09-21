@@ -10,6 +10,7 @@ use App\Integrations\Sms\NotifyAfricaSmsGateway;
 use App\Integrations\Sms\SmsGateway;
 use App\Services\Payments\PaymentStateMachine;
 use App\Support\ProductionSecurityGuard;
+use App\Support\ProxyTrust;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
@@ -74,6 +75,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        ProxyTrust::apply();
+
+        // SMS cost protection: per-IP burst/hourly caps plus a global daily ceiling
+        // (a kill-switch that also makes SMS-pumping attempts visible).
+        RateLimiter::for('otp-request', fn (Request $request) => [
+            Limit::perMinute((int) config('security.otp_ip_per_minute', 10))->by('otp-ip-m:'.$request->ip()),
+            Limit::perHour((int) config('security.otp_ip_per_hour', 20))->by('otp-ip-h:'.$request->ip()),
+            Limit::perDay((int) config('security.otp_global_per_day', 3000))->by('otp-global'),
+        ]);
+
         RateLimiter::for('api', fn (Request $request) => [
             Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()),
         ]);

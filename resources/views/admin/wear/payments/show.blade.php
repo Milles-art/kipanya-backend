@@ -57,9 +57,64 @@
         </section>
     </div>
 
+    @if(session('status'))
+        <p class="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{{ session('status') }}</p>
+    @endif
+    @if($errors->any())
+        <div class="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+            @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
+        </div>
+    @endif
+
+    @php($needsRefund = ($payment->payload['needs_refund'] ?? false) === true)
+    @php($needsReview = ($payment->payload['needs_review'] ?? false) === true)
+    @if($payment->status->value === 'reconciliation_required')
+        <section class="rounded-2xl border border-red-200 bg-red-50 p-6">
+            <h3 class="font-black text-red-900">{{ $needsRefund ? 'Refund required' : 'Needs review' }}</h3>
+            <p class="mt-2 text-sm text-red-800">
+                @if($needsRefund)
+                    The provider captured this customer's money, but the order cannot be fulfilled. Refund the customer in the Selcom dashboard, then record the refund reference here.
+                @else
+                    The provider reported this payment as completed, but it could not be verified automatically (for example the amount was missing).
+                @endif
+            </p>
+            <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                <div><dt class="text-xs font-bold uppercase tracking-wider text-red-700">Reason</dt><dd class="mt-1 font-mono text-xs">{{ $payment->payload['reconciliation_reason'] ?? '—' }}</dd></div>
+                <div><dt class="text-xs font-bold uppercase tracking-wider text-red-700">Provider transaction</dt><dd class="mt-1 font-mono text-xs">{{ $payment->provider_transid ?: '—' }}</dd></div>
+            </dl>
+
+            <div class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
+                <form method="POST" action="{{ route('admin.wear.payments.recheck', $payment) }}">
+                    @csrf
+                    <button class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold hover:border-gray-500">Re-check with provider</button>
+                </form>
+
+                @if($needsRefund)
+                    <form method="POST" action="{{ route('admin.wear.payments.refund', $payment) }}" class="flex flex-1 flex-col gap-2 sm:flex-row">
+                        @csrf
+                        <input name="refund_reference" value="{{ old('refund_reference') }}" required minlength="4" maxlength="100" placeholder="Provider refund reference" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-gray-500">
+                        @if(\App\Support\AdminStepUp::enabled())
+                            <input name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" placeholder="Authenticator code" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-gray-500 sm:w-44">
+                        @endif
+                        <button class="rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-gray-800" onclick="return confirm('Record this refund? This closes the reconciliation item.')">Record refund</button>
+                    </form>
+                @endif
+            </div>
+        </section>
+    @elseif(in_array($payment->status->value, ['pending', 'processing', 'in_progress'], true))
+        <section class="rounded-2xl border border-gray-200 bg-white p-6">
+            <h3 class="font-black">Unresolved payment</h3>
+            <p class="mt-2 text-sm text-gray-500">The system checks the provider automatically every few minutes. You can also check now.</p>
+            <form method="POST" action="{{ route('admin.wear.payments.recheck', $payment) }}" class="mt-4">
+                @csrf
+                <button class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold hover:border-gray-500">Re-check with provider</button>
+            </form>
+        </section>
+    @endif
+
     <section class="rounded-2xl border border-gray-200 bg-white p-6">
         <h3 class="font-black">Admin note</h3>
-        <p class="mt-2 text-sm text-gray-500">Payment state is read-only here. Gateway callbacks and the payment service are responsible for confirming or failing transactions.</p>
+        <p class="mt-2 text-sm text-gray-500">Payment state changes only through gateway callbacks, the provider re-check above, or by recording a refund for a flagged payment.</p>
     </section>
 </div>
 @endsection

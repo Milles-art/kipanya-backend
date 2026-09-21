@@ -226,6 +226,10 @@
                     <span class="text-xs font-bold uppercase tracking-[0.16em] text-gray-600">Message</span>
                     <textarea name="message" rows="6" required class="kp-input mt-2 w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-950 placeholder:text-gray-400" placeholder="How can we help?"></textarea>
                 </label>
+                {{-- Honeypot: invisible to people, tempting to bots. Do not remove. --}}
+                <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                    <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+                </div>
                 <p data-contact-feedback class="mt-4 hidden rounded-xl px-4 py-3 text-sm" role="status" aria-live="polite"></p>
                 <button data-contact-submit type="submit" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
                     Send message
@@ -300,7 +304,7 @@
     button.textContent = 'Sending…';
     const fd = new FormData(form);
     try {
-      const response = await fetch('/api/v1/contact', { method:'POST', headers:{Accept:'application/json','Content-Type':'application/json'}, body:JSON.stringify({name:fd.get('name'),email:fd.get('email'),type:fd.get('type'),message:fd.get('message')}) });
+      const response = await fetch('/api/v1/contact', { method:'POST', headers:{Accept:'application/json','Content-Type':'application/json'}, body:JSON.stringify({name:fd.get('name'),email:fd.get('email'),type:fd.get('type'),message:fd.get('message'),website:fd.get('website')}) });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.message || Object.values(data?.errors || {}).flat?.()?.[0] || `Request failed (${response.status})`);
       feedback.textContent = data?.message || 'Your message has been sent.';

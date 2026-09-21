@@ -7,6 +7,9 @@
     <form method="POST" action="{{ route('admin.wear.returns.refund', $returnRequest) }}" class="mt-4 flex flex-col gap-3 sm:flex-row">
         @csrf
         <input name="refund_reference" required maxlength="120" placeholder="Refund reference" class="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm">
+        @if(\App\Support\AdminStepUp::enabled())
+            <input name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" placeholder="Authenticator code" class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm sm:w-44">
+        @endif
         <button class="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-semibold text-white">Record refund</button>
     </form>
 </div>

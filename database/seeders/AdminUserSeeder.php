@@ -12,9 +12,9 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $phone = (string) env('ADMIN_PHONE', '');
-        $email = (string) env('ADMIN_EMAIL', '');
-        $name = (string) env('ADMIN_NAME', 'KP Wear Administrator');
+        $phone = (string) config('security.seed_admin.phone', '');
+        $email = (string) config('security.seed_admin.email', '');
+        $name = (string) config('security.seed_admin.name', 'KP Wear Administrator');
 
         if ($phone === '' || $email === '') {
             $this->command?->error('Set ADMIN_PHONE and ADMIN_EMAIL in .env before running AdminUserSeeder.');

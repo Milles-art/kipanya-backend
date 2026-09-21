@@ -408,4 +408,61 @@ class SelcomCheckoutGatewayTest extends TestCase
 
         $this->assertTrue($cancelled);
     }
+
+    // ----------------------------------------------------------------- N-01
+
+    private function fakeGatewayUrl(string $url): void
+    {
+        Http::fake([
+            'https://selcom.example.test/*' => Http::response([
+                'reference' => '0289999288', 'resultcode' => '000', 'result' => 'SUCCESS',
+                'data' => [['payment_gateway_url' => base64_encode($url)]],
+            ], 200),
+        ]);
+    }
+
+    public function test_a_non_https_or_script_payment_url_is_refused(): void
+    {
+        $order = $this->order();
+
+        foreach (['javascript:alert(1)', 'http://pay.example/launch', 'data:text/html;base64,PHNjcmlwdD4=', '//pay.example/launch'] as $url) {
+            $this->fakeGatewayUrl($url);
+
+            try {
+                $this->gateway()->initiate($order, 'checkout-unsafe-'.md5($url));
+                $this->fail('Expected the unsafe payment URL to be refused: '.$url);
+            } catch (RuntimeException $e) {
+                $this->assertStringContainsString('unsafe payment gateway URL', $e->getMessage());
+            }
+        }
+    }
+
+    public function test_a_payment_url_outside_the_allow_list_is_refused_and_a_listed_host_is_accepted(): void
+    {
+        config()->set('services.selcom.allowed_redirect_hosts', ['pay.example']);
+        $order = $this->order();
+
+        $this->fakeGatewayUrl('https://evil.example/launch');
+        try {
+            $this->gateway()->initiate($order, 'checkout-allow-0001');
+            $this->fail('Expected the unexpected host to be refused.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('unexpected host', $e->getMessage());
+        }
+
+        // A look-alike suffix must not match ("notpay.example" is not a subdomain of pay.example).
+        $this->fakeGatewayUrl('https://notpay.example/launch');
+        $this->expectException(RuntimeException::class);
+        $this->gateway()->initiate($order, 'checkout-allow-0002');
+    }
+
+    public function test_a_listed_host_and_its_subdomains_are_accepted(): void
+    {
+        config()->set('services.selcom.allowed_redirect_hosts', ['pay.example']);
+
+        $this->fakeGatewayUrl('https://checkout.pay.example/launch');
+        $result = $this->gateway()->initiate($this->order(), 'checkout-allow-0003');
+
+        $this->assertSame('https://checkout.pay.example/launch', $result['payload']['payment_gateway_url']);
+    }
 }

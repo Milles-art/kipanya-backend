@@ -19,7 +19,7 @@ class WearOrder extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_number', 'checkout_idempotency_key', 'user_id', 'customer_name', 'customer_phone', 'customer_email',
+        'order_number', 'checkout_idempotency_key', 'checkout_fingerprint', 'user_id', 'customer_name', 'customer_phone', 'customer_email',
         'delivery_address', 'delivery_city', 'notes', 'subtotal', 'delivery_fee', 'total',
         'status', 'payment_status', 'payment_method', 'placed_at',
         'delivery_provider', 'tracking_number', 'fulfillment_notes', 'shipped_at', 'delivered_at',

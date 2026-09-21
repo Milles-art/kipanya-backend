@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AddRequestId;
 use App\Http\Middleware\EnsureAdminPermission;
+use App\Http\Middleware\EnsureAdminTwoFactor;
 use App\Http\Middleware\EnsureAdminWebAccess;
 use App\Http\Middleware\EnsureScopedApiToken;
 use App\Http\Middleware\EnsureUserHasPermission;
@@ -21,32 +22,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Honour X-Forwarded-* headers from the deployment's reverse proxy so
-        // scheme/client-IP detection is correct behind TLS termination.
-        $trustedProxies = env('TRUSTED_PROXIES');
-        if (is_string($trustedProxies) && $trustedProxies !== '') {
-            $middleware->trustProxies(
-                at: $trustedProxies === '*'
-                    ? '*'
-                    : array_map('trim', explode(',', $trustedProxies)),
-            );
-        }
-
+        // Proxy trust and the cookie-encryption exception are applied from CONFIG in
+        // App\Support\ProxyTrust (called by AppServiceProvider). Never read env() here:
+        // it returns null once config is cached.
         $middleware->append(SecurityHeaders::class);
         // The cookie->bearer shim must run before any auth guard on every
         // request path (the api group is not reliably ordered before route
         // middleware in the test client).
         $middleware->append(EnsureWebSessionCookie::class);
-        // The web-session cookie is an opaque bearer token validated server
-        // side, so there is nothing to gain from Laravel's cookie encryption.
-        $middleware->encryptCookies(except: [
-            env('KP_WEB_SESSION_COOKIE', 'kp_web_session'),
-        ]);
         $middleware->appendToGroup('api', [AddRequestId::class]);
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
             'admin.permission' => EnsureAdminPermission::class,
             'admin.web' => EnsureAdminWebAccess::class,
+            'admin.2fa' => EnsureAdminTwoFactor::class,
             'active' => EnsureUserIsActive::class,
             'scoped.token' => EnsureScopedApiToken::class,
         ]);

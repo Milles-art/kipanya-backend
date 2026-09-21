@@ -26,7 +26,6 @@ class OrderResource extends JsonResource
                 'city' => $this->delivery_city,
                 'provider' => $this->delivery_provider,
                 'tracking_number' => $this->tracking_number,
-                'fulfillment_notes' => $this->fulfillment_notes,
                 'shipped_at' => optional($this->shipped_at)?->toISOString(),
                 'delivered_at' => optional($this->delivered_at)?->toISOString(),
             ],

@@ -7,6 +7,8 @@ use App\Models\Commerce\PaymentTransaction;
 use App\Models\SelcomWebhookLog;
 use App\Services\Payments\PaymentService;
 use Carbon\Carbon;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Arr;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -28,9 +30,9 @@ final class SelcomWebhookController extends Controller
 
         $payload = $request->json()->all();
 
-        $orderId = (string) ($payload['order_id'] ?? '');
-        $reference = $payload['reference'] ?? null;
-        $transid = $payload['transid'] ?? null;
+        $orderId = is_scalar($payload['order_id'] ?? null) ? (string) $payload['order_id'] : '';
+        $reference = is_scalar($payload['reference'] ?? null) ? (string) $payload['reference'] : null;
+        $rawTransid = is_scalar($payload['transid'] ?? null) ? trim((string) $payload['transid']) : '';
 
         $payment = PaymentTransaction::query()
             ->whereHas('order', fn ($query) => $query->where('order_number', $orderId))
@@ -47,21 +49,25 @@ final class SelcomWebhookController extends Controller
             return response()->json(['verified' => true, 'error' => 'reference_mismatch'], 404);
         }
 
-        // Replay protection: if this transid was already processed, return success idempotently
-        if ($transid !== null) {
-            $alreadyProcessed = SelcomWebhookLog::query()
-                ->where('transid', $transid)
-                ->where('processed_successfully', true)
-                ->exists();
-            if ($alreadyProcessed) {
-                return response()->json(['verified' => true, 'result' => 'OK', 'duplicate' => true]);
-            }
+        // Idempotency key. Use the provider's transaction id; a callback without one
+        // must still be de-duplicated, so derive a stable key from what identifies it.
+        $transid = $rawTransid !== ''
+            ? mb_substr($rawTransid, 0, 100)
+            : 'nt_'.hash('sha256', implode('|', [$orderId, (string) $reference, (string) ($payload['payment_status'] ?? '')]));
+
+        // Replay protection: if this callback was already processed, answer OK again.
+        $alreadyProcessed = SelcomWebhookLog::query()
+            ->where('transid', $transid)
+            ->where('processed_successfully', true)
+            ->exists();
+        if ($alreadyProcessed) {
+            return response()->json(['verified' => true, 'result' => 'OK', 'duplicate' => true]);
         }
 
         try {
             $providerState = [
                 'status' => (string) ($payload['payment_status'] ?? ''),
-                'transid' => $transid,
+                'transid' => $rawTransid !== '' ? $rawTransid : null,
                 'reference' => $payment->provider_reference,
                 'channel' => $payload['channel'] ?? null,
                 'amount' => $payload['amount'] ?? null,
@@ -69,40 +75,53 @@ final class SelcomWebhookController extends Controller
                 'payload' => $payload,
             ];
 
-            $result = $this->payments->applyProviderStatus($payment, $providerState);
+            $this->payments->applyProviderStatus($payment, $providerState);
 
-            // Log successful webhook processing
-            if ($transid !== null) {
-                SelcomWebhookLog::query()->create([
-                    'transid' => $transid,
-                    'order_id' => $orderId,
-                    'payment_transaction_id' => $payment->id,
-                    'payment_status' => $payload['payment_status'] ?? 'unknown',
-                    'processed_successfully' => true,
-                    'raw_payload' => $payload,
-                ]);
-            }
+            $this->recordCallback($transid, $orderId, $payment, $payload, true, null);
 
             return response()->json(['verified' => true, 'result' => 'OK']);
         } catch (ValidationException $e) {
             // Log failed validation but don't retry
-            if ($transid !== null) {
-                SelcomWebhookLog::query()->create([
-                    'transid' => $transid,
-                    'order_id' => $orderId,
-                    'payment_transaction_id' => $payment->id,
-                    'payment_status' => $payload['payment_status'] ?? 'unknown',
-                    'processed_successfully' => false,
-                    'error' => $e->getMessage(),
-                    'raw_payload' => $payload,
-                ]);
-            }
+            $this->recordCallback($transid, $orderId, $payment, $payload, false, $e->getMessage());
 
             return response()->json([
                 'verified' => true,
                 'error' => 'invalid_callback',
                 'errors' => $e->errors(),
             ], 422);
+        }
+    }
+
+    /**
+     * Upsert the callback log. `transid` is unique, so a plain create() crashed
+     * with a 500 whenever the provider re-delivered a callback (after a 422, or
+     * concurrently). updateOrCreate + a duplicate-key retry makes logging idempotent.
+     */
+    private function recordCallback(
+        string $transid,
+        string $orderId,
+        PaymentTransaction $payment,
+        array $payload,
+        bool $processed,
+        ?string $error,
+    ): void {
+        $attributes = [
+            'order_id' => mb_substr($orderId, 0, 50),
+            'payment_transaction_id' => $payment->id,
+            'payment_status' => mb_substr((string) ($payload['payment_status'] ?? 'unknown'), 0, 30),
+            'processed_successfully' => $processed,
+            'error' => $error,
+            // Keep the audit trail but do not store the payer's personal details.
+            'raw_payload' => Arr::except($payload, ['msisdn', 'phone', 'buyer_phone', 'buyer_email', 'buyer_name', 'email', 'name']),
+        ];
+
+        try {
+            SelcomWebhookLog::query()->updateOrCreate(['transid' => $transid], $attributes);
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent delivery inserted the row first.
+            SelcomWebhookLog::query()->where('transid', $transid)->update(
+                Arr::except($attributes, ['raw_payload']) + ['updated_at' => now()],
+            );
         }
     }
 
@@ -174,10 +193,19 @@ final class SelcomWebhookController extends Controller
         $body = $request->json()->all();
         $parts = ['timestamp='.$timestamp];
 
-        foreach (explode(',', $signedFields) as $field) {
-            $field = trim($field);
+        $fields = array_map('trim', explode(',', $signedFields));
 
-            if (! array_key_exists($field, $body)) {
+        // The identity and the status of the payment must be covered by the signature,
+        // otherwise an unsigned field could be altered on a captured, valid callback.
+        foreach (['order_id', 'payment_status'] as $required) {
+            if (! in_array($required, $fields, true)) {
+                return false;
+            }
+        }
+
+        foreach ($fields as $field) {
+            // Non-scalar values cannot be signed and would raise "Array to string".
+            if (! array_key_exists($field, $body) || ! is_scalar($body[$field])) {
                 return false;
             }
 

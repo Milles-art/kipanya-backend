@@ -10,6 +10,13 @@
         </div>
     </div>
 
+    @if(($attentionCount ?? 0) > 0)
+        <a href="{{ route('admin.wear.payments.index', ['status' => 'reconciliation_required']) }}" class="flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-800 hover:bg-red-100">
+            <span>{{ $attentionCount }} payment{{ $attentionCount === 1 ? '' : 's' }} need attention: money captured that cannot be fulfilled, or a payment awaiting review.</span>
+            <span aria-hidden="true">Review →</span>
+        </a>
+    @endif
+
     <form method="GET" class="rounded-2xl border border-gray-200 bg-white p-4">
         <div class="grid gap-3 md:grid-cols-[1fr_220px_auto]">
             <input name="q" value="{{ $search }}" placeholder="Search order, customer, phone, provider or reference..." class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400">
@@ -39,7 +46,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($payments as $payment)
-                        <tr class="hover:bg-gray-50">
+                        <tr class="{{ $payment->status->value === 'reconciliation_required' ? 'bg-red-50/60' : '' }} hover:bg-gray-50">
                             <td class="px-5 py-4">
                                 <a href="{{ route('admin.wear.orders.show', $payment->order) }}" class="font-bold hover:text-emerald-700">#{{ $payment->order?->order_number ?? '—' }}</a>
                                 <p class="mt-1 text-xs text-gray-400">{{ $payment->created_at?->format('d M Y, H:i') }}</p>

@@ -121,6 +121,16 @@ final class WearReturnService
                 throw ValidationException::withMessages(['return' => 'This return does not have a pending refund.']);
             }
 
+            // A refund reference is the only proof that money was actually returned. It must
+            // look like a real reference and can never be reused to "prove" another refund.
+            $reference = trim($reference);
+            if (mb_strlen($reference) < 4) {
+                throw ValidationException::withMessages(['refund_reference' => 'Enter the provider\'s refund reference (at least 4 characters).']);
+            }
+            if (WearReturnRequest::query()->where('refund_reference', $reference)->whereKeyNot($return->id)->exists()) {
+                throw ValidationException::withMessages(['refund_reference' => 'This refund reference has already been used for another return.']);
+            }
+
             $order = WearOrder::query()->lockForUpdate()->findOrFail($return->wear_order_id);
             $payment = PaymentTransaction::query()
                 ->where('wear_order_id', $order->id)

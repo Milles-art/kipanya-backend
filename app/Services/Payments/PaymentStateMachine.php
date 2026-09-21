@@ -10,7 +10,11 @@ use App\Models\Commerce\StockReservation;
 use App\Models\Wear\WearInventoryMovement;
 use App\Models\Wear\WearOrder;
 use App\Services\Commerce\InventoryReservationService;
+use App\Support\AuditLogger;
+use App\Support\OpsAlert;
+use App\Support\PaymentPayloadSanitizer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -30,6 +34,8 @@ final class PaymentStateMachine
         PaymentStatus $toStatus,
         array $providerPayload = []
     ): PaymentTransaction {
+        $providerPayload = PaymentPayloadSanitizer::redact($providerPayload);
+
         $currentStatus = $payment->status;
 
         // If already in target state, still record provider state if provided
@@ -39,6 +45,13 @@ final class PaymentStateMachine
             }
 
             return $payment->fresh('order');
+        }
+
+        // The provider says the money was captured, but locally the payment was
+        // already cancelled/rejected/failed. Never throw and never lose it:
+        // record it for refund/reconciliation instead.
+        if ($toStatus === PaymentStatus::Paid && $this->isTerminalUnpaid($currentStatus)) {
+            return $this->flagLatePayment($payment, $providerPayload, 'confirmed_after_'.$currentStatus->value);
         }
 
         // Check if transition is legal
@@ -104,28 +117,15 @@ final class PaymentStateMachine
             // Verify order and reservation are still valid
             $order = $payment->order()->lockForUpdate()->firstOrFail();
 
-            // Check if reservation is still valid; if not, transition to Failed instead of throwing
+            // Check if the reservation is still valid. If not, the provider has ALREADY
+            // captured the customer's money, so this must never be recorded as a plain
+            // failure: flag it for refund/reconciliation and keep the order cancelled.
             try {
                 $this->verifyOrderCanComplete($payment, $order);
             } catch (ValidationException $e) {
-                // Reservation expired or stock unavailable - transition to Failed
-                $payment->update([
-                    'status' => PaymentStatus::Failed,
-                    'provider_transid' => $providerPayload['transid'] ?? $payment->provider_transid,
-                    'payload' => array_merge($payment->payload ?? [], [
-                        'provider_callback' => $providerPayload,
-                        'fulfillment_failed' => true,
-                        'failure_reason' => $e->getMessage(),
-                    ]),
-                    'failed_at' => now(),
-                ]);
+                $this->markNeedsRefund($payment, $order, $providerPayload, 'fulfilment_unavailable: '.$e->getMessage());
 
-                $order->update([
-                    'status' => OrderStatus::Cancelled,
-                    'payment_status' => PaymentStatus::Failed,
-                ]);
-
-                // Release reservation if active
+                // Release the reservation if it is still active.
                 $reservation = StockReservation::query()
                     ->lockForUpdate()
                     ->where('wear_order_id', $order->id)
@@ -169,6 +169,178 @@ final class PaymentStateMachine
         });
     }
 
+    /**
+     * The provider says "completed" but the payment cannot be verified (for example
+     * the amount is missing). Never auto-fulfil an unverifiable payment and never
+     * throw it away either: hold it for manual review without touching the order.
+     * A later, complete callback can still settle it (reconciliation_required -> paid).
+     */
+    public function holdForReview(PaymentTransaction $payment, array $providerPayload, string $reason): PaymentTransaction
+    {
+        $providerPayload = PaymentPayloadSanitizer::redact($providerPayload);
+
+        return DB::transaction(function () use ($payment, $providerPayload, $reason): PaymentTransaction {
+            $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if (! in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Processing, PaymentStatus::InProgress], true)) {
+                return $payment->fresh('order');
+            }
+
+            $payment->update([
+                'status' => PaymentStatus::ReconciliationRequired,
+                'provider_transid' => $providerPayload['transid'] ?? $payment->provider_transid,
+                'payload' => array_merge($payment->payload ?? [], [
+                    'provider_callback' => $providerPayload,
+                    'needs_review' => true,
+                    'reconciliation_reason' => $reason,
+                ]),
+            ]);
+
+            Log::warning('Payment reported completed but could not be verified - manual review required', [
+                'payment_id' => $payment->id,
+                'reason' => $reason,
+            ]);
+
+            app(AuditLogger::class)->log(null, 'payment.needs_review', $payment, [
+                'provider_transid' => $providerPayload['transid'] ?? null,
+                'reason' => $reason,
+            ]);
+
+            OpsAlert::notify("Kipanya: payment {$payment->id} was reported completed but could not be verified. Manual review needed.");
+
+            return $payment->fresh('order');
+        });
+    }
+
+    /**
+     * Staff confirm that a flagged payment (`needs_refund`) was refunded to the customer
+     * outside the system (e.g. in the Selcom dashboard). Closes the reconciliation item.
+     */
+    public function recordRefund(PaymentTransaction $payment, string $reference, ?int $adminId): PaymentTransaction
+    {
+        return DB::transaction(function () use ($payment, $reference, $adminId): PaymentTransaction {
+            $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if ($payment->status !== PaymentStatus::ReconciliationRequired || ($payment->payload['needs_refund'] ?? false) !== true) {
+                throw ValidationException::withMessages(['payment' => 'Only a payment that needs a refund can be marked refunded.']);
+            }
+
+            $payment->update([
+                'status' => PaymentStatus::Refunded,
+                'payload' => array_merge($payment->payload ?? [], [
+                    'needs_refund' => false,
+                    'refund_reference' => $reference,
+                    'refunded_at' => now()->toISOString(),
+                    'refunded_by' => $adminId,
+                ]),
+            ]);
+
+            WearOrder::query()->whereKey($payment->wear_order_id)->update(['payment_status' => PaymentStatus::Refunded->value]);
+
+            app(AuditLogger::class)->log(null, 'payment.refund_recorded', $payment, [
+                'refund_reference' => $reference,
+                'actor_id' => $adminId,
+            ]);
+
+            return $payment->fresh('order');
+        });
+    }
+
+    /**
+     * Payment states that mean "we do not expect money" locally.
+     */
+    private function isTerminalUnpaid(PaymentStatus $status): bool
+    {
+        return in_array($status, [
+            PaymentStatus::Cancelled,
+            PaymentStatus::UserCancelled,
+            PaymentStatus::Rejected,
+            PaymentStatus::Failed,
+        ], true);
+    }
+
+    /**
+     * The provider confirmed a payment that this system had already closed
+     * (customer cancelled, rejected, failed). Record it for refund.
+     *
+     * Idempotent: repeated callbacks do not re-flag or duplicate the audit entry.
+     */
+    public function flagLatePayment(
+        PaymentTransaction $payment,
+        array $providerPayload,
+        string $reason = 'confirmed_after_close'
+    ): PaymentTransaction {
+        $providerPayload = PaymentPayloadSanitizer::redact($providerPayload);
+
+        return DB::transaction(function () use ($payment, $providerPayload, $reason): PaymentTransaction {
+            $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if (in_array($payment->status, [PaymentStatus::Paid, PaymentStatus::ReconciliationRequired, PaymentStatus::Refunded], true)) {
+                return $payment->fresh('order');
+            }
+
+            $order = WearOrder::query()->lockForUpdate()->findOrFail($payment->wear_order_id);
+
+            $this->markNeedsRefund($payment, $order, $providerPayload, $reason);
+
+            return $payment->fresh('order');
+        });
+    }
+
+    /**
+     * Shared by the "late payment" and "cannot fulfil" paths. Must run inside a
+     * transaction with $payment and $order already locked.
+     */
+    private function markNeedsRefund(
+        PaymentTransaction $payment,
+        WearOrder $order,
+        array $providerPayload,
+        string $reason
+    ): void {
+        $alreadyFlagged = $payment->status === PaymentStatus::ReconciliationRequired
+            && ($payment->payload['needs_refund'] ?? false) === true;
+
+        $previous = $payment->status;
+
+        $payment->update([
+            'status' => PaymentStatus::ReconciliationRequired,
+            'provider_transid' => $providerPayload['transid'] ?? $payment->provider_transid,
+            'payload' => array_merge($payment->payload ?? [], [
+                'provider_callback' => $providerPayload,
+                'needs_refund' => true,
+                'reconciliation_reason' => $reason,
+                'previous_status' => $previous->value,
+            ]),
+        ]);
+
+        // Money was captured but no goods are reserved: the order stays cancelled,
+        // and its payment status tells staff that a refund decision is pending.
+        $order->update([
+            'status' => OrderStatus::Cancelled,
+            'payment_status' => PaymentStatus::ReconciliationRequired,
+        ]);
+
+        if ($alreadyFlagged) {
+            return;
+        }
+
+        Log::critical('Payment captured but order cannot be fulfilled - refund required', [
+            'payment_id' => $payment->id,
+            'order_number' => $order->order_number,
+            'provider_transid' => $providerPayload['transid'] ?? null,
+            'reason' => $reason,
+        ]);
+
+        app(AuditLogger::class)->log(null, 'payment.needs_refund', $payment, [
+            'order_number' => $order->order_number,
+            'provider_transid' => $providerPayload['transid'] ?? null,
+            'amount' => $payment->amount,
+            'reason' => $reason,
+        ]);
+
+        OpsAlert::notify("Kipanya: a payment was captured but order #{$order->order_number} cannot be fulfilled. Refund needed (payment {$payment->id}).");
+    }
+
     private function verifyOrderCanComplete(PaymentTransaction $payment, WearOrder $order): void
     {
         $reservation = StockReservation::query()
@@ -178,7 +350,12 @@ final class PaymentStateMachine
             ->lockForUpdate()
             ->first();
 
-        if (! $reservation || $reservation->status !== ReservationStatus::Active || $reservation->expires_at?->isPast()) {
+        // The expiry job releases stock roughly once a minute. While the reservation is still
+        // Active its stock is still held, so a payment confirmed within a short grace period
+        // after `expires_at` can safely be fulfilled instead of refunded.
+        $graceSeconds = (int) config('security.reservation_grace_seconds', 120);
+
+        if (! $reservation || $reservation->status !== ReservationStatus::Active || $reservation->expires_at?->lt(now()->subSeconds($graceSeconds))) {
             if ($reservation && $reservation->status === ReservationStatus::Active) {
                 $reservation->update(['status' => ReservationStatus::Expired]);
             }
@@ -235,6 +412,12 @@ final class PaymentStateMachine
 
             if ($payment->status === PaymentStatus::Paid) {
                 return $payment;
+            }
+
+            // Captured money awaiting a refund decision must never be downgraded to a
+            // plain cancellation by a later (stale) provider status.
+            if (($payment->payload['needs_refund'] ?? false) === true) {
+                return $payment->fresh('order');
             }
 
             if (! $payment->status->canTransitionTo($toStatus)) {
