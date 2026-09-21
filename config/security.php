@@ -33,6 +33,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Operations alerts
+    |--------------------------------------------------------------------------
+    | E.164 phone (e.g. +255712345678) that receives an SMS when money was captured
+    | but the order cannot be fulfilled, or a payment needs manual review.
+    | Empty = log only. Never includes customer personal data.
+    */
+    'alert_phone' => env('SECURITY_ALERT_PHONE', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Initial administrator (read by AdminUserSeeder)
     |--------------------------------------------------------------------------
     | Seeders must not call env() directly: with `config:cache` it returns null.

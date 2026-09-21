@@ -11,6 +11,7 @@ use App\Models\Wear\WearInventoryMovement;
 use App\Models\Wear\WearOrder;
 use App\Services\Commerce\InventoryReservationService;
 use App\Support\AuditLogger;
+use App\Support\OpsAlert;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -200,6 +201,42 @@ final class PaymentStateMachine
                 'reason' => $reason,
             ]);
 
+            OpsAlert::notify("Kipanya: payment {$payment->id} was reported completed but could not be verified. Manual review needed.");
+
+            return $payment->fresh('order');
+        });
+    }
+
+    /**
+     * Staff confirm that a flagged payment (`needs_refund`) was refunded to the customer
+     * outside the system (e.g. in the Selcom dashboard). Closes the reconciliation item.
+     */
+    public function recordRefund(PaymentTransaction $payment, string $reference, ?int $adminId): PaymentTransaction
+    {
+        return DB::transaction(function () use ($payment, $reference, $adminId): PaymentTransaction {
+            $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if ($payment->status !== PaymentStatus::ReconciliationRequired || ($payment->payload['needs_refund'] ?? false) !== true) {
+                throw ValidationException::withMessages(['payment' => 'Only a payment that needs a refund can be marked refunded.']);
+            }
+
+            $payment->update([
+                'status' => PaymentStatus::Refunded,
+                'payload' => array_merge($payment->payload ?? [], [
+                    'needs_refund' => false,
+                    'refund_reference' => $reference,
+                    'refunded_at' => now()->toISOString(),
+                    'refunded_by' => $adminId,
+                ]),
+            ]);
+
+            WearOrder::query()->whereKey($payment->wear_order_id)->update(['payment_status' => PaymentStatus::Refunded->value]);
+
+            app(AuditLogger::class)->log(null, 'payment.refund_recorded', $payment, [
+                'refund_reference' => $reference,
+                'actor_id' => $adminId,
+            ]);
+
             return $payment->fresh('order');
         });
     }
@@ -293,6 +330,8 @@ final class PaymentStateMachine
             'amount' => $payment->amount,
             'reason' => $reason,
         ]);
+
+        OpsAlert::notify("Kipanya: a payment was captured but order #{$order->order_number} cannot be fulfilled. Refund needed (payment {$payment->id}).");
     }
 
     private function verifyOrderCanComplete(PaymentTransaction $payment, WearOrder $order): void

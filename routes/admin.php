@@ -72,6 +72,8 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::prefix('wear')->name('wear.')->middleware('admin.permission:payments.manage')->group(function (): void {
             Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
             Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+            Route::post('/payments/{payment}/recheck', [PaymentController::class, 'recheck'])->name('payments.recheck');
+            Route::post('/payments/{payment}/refund', [PaymentController::class, 'refund'])->name('payments.refund');
         });
 
         Route::middleware('admin.permission:settings.manage')->group(function (): void {
