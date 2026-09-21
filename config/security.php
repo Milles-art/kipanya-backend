@@ -31,4 +31,16 @@ return [
     */
     'csp_img_src' => env('CSP_IMG_SRC', "'self' data: blob: https:"),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Initial administrator (read by AdminUserSeeder)
+    |--------------------------------------------------------------------------
+    | Seeders must not call env() directly: with `config:cache` it returns null.
+    */
+    'seed_admin' => [
+        'phone' => env('ADMIN_PHONE', ''),
+        'email' => env('ADMIN_EMAIL', ''),
+        'name' => env('ADMIN_NAME', 'KP Wear Administrator'),
+    ],
+
 ];

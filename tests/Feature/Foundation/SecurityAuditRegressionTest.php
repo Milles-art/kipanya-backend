@@ -406,8 +406,10 @@ class SecurityAuditRegressionTest extends TestCase
             ->get('/api/v1/auth/me')
             ->assertOk();
 
+        // F-07: a browser sends Sec-Fetch-Site: same-origin on its own site's requests.
         $logout = $this->withUnencryptedCookies(['kp_web_session' => $cookie])
             ->withHeader('Accept', 'application/json')
+            ->withHeader('Sec-Fetch-Site', 'same-origin')
             ->post('/api/v1/auth/logout')
             ->assertOk();
 
