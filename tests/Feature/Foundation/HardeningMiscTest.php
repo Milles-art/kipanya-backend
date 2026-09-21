@@ -102,4 +102,58 @@ final class HardeningMiscTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', ['id' => $log->id, 'action' => 'test.action']);
     }
+
+    // ------------------------------------------------------- mass assignment / CORS / sessions
+
+    public function test_security_sensitive_user_attributes_are_not_mass_assignable(): void
+    {
+        $this->assertSame(['name', 'email', 'phone'], (new User)->getFillable());
+
+        $user = User::create([
+            'name' => 'Mallory', 'phone' => '+255700123456',
+            'role' => 'admin', 'status' => 'active', 'phone_verified_at' => now(),
+            'onboarding_completed_at' => now(), 'two_factor_secret' => 'ABC', 'password' => 'secret',
+        ]);
+
+        $user->refresh();
+        $this->assertNull($user->phone_verified_at);
+        $this->assertNull($user->onboarding_completed_at);
+        $this->assertNull($user->two_factor_secret);
+        $this->assertNotSame('admin', (string) ($user->role->value ?? $user->role));
+    }
+
+    public function test_cors_preflight_only_allows_the_headers_the_frontend_needs(): void
+    {
+        $origin = config('cors.allowed_origins')[0];
+
+        $ok = $this->call('OPTIONS', '/api/v1/cart', [], [], [], [
+            'HTTP_ORIGIN' => $origin, 'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+            'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'content-type, x-guest-cart-token, idempotency-key',
+        ]);
+        $this->assertStringContainsStringIgnoringCase('x-guest-cart-token', (string) $ok->headers->get('Access-Control-Allow-Headers'));
+
+        $evil = $this->call('OPTIONS', '/api/v1/cart', [], [], [], [
+            'HTTP_ORIGIN' => $origin, 'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+            'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'x-evil-header',
+        ]);
+        $this->assertStringNotContainsStringIgnoringCase('x-evil-header', (string) $evil->headers->get('Access-Control-Allow-Headers'));
+        $this->assertStringNotContainsString('*', (string) $evil->headers->get('Access-Control-Allow-Headers'));
+    }
+
+    public function test_logout_all_revokes_every_token_of_the_account(): void
+    {
+        $user = User::factory()->create(['status' => 'active', 'phone_verified_at' => now()]);
+        $user->createToken('laptop', ['auth']);
+        $user->createToken('phone', ['auth']);
+        $token = $user->createToken('current', ['auth'])->plainTextToken;
+
+        $other = User::factory()->create(['status' => 'active']);
+        $other->createToken('other-device', ['auth']);
+
+        $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Accept' => 'application/json'])
+            ->postJson('/api/v1/auth/logout-all')->assertOk();
+
+        $this->assertSame(0, $user->tokens()->count());
+        $this->assertSame(1, $other->tokens()->count(), 'Other accounts are untouched.');
+    }
 }

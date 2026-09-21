@@ -72,8 +72,22 @@ final class ProductionSecurityGuard
             $issues[] = 'NOTIFY_AFRICA_API_KEY must be set in production so OTP SMS can be delivered instead of the log gateway.';
         }
 
+        // debug-level logs can capture request data (tokens, phone numbers, payloads).
+        $defaultChannel = (string) config('logging.default');
+        $logChannels = config("logging.channels.$defaultChannel.channels") ?? [$defaultChannel];
+        foreach ((array) $logChannels as $logChannel) {
+            if (strtolower((string) config("logging.channels.$logChannel.level")) === 'debug') {
+                $issues[] = 'LOG_LEVEL must not be "debug" in production; use "warning" or higher.';
+                break;
+            }
+        }
+
         if (! config('security.admin_require_2fa', true)) {
             $issues[] = 'ADMIN_REQUIRE_2FA must be true in production: admin sign-in by SMS alone is exposed to SIM-swap.';
+        }
+
+        if (! config('security.money_actions_require_totp', true)) {
+            $issues[] = 'MONEY_ACTIONS_REQUIRE_TOTP must be true in production: refunds need a fresh authenticator code.';
         }
 
         // The payment gateway otherwise fails only when the first customer tries to pay.

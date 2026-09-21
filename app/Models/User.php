@@ -37,9 +37,11 @@ class User extends Authenticatable
         'name',
         'email',
         'phone',
-        'phone_verified_at',
-        'onboarding_completed_at',
     ];
+
+    // Security-sensitive attributes are deliberately NOT mass-assignable: role, status,
+    // phone_verified_at, onboarding_completed_at, two_factor_* and password are only ever
+    // changed through explicit application logic (forceFill), never from request data.
 
     protected $hidden = [
         'password',

@@ -13,6 +13,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Step-up authentication for money actions
+    |--------------------------------------------------------------------------
+    | Recording a refund requires a fresh TOTP code from the acting admin, so a hijacked
+    | admin session alone cannot record refunds.
+    */
+    'money_actions_require_totp' => (bool) env('MONEY_ACTIONS_REQUIRE_TOTP', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | OTP request limits (SMS cost / pumping protection)
     |--------------------------------------------------------------------------
     | Per-IP and global ceilings on requests that send an SMS. Per-phone limits
@@ -30,6 +39,15 @@ return [
     | Tighten (e.g. "'self' data: blob: https://cdn.example.com") once pinned.
     */
     'csp_img_src' => env('CSP_IMG_SRC', "'self' data: blob: https:"),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Late-payment grace
+    |--------------------------------------------------------------------------
+    | A payment confirmed this many seconds after a stock reservation's expiry is still
+    | fulfilled while the reservation has not yet been released by the expiry job.
+    */
+    'reservation_grace_seconds' => (int) env('RESERVATION_GRACE_SECONDS', 120),
 
     /*
     |--------------------------------------------------------------------------

@@ -51,6 +51,9 @@ class ProductionSecurityGuardTest extends TestCase
         config()->set('app.trusted_proxies', '*');
         config()->set('services.notify_africa.api_key', 'ntfy_prod_test_key');
         config()->set('security.admin_require_2fa', true);
+        config()->set('security.money_actions_require_totp', true);
+        config()->set('logging.default', 'single');
+        config()->set('logging.channels.single.level', 'warning');
         config()->set('services.selcom.base_url', 'https://apigw.selcommobile.com');
         config()->set('services.selcom.api_key', 'prod-key');
         config()->set('services.selcom.api_secret', 'prod-secret');
@@ -99,6 +102,27 @@ class ProductionSecurityGuardTest extends TestCase
             foreach (['ADMIN_REQUIRE_2FA', 'SELCOM_API_KEY', 'SELCOM_API_SECRET', 'SELCOM_VENDOR_ID', 'SELCOM_WEBHOOK_URL', 'SELCOM_BASE_URL must use https'] as $needle) {
                 $this->assertStringContainsString($needle, $e->getMessage());
             }
+        }
+    }
+
+    public function test_production_guard_refuses_debug_level_logging(): void
+    {
+        config()->set('app.env', 'production');
+        config()->set('logging.default', 'single');
+        config()->set('logging.channels.single.level', 'debug');
+
+        try {
+            ProductionSecurityGuard::assert();
+            $this->fail('Expected a RuntimeException.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('LOG_LEVEL must not be "debug"', $e->getMessage());
+        }
+
+        config()->set('logging.channels.single.level', 'warning');
+        try {
+            ProductionSecurityGuard::assert();
+        } catch (RuntimeException $e) {
+            $this->assertStringNotContainsString('LOG_LEVEL', $e->getMessage());
         }
     }
 }

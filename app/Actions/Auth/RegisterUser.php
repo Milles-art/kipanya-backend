@@ -18,10 +18,12 @@ final class RegisterUser
             $user = User::query()->create([
                 'name' => $data->name,
                 'phone' => $data->phone,
-                'phone_verified_at' => now(),
             ]);
 
-            $user->forceFill(['status' => UserStatus::Active->value])->save();
+            $user->forceFill([
+                'phone_verified_at' => now(),
+                'status' => UserStatus::Active->value,
+            ])->save();
 
             $this->assignRole->execute($user, 'user');
 

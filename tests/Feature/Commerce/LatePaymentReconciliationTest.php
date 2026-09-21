@@ -236,4 +236,32 @@ class LatePaymentReconciliationTest extends TestCase
         $this->assertSame('paid', $payment->status->value);
         $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'confirmed']);
     }
+
+    public function test_payment_confirmed_seconds_after_expiry_is_still_fulfilled_while_the_reservation_is_held(): void
+    {
+        $payment = $this->paymentFor($this->checkout('late-within-grace-0001'));
+
+        // Expired 30 seconds ago but the expiry job has not released it yet.
+        DB::table('wear_stock_reservations')
+            ->where('wear_order_id', $payment->wear_order_id)
+            ->update(['expires_at' => now()->subSeconds(30)]);
+
+        $this->postWebhook($this->webhookBody($payment))->assertOk();
+
+        $payment->refresh();
+        $this->assertSame('paid', $payment->status->value);
+        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'confirmed']);
+    }
+
+    public function test_provider_personal_data_is_not_stored_on_the_payment(): void
+    {
+        $payment = $this->paymentFor($this->checkout('payload-pii-scrub-0001'));
+
+        $this->postWebhook($this->webhookBody($payment, ['msisdn' => '255700111222', 'buyer_email' => 'x@y.z']))->assertOk();
+
+        $json = json_encode($payment->fresh()->payload);
+        $this->assertStringNotContainsString('255700111222', (string) $json);
+        $this->assertStringNotContainsString('x@y.z', (string) $json);
+        $this->assertStringContainsString('COMPLETED', (string) $json);
+    }
 }

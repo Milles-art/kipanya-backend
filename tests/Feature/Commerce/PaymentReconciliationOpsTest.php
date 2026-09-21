@@ -12,6 +12,8 @@ use App\Models\Commerce\PaymentTransaction;
 use App\Models\User;
 use App\Models\Wear\WearProduct;
 use App\Models\Wear\WearProductVariant;
+use App\Models\Wear\WearReturnRequest;
+use App\Services\Auth\TotpService;
 use App\Services\Payments\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -375,5 +377,91 @@ final class PaymentReconciliationOpsTest extends TestCase
         $this->actingAs($support)->post(route('admin.wear.payments.recheck', $payment))->assertForbidden();
 
         $this->assertSame('reconciliation_required', $payment->fresh()->status->value);
+    }
+
+    // ------------------------------------------------------------ step-up (fresh TOTP)
+
+    /** @return array{0: User, 1: TotpService} */
+    private function adminWithTwoFactor(): array
+    {
+        $totp = new TotpService;
+        $admin = User::factory()->admin()->create();
+        $admin->two_factor_secret = $totp->generateSecret();
+        $admin->enableTwoFactor();
+
+        return [$admin, $totp];
+    }
+
+    public function test_recording_a_refund_needs_a_fresh_authenticator_code(): void
+    {
+        config(['security.money_actions_require_totp' => true]);
+        $payment = $this->flaggedPayment('stepup-refund-0000001');
+        [$admin, $totp] = $this->adminWithTwoFactor();
+        $url = route('admin.wear.payments.refund', $payment);
+
+        $this->actingAs($admin)->post($url, ['refund_reference' => 'SELCOM-RF-5001'])->assertSessionHasErrors('totp_code');
+        $this->actingAs($admin)->post($url, ['refund_reference' => 'SELCOM-RF-5001', 'totp_code' => '12345'])->assertSessionHasErrors('totp_code');
+
+        $wrong = $totp->code($admin->two_factor_secret) === '000000' ? '111111' : '000000';
+        $this->actingAs($admin)->post($url, ['refund_reference' => 'SELCOM-RF-5001', 'totp_code' => $wrong])->assertSessionHasErrors('totp_code');
+        $this->assertSame('reconciliation_required', $payment->fresh()->status->value);
+
+        $code = $totp->code($admin->two_factor_secret);
+        $this->actingAs($admin)->post($url, ['refund_reference' => 'SELCOM-RF-5001', 'totp_code' => $code])->assertSessionHasNoErrors();
+        $this->assertSame('refunded', $payment->fresh()->status->value);
+
+        // The same code cannot approve a second refund (it is consumed).
+        $second = $this->flaggedPayment('stepup-refund-0000002');
+        $this->actingAs($admin)->post(route('admin.wear.payments.refund', $second), ['refund_reference' => 'SELCOM-RF-5002', 'totp_code' => $code])
+            ->assertSessionHasErrors('totp_code');
+        $this->assertSame('reconciliation_required', $second->fresh()->status->value);
+    }
+
+    public function test_step_up_locks_out_after_repeated_wrong_codes(): void
+    {
+        config(['security.money_actions_require_totp' => true]);
+        $payment = $this->flaggedPayment('stepup-lockout-0000001');
+        [$admin, $totp] = $this->adminWithTwoFactor();
+        $url = route('admin.wear.payments.refund', $payment);
+        $wrong = $totp->code($admin->two_factor_secret) === '000000' ? '111111' : '000000';
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->actingAs($admin)->post($url, ['refund_reference' => 'SELCOM-RF-6001', 'totp_code' => $wrong])->assertSessionHasErrors('totp_code');
+        }
+
+        // Even the correct code is refused once locked out.
+        $this->actingAs($admin)->post($url, ['refund_reference' => 'SELCOM-RF-6001', 'totp_code' => $totp->code($admin->two_factor_secret)])
+            ->assertSessionHasErrors('totp_code');
+        $this->assertSame('reconciliation_required', $payment->fresh()->status->value);
+    }
+
+    public function test_an_admin_without_two_factor_cannot_record_a_refund_when_step_up_is_on(): void
+    {
+        config(['security.money_actions_require_totp' => true]);
+        $payment = $this->flaggedPayment('stepup-no2fa-000000001');
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.wear.payments.refund', $payment), ['refund_reference' => 'SELCOM-RF-7001', 'totp_code' => '123456'])
+            ->assertSessionHasErrors('totp_code');
+
+        $this->assertSame('reconciliation_required', $payment->fresh()->status->value);
+    }
+
+    public function test_recording_a_return_refund_also_needs_the_authenticator_code(): void
+    {
+        config(['security.money_actions_require_totp' => true]);
+        $payment = $this->paymentFor($this->checkout('stepup-return-00000001'));
+        $item = $payment->order->items->first();
+        $return = WearReturnRequest::create([
+            'wear_order_id' => $payment->wear_order_id, 'user_id' => $payment->user_id, 'request_type' => 'return',
+            'reason' => 'damaged', 'order_item_ids' => [$item->id], 'status' => 'processed',
+            'refund_amount' => $item->line_total, 'refund_status' => 'pending', 'processed_at' => now(),
+        ]);
+        [$admin] = $this->adminWithTwoFactor();
+
+        $this->actingAs($admin)->post(route('admin.wear.returns.refund', $return), ['refund_reference' => 'SELCOM-RF-8001'])
+            ->assertSessionHasErrors('totp_code');
+
+        $this->assertSame('pending', $return->fresh()->refund_status);
     }
 }

@@ -63,11 +63,10 @@ final class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'] ?: null,
             'phone' => $phone,
-            'phone_verified_at' => null,
-            'onboarding_completed_at' => now(),
         ]);
 
         $user->forceFill([
+            'onboarding_completed_at' => now(),
             'role' => UserRole::Admin,
             'status' => $data['status'],
         ])->save();

@@ -30,6 +30,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         Route::middleware(['auth:sanctum', 'active', 'scoped.token:auth'])->group(function () {
             Route::post('/logout', [AuthenticationController::class, 'logout']);
+            Route::post('/logout-all', [AuthenticationController::class, 'logoutAll']);
             Route::get('/me', [AuthenticationController::class, 'me']);
         });
     });

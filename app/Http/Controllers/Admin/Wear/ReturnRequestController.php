@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Wear;
 use App\Http\Controllers\Controller;
 use App\Models\Wear\WearReturnRequest;
 use App\Services\Commerce\WearReturnService;
+use App\Support\AdminStepUp;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,7 +75,7 @@ final class ReturnRequestController extends Controller
         return back()->with('success', 'Return request updated to '.$updated->status.'.');
     }
 
-    public function markRefunded(Request $request, WearReturnRequest $returnRequest, WearReturnService $service, AuditLogger $auditLogger): RedirectResponse
+    public function markRefunded(Request $request, WearReturnRequest $returnRequest, WearReturnService $service, AuditLogger $auditLogger, AdminStepUp $stepUp): RedirectResponse
     {
         $this->authorize($request);
 
@@ -82,6 +83,7 @@ final class ReturnRequestController extends Controller
         // controller enforces it so a future routing change cannot silently
         // let a commerce-only operator record refunds.
         abort_unless($request->user()?->hasPermission('payments.manage'), 403);
+        $stepUp->assert($request);
 
         $data = $request->validate(['refund_reference' => ['required', 'string', 'max:120']]);
         $updated = $service->markRefunded($returnRequest, $data['refund_reference'], $request->user()->id);

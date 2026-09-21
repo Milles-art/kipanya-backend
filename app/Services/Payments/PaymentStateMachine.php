@@ -12,6 +12,7 @@ use App\Models\Wear\WearOrder;
 use App\Services\Commerce\InventoryReservationService;
 use App\Support\AuditLogger;
 use App\Support\OpsAlert;
+use App\Support\PaymentPayloadSanitizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,8 @@ final class PaymentStateMachine
         PaymentStatus $toStatus,
         array $providerPayload = []
     ): PaymentTransaction {
+        $providerPayload = PaymentPayloadSanitizer::redact($providerPayload);
+
         $currentStatus = $payment->status;
 
         // If already in target state, still record provider state if provided
@@ -174,6 +177,8 @@ final class PaymentStateMachine
      */
     public function holdForReview(PaymentTransaction $payment, array $providerPayload, string $reason): PaymentTransaction
     {
+        $providerPayload = PaymentPayloadSanitizer::redact($providerPayload);
+
         return DB::transaction(function () use ($payment, $providerPayload, $reason): PaymentTransaction {
             $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
 
@@ -265,6 +270,8 @@ final class PaymentStateMachine
         array $providerPayload,
         string $reason = 'confirmed_after_close'
     ): PaymentTransaction {
+        $providerPayload = PaymentPayloadSanitizer::redact($providerPayload);
+
         return DB::transaction(function () use ($payment, $providerPayload, $reason): PaymentTransaction {
             $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
 
@@ -343,7 +350,12 @@ final class PaymentStateMachine
             ->lockForUpdate()
             ->first();
 
-        if (! $reservation || $reservation->status !== ReservationStatus::Active || $reservation->expires_at?->isPast()) {
+        // The expiry job releases stock roughly once a minute. While the reservation is still
+        // Active its stock is still held, so a payment confirmed within a short grace period
+        // after `expires_at` can safely be fulfilled instead of refunded.
+        $graceSeconds = (int) config('security.reservation_grace_seconds', 120);
+
+        if (! $reservation || $reservation->status !== ReservationStatus::Active || $reservation->expires_at?->lt(now()->subSeconds($graceSeconds))) {
             if ($reservation && $reservation->status === ReservationStatus::Active) {
                 $reservation->update(['status' => ReservationStatus::Expired]);
             }

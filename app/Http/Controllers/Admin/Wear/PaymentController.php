@@ -8,6 +8,7 @@ use App\Models\Commerce\PaymentTransaction;
 use App\Models\Wear\WearReturnRequest;
 use App\Services\Payments\PaymentService;
 use App\Services\Payments\PaymentStateMachine;
+use App\Support\AdminStepUp;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -89,9 +90,10 @@ final class PaymentController extends Controller
     }
 
     /** Record that a flagged payment was refunded to the customer outside this system. */
-    public function refund(Request $request, PaymentTransaction $payment, PaymentStateMachine $machine): RedirectResponse
+    public function refund(Request $request, PaymentTransaction $payment, PaymentStateMachine $machine, AdminStepUp $stepUp): RedirectResponse
     {
         $this->authorizeAdmin($request);
+        $stepUp->assert($request);
 
         $data = $request->validate(['refund_reference' => ['required', 'string', 'min:4', 'max:100']]);
         $reference = trim($data['refund_reference']);

@@ -106,7 +106,8 @@ class WearCommerceIntegrityTest extends TestCase
         $response = $this->actingAs($user, 'sanctum')->withHeader('Idempotency-Key', 'integrity-expired-0001')
             ->postJson('/api/v1/checkout', ['address_id' => $address->id])->assertOk();
         $payment = PaymentTransaction::findOrFail($response->json('data.payment.0.id'));
-        $payment->order->stockReservation()->update(['expires_at' => now()->subMinute()]);
+        // Well beyond the short grace period (security.reservation_grace_seconds).
+        $payment->order->stockReservation()->update(['expires_at' => now()->subMinutes(10)]);
 
         // The provider has already captured the money, so this must NOT be recorded as
         // a plain "failed" payment: it is flagged for refund/reconciliation (F-02).

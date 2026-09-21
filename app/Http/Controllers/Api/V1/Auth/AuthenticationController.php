@@ -202,6 +202,21 @@ final class AuthenticationController extends Controller
         ]));
     }
 
+    /** Sign the user out everywhere: revokes every token belonging to the account. */
+    public function logoutAll(Request $request, AuditLogger $auditLogger): JsonResponse
+    {
+        $user = $request->user();
+
+        $auditLogger->log($request, 'auth.logout_all', $user);
+        $user->tokens()->delete();
+
+        Auth::forgetGuards();
+
+        return $this->withoutWebSessionCookie(response()->json([
+            'message' => 'Signed out of all devices.',
+        ]));
+    }
+
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
