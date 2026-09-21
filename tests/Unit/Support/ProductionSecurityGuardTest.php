@@ -32,6 +32,7 @@ class ProductionSecurityGuardTest extends TestCase
             $this->assertStringContainsString('CORS_ALLOWED_ORIGINS', $e->getMessage());
             $this->assertStringContainsString('OTP', $e->getMessage());
             $this->assertStringContainsString('TRUSTED_PROXIES', $e->getMessage());
+            $this->assertStringContainsString('NOTIFY_AFRICA_API_KEY', $e->getMessage());
         }
     }
 
@@ -48,6 +49,7 @@ class ProductionSecurityGuardTest extends TestCase
         config()->set('auth.expose_otp_codes', false);
         config()->set('auth.log_otp_codes', false);
         config()->set('app.trusted_proxies', '*');
+        config()->set('services.notify_africa.api_key', 'ntfy_prod_test_key');
 
         $this->expectNotToPerformAssertions();
         ProductionSecurityGuard::assert();
