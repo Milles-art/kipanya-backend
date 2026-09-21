@@ -21,6 +21,8 @@ final class AuthController extends Controller
 {
     private const PENDING_2FA_SESSION_KEY = 'admin.two_factor.pending';
 
+    private const PENDING_2FA_TTL_MINUTES = 5;
+
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check() && Auth::user()->isAdmin()) {
@@ -71,6 +73,8 @@ final class AuthController extends Controller
         if ($user->twoFactorEnabled()) {
             $request->session()->put(self::PENDING_2FA_SESSION_KEY, [
                 'user_id' => $user->id,
+                // The second factor must follow the SMS code closely.
+                'expires_at' => now()->addMinutes(self::PENDING_2FA_TTL_MINUTES)->getTimestamp(),
             ]);
 
             return back()->with('two_factor_required', true);
@@ -89,7 +93,13 @@ final class AuthController extends Controller
 
         $pending = $request->session()->get(self::PENDING_2FA_SESSION_KEY);
 
-        if (! is_array($pending) || empty($pending['user_id'])) {
+        if (
+            ! is_array($pending)
+            || empty($pending['user_id'])
+            || (int) ($pending['expires_at'] ?? 0) < now()->getTimestamp()
+        ) {
+            $request->session()->forget(self::PENDING_2FA_SESSION_KEY);
+
             throw ValidationException::withMessages(['code' => ['Your sign-in session has expired. Please start again.']]);
         }
 
