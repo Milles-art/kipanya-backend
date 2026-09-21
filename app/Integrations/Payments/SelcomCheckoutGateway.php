@@ -73,6 +73,7 @@ final class SelcomCheckoutGateway implements PaymentGateway
         try {
             $response = Http::baseUrl($this->baseUrl)
                 ->timeout($this->timeout)
+                ->connectTimeout(min(3, $this->timeout))
                 ->withHeaders($this->headers($timestamp, array_keys($payload), $payload))
                 ->acceptJson()
                 ->asJson()
@@ -124,6 +125,7 @@ final class SelcomCheckoutGateway implements PaymentGateway
         try {
             $response = Http::baseUrl($this->baseUrl)
                 ->timeout($this->timeout)
+                ->connectTimeout(min(3, $this->timeout))
                 ->withHeaders($this->headers($timestamp, array_keys($query), $query))
                 ->acceptJson()
                 ->get('/v1/checkout/order-status?'.http_build_query($query));
@@ -157,6 +159,7 @@ final class SelcomCheckoutGateway implements PaymentGateway
         try {
             $response = Http::baseUrl($this->baseUrl)
                 ->timeout($this->timeout)
+                ->connectTimeout(min(3, $this->timeout))
                 ->withHeaders($this->headers($timestamp, array_keys($query), $query))
                 ->acceptJson()
                 ->delete('/v1/checkout/cancel-order?'.http_build_query($query));
