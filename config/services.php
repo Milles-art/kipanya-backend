@@ -76,6 +76,12 @@ return [
         'cancel_url' => env('SELCOM_CANCEL_URL'),
         'webhook_url' => env('SELCOM_WEBHOOK_URL'),
         'timeout' => (int) env('SELCOM_TIMEOUT', 10),
+        // Comma-separated hosts the customer may be redirected to for payment
+        // (a host also matches its subdomains). Empty = any https host.
+        'allowed_redirect_hosts' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('SELCOM_ALLOWED_REDIRECT_HOSTS', '')),
+        ))),
     ],
 
 ];

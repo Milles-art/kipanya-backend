@@ -520,8 +520,16 @@
             const data = payload?.data ?? payload;
             const gatewayUrl = data?.payment?.[0]?.payment_gateway_url;
             if (gatewayUrl) {
-                window.location.href = gatewayUrl;
-                return;
+                // Only follow an https (or same-origin) payment URL; never javascript:/data: URLs.
+                let target = null;
+                try {
+                    const u = new URL(gatewayUrl, window.location.origin);
+                    if (u.protocol === 'https:' || u.origin === window.location.origin) target = u.href;
+                } catch (_) { /* ignore malformed URL */ }
+                if (target) {
+                    window.location.href = target;
+                    return;
+                }
             }
             if (data?.order_number) {
                 window.location.href = `/orders/${encodeURIComponent(data.order_number)}`;

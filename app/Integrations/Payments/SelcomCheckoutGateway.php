@@ -99,6 +99,8 @@ final class SelcomCheckoutGateway implements PaymentGateway
             throw new RuntimeException('Selcom Checkout did not return a payment gateway URL.');
         }
 
+        $this->assertSafePaymentUrl($gatewayUrl);
+
         return [
             'provider' => 'selcom_checkout',
             'reference' => $reference,
@@ -269,5 +271,39 @@ final class SelcomCheckoutGateway implements PaymentGateway
 
         // Re-wrap other exceptions
         return SelcomGatewayException::connectionFailed($e->getMessage());
+    }
+
+    /**
+     * The browser is redirected to this URL, so it must be https and (when an allow-list
+     * is configured) on a host we expect. A poisoned/compromised provider response or a
+     * wrong SELCOM_BASE_URL must not be able to send customers to a phishing page or a
+     * javascript: URL.
+     */
+    private function assertSafePaymentUrl(string $url): void
+    {
+        $parts = parse_url($url);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+
+        if ($scheme !== 'https' || $host === '') {
+            throw new RuntimeException('Selcom Checkout returned an unsafe payment gateway URL.');
+        }
+
+        $allowed = array_values(array_filter(array_map(
+            static fn ($h) => strtolower(trim((string) $h)),
+            (array) config('services.selcom.allowed_redirect_hosts', []),
+        )));
+
+        if ($allowed === []) {
+            return;
+        }
+
+        foreach ($allowed as $allowedHost) {
+            if ($host === $allowedHost || str_ends_with($host, '.'.$allowedHost)) {
+                return;
+            }
+        }
+
+        throw new RuntimeException('Selcom Checkout returned a payment gateway URL on an unexpected host.');
     }
 }
