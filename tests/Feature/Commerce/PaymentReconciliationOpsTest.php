@@ -464,4 +464,51 @@ final class PaymentReconciliationOpsTest extends TestCase
 
         $this->assertSame('pending', $return->fresh()->refund_status);
     }
+
+    // ------------------------------------------------------------ expiry polls the provider first
+
+    private function expireReservation(PaymentTransaction $payment): void
+    {
+        DB::table('wear_stock_reservations')
+            ->where('wear_order_id', $payment->wear_order_id)
+            ->update(['expires_at' => now()->subSeconds(30)]);
+    }
+
+    public function test_expiry_job_fulfils_an_order_whose_payment_completed_at_the_provider(): void
+    {
+        $payment = $this->paymentFor($this->checkout('expire-paid-at-provider1'));
+        $this->stubProvider();
+        $this->providerAnswer = $this->completedFor($payment);
+        $this->expireReservation($payment);
+
+        $this->artisan('kipanya:expire-stock-reservations')->assertSuccessful();
+
+        $this->assertSame('paid', $payment->fresh()->status->value);
+        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'confirmed']);
+    }
+
+    public function test_expiry_job_still_cancels_unpaid_orders_including_in_progress_payments(): void
+    {
+        $payment = $this->paymentFor($this->checkout('expire-really-unpaid-01'));
+        $this->stubProvider();
+        $this->providerAnswer = ['status' => 'INPROGRESS'];
+        $this->expireReservation($payment);
+
+        $this->artisan('kipanya:expire-stock-reservations')->assertSuccessful();
+
+        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'cancelled']);
+        $this->assertSame('cancelled', $payment->fresh()->status->value, 'No payment may stay in progress under a cancelled order.');
+    }
+
+    public function test_expiry_job_still_expires_when_the_provider_is_down(): void
+    {
+        $payment = $this->paymentFor($this->checkout('expire-provider-down-01'));
+        $this->stubProvider();
+        $this->providerAnswer = new \RuntimeException('provider down');
+        $this->expireReservation($payment);
+
+        $this->artisan('kipanya:expire-stock-reservations')->assertSuccessful();
+
+        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'cancelled']);
+    }
 }
