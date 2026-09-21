@@ -166,6 +166,45 @@ final class PaymentStateMachine
     }
 
     /**
+     * The provider says "completed" but the payment cannot be verified (for example
+     * the amount is missing). Never auto-fulfil an unverifiable payment and never
+     * throw it away either: hold it for manual review without touching the order.
+     * A later, complete callback can still settle it (reconciliation_required -> paid).
+     */
+    public function holdForReview(PaymentTransaction $payment, array $providerPayload, string $reason): PaymentTransaction
+    {
+        return DB::transaction(function () use ($payment, $providerPayload, $reason): PaymentTransaction {
+            $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if (! in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Processing, PaymentStatus::InProgress], true)) {
+                return $payment->fresh('order');
+            }
+
+            $payment->update([
+                'status' => PaymentStatus::ReconciliationRequired,
+                'provider_transid' => $providerPayload['transid'] ?? $payment->provider_transid,
+                'payload' => array_merge($payment->payload ?? [], [
+                    'provider_callback' => $providerPayload,
+                    'needs_review' => true,
+                    'reconciliation_reason' => $reason,
+                ]),
+            ]);
+
+            Log::warning('Payment reported completed but could not be verified - manual review required', [
+                'payment_id' => $payment->id,
+                'reason' => $reason,
+            ]);
+
+            app(AuditLogger::class)->log(null, 'payment.needs_review', $payment, [
+                'provider_transid' => $providerPayload['transid'] ?? null,
+                'reason' => $reason,
+            ]);
+
+            return $payment->fresh('order');
+        });
+    }
+
+    /**
      * Payment states that mean "we do not expect money" locally.
      */
     private function isTerminalUnpaid(PaymentStatus $status): bool

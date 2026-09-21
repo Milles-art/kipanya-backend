@@ -21,7 +21,9 @@ final class InventoryReservationService
             'expires_at' => now()->addMinutes($minutes),
         ]);
 
-        foreach ($cart->items as $cartItem) {
+        // Always lock variants in a stable order: two carts holding the same variants in
+        // different orders would otherwise deadlock.
+        foreach ($cart->items->sortBy('wear_product_variant_id') as $cartItem) {
             $variant = $cartItem->variant()->lockForUpdate()->first();
             $product = $variant?->product;
 

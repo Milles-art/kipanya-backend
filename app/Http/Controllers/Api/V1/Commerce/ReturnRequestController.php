@@ -65,7 +65,7 @@ final class ReturnRequestController extends Controller
     public function store(Request $request)
     {
         $data = Validator::make($request->all(), [
-            'order_id' => ['required', 'integer', 'exists:wear_orders,id'],
+            'order_id' => ['required', 'integer', 'min:1'],
             'request_type' => ['required', 'in:return,exchange'],
             'reason' => ['required', 'in:wrong_size,damaged,not_as_described,changed_mind,other'],
             'item_ids' => ['required', 'array', 'min:1', 'max:50'],
@@ -74,8 +74,13 @@ final class ReturnRequestController extends Controller
         ])->validate();
 
         $returnRequest = DB::transaction(function () use ($request, $data) {
-            $order = WearOrder::query()->with('items')->lockForUpdate()->findOrFail($data['order_id']);
-            abort_unless($order->user_id === $request->user()->id, 403);
+            // Scoped lookup: someone else's order and a non-existent order are both 404,
+            // so order ids cannot be probed (previously 403 vs 422 revealed existence).
+            $order = WearOrder::query()
+                ->where('user_id', $request->user()->id)
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($data['order_id']);
             abort_unless($order->status->value === 'delivered', 422, 'Only delivered orders can be returned or exchanged.');
             abort_if($order->payment_status->value === PaymentStatus::Refunded->value, 422, 'This order has already been fully refunded.');
             abort_unless($order->delivered_at !== null && $order->delivered_at->gte(now()->subDays(self::RETURN_WINDOW_DAYS)), 422, 'This order is outside the return window.');

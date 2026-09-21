@@ -112,6 +112,29 @@ class SelcomWebhookTest extends TestCase
         ], $headers));
     }
 
+    /** Post a callback signed over an explicit list of fields (tolerates odd payloads). */
+    private function postWebhookSignedOver(array $body, array $fields): TestResponse
+    {
+        config()->set('services.selcom.api_key', self::API_KEY);
+        config()->set('services.selcom.api_secret', self::API_SECRET);
+
+        $timestamp = now()->format('Y-m-d\\TH:i:sP');
+        $parts = ['timestamp='.$timestamp];
+        foreach ($fields as $field) {
+            $value = $body[$field] ?? '';
+            $parts[] = $field.'='.(is_scalar($value) ? (string) $value : '');
+        }
+        $digest = base64_encode(hash_hmac('sha256', implode('&', $parts), self::API_SECRET, true));
+
+        return $this->postJson('/api/webhooks/selcom', $body, [
+            'Authorization' => 'SELCOM '.base64_encode(self::API_KEY),
+            'Timestamp' => $timestamp,
+            'Digest-Method' => 'HS256',
+            'Digest' => $digest,
+            'Signed-Fields' => implode(',', $fields),
+        ]);
+    }
+
     private function webhookBody(PaymentTransaction $payment, array $overrides = []): array
     {
         return array_merge([
@@ -541,5 +564,115 @@ class SelcomWebhookTest extends TestCase
 
         // No payment should have been created since the gateway threw before creation
         $this->assertDatabaseCount('payment_transactions', 0);
+    }
+
+    // ------------------------------------------------------------------ F-09
+
+    public function test_a_callback_can_be_redelivered_after_a_rejected_attempt_without_a_500(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-redeliver-0001'));
+        $body = $this->webhookBody($payment, ['transid' => 'TXN-REDELIVER-1']);
+
+        // First delivery is rejected (amount mismatch) and logged as failed...
+        $this->postWebhook(array_merge($body, ['amount' => '1']))->assertStatus(422);
+        $this->assertDatabaseHas('selcom_webhook_logs', ['transid' => 'TXN-REDELIVER-1', 'processed_successfully' => false]);
+
+        // ...the provider retries the same transid with the correct amount. This used to
+        // crash on the unique index when the log row was created a second time.
+        $this->postWebhook($body)->assertOk()->assertJsonPath('result', 'OK');
+
+        $this->assertSame(1, \DB::table('selcom_webhook_logs')->where('transid', 'TXN-REDELIVER-1')->count());
+        $this->assertDatabaseHas('selcom_webhook_logs', ['transid' => 'TXN-REDELIVER-1', 'processed_successfully' => true]);
+    }
+
+    public function test_a_callback_without_transid_is_still_deduplicated(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-no-transid-0001'));
+        $body = $this->webhookBody($payment);
+        unset($body['transid']);
+
+        $fields = ['order_id', 'reference', 'result', 'resultcode', 'payment_status'];
+        $this->postWebhookSignedOver($body, $fields)->assertOk()->assertJsonMissingPath('duplicate');
+        $this->postWebhookSignedOver($body, $fields)->assertOk()->assertJsonPath('duplicate', true);
+
+        $this->assertSame(1, \DB::table('selcom_webhook_logs')->count());
+    }
+
+    public function test_signature_must_cover_order_id_and_payment_status(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-signed-fields-0001'));
+        $body = $this->webhookBody($payment);
+
+        config()->set('services.selcom.api_key', self::API_KEY);
+        config()->set('services.selcom.api_secret', self::API_SECRET);
+
+        $timestamp = now()->format('Y-m-d\\TH:i:sP');
+        $fields = ['transid', 'reference']; // valid HMAC, but does not sign order/status
+        $digest = $this->sign($timestamp, $fields, $body);
+
+        $this->postJson('/api/webhooks/selcom', $body, [
+            'Authorization' => 'SELCOM '.base64_encode(self::API_KEY),
+            'Timestamp' => $timestamp,
+            'Digest-Method' => 'HS256',
+            'Digest' => $digest,
+            'Signed-Fields' => implode(',', $fields),
+        ])->assertStatus(401);
+    }
+
+    public function test_non_scalar_signed_field_is_rejected_cleanly(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-array-field-0001'));
+
+        $this->postWebhookSignedOver(
+            $this->webhookBody($payment, ['transid' => ['x']]),
+            ['transid', 'order_id', 'reference', 'result', 'resultcode', 'payment_status'],
+        )->assertStatus(401);
+    }
+
+    public function test_payer_personal_details_are_not_stored_in_the_callback_log(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-pii-0001'));
+
+        $this->postWebhook($this->webhookBody($payment, ['transid' => 'TXN-PII-1', 'msisdn' => '255700111222']))->assertOk();
+
+        $log = \App\Models\SelcomWebhookLog::query()->where('transid', 'TXN-PII-1')->firstOrFail();
+        $this->assertArrayNotHasKey('phone', $log->raw_payload);
+        $this->assertArrayNotHasKey('msisdn', $log->raw_payload);
+        $this->assertSame('COMPLETED', $log->raw_payload['payment_status']);
+    }
+
+    // ------------------------------------------------------- N-06 / F-14
+
+    public function test_a_completed_callback_without_an_amount_is_held_for_review_not_fulfilled(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-no-amount-0001'));
+        $body = $this->webhookBody($payment, ['transid' => 'TXN-NOAMOUNT-1']);
+        unset($body['amount']);
+
+        $this->postWebhook($body)->assertOk();
+
+        $payment->refresh();
+        $this->assertSame('reconciliation_required', $payment->status->value);
+        $this->assertTrue($payment->payload['needs_review'] ?? false);
+        $this->assertDatabaseHas('wear_orders', ['id' => $payment->wear_order_id, 'status' => 'pending_payment']);
+        $this->assertDatabaseMissing('wear_inventory_movements', ['reason' => 'Sale']);
+    }
+
+    public function test_an_amount_formatted_with_decimals_is_accepted(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-decimal-amount-0001'));
+        $amount = number_format((float) $payment->order->total, 2, '.', '');
+
+        $this->postWebhook($this->webhookBody($payment, ['amount' => $amount]))->assertOk();
+
+        $this->assertSame('paid', $payment->fresh()->status->value);
+    }
+
+    public function test_a_non_numeric_amount_is_rejected(): void
+    {
+        $payment = $this->paymentFor($this->checkout('webhook-bad-amount-0001'));
+
+        $this->postWebhook($this->webhookBody($payment, ['amount' => 'abc']))->assertStatus(422);
+        $this->assertSame('pending', $payment->fresh()->status->value);
     }
 }

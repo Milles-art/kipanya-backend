@@ -30,17 +30,17 @@ final class OrderService
 
     public function create(User $user, CreateWearOrderData $data): WearOrder
     {
-        return DB::transaction(function () use ($user, $data): WearOrder {
+        // Identifies WHAT was requested, so replaying an idempotency key with a different
+        // request is an error instead of silently returning the earlier order.
+        $fingerprint = hash('sha256', $data->addressId.'|'.($data->notes ?? ''));
+
+        return DB::transaction(function () use ($user, $data, $fingerprint): WearOrder {
             $existing = WearOrder::query()
                 ->where('checkout_idempotency_key', $data->idempotencyKey)
                 ->first();
 
             if ($existing) {
-                if ($existing->user_id !== $user->id) {
-                    throw ValidationException::withMessages([
-                        'idempotency_key' => 'This idempotency key is already in use.',
-                    ]);
-                }
+                $this->assertSameRequest($existing, $user, $fingerprint);
 
                 return $existing->load(['items', 'payments', 'stockReservation.items.variant.product']);
             }
@@ -68,6 +68,7 @@ final class OrderService
                 $order = WearOrder::create([
                     'order_number' => $this->orderNumber(),
                     'checkout_idempotency_key' => $data->idempotencyKey,
+                    'checkout_fingerprint' => $fingerprint,
                     'user_id' => $user->id,
                     'customer_name' => $address->recipient_name,
                     'customer_phone' => $address->phone,
@@ -96,11 +97,7 @@ final class OrderService
                     ->where('checkout_idempotency_key', $data->idempotencyKey)
                     ->firstOrFail();
 
-                if ($existing->user_id !== $user->id) {
-                    throw ValidationException::withMessages([
-                        'idempotency_key' => 'This idempotency key is already in use.',
-                    ]);
-                }
+                $this->assertSameRequest($existing, $user, $fingerprint);
 
                 return $existing->load(['items', 'payments', 'stockReservation.items.variant.product']);
             }
@@ -118,7 +115,7 @@ final class OrderService
                     'color' => $cartItem->variant->color,
                     'quantity' => $cartItem->quantity,
                     'unit_price' => $unitPrice,
-                    'line_total' => $unitPrice * $cartItem->quantity,
+                    'line_total' => round($unitPrice * $cartItem->quantity, 2),
                 ]);
             }
 
@@ -144,6 +141,25 @@ final class OrderService
 
             return $order->fresh(['items', 'payments', 'stockReservation.items.variant.product']);
         });
+    }
+
+    /**
+     * An idempotency key may only replay the SAME request by the SAME user.
+     */
+    private function assertSameRequest(WearOrder $existing, User $user, string $fingerprint): void
+    {
+        if ($existing->user_id !== $user->id) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => 'This idempotency key is already in use.',
+            ]);
+        }
+
+        // Orders created before the fingerprint existed have none and keep replaying.
+        if ($existing->checkout_fingerprint !== null && ! hash_equals($existing->checkout_fingerprint, $fingerprint)) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => 'This idempotency key was already used for a different checkout request.',
+            ]);
+        }
     }
 
     public function cancel(WearOrder $order, User $user): WearOrder

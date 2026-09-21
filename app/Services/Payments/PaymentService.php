@@ -75,13 +75,26 @@ final class PaymentService
         $status = $this->normalizeProviderStatus((string) ($providerState['status'] ?? ''));
         $amount = $providerState['amount'] ?? null;
 
-        if ($amount !== null && (string) $amount !== '') {
-            $expected = (string) ((int) round((float) $order->total));
-            if ((string) $amount !== $expected) {
+        $hasAmount = $amount !== null && (string) $amount !== '';
+
+        if ($hasAmount) {
+            // Compare numerically: "56000", "56000.00" and 56000 are the same amount.
+            if (! is_numeric($amount) || abs((float) $amount - (float) $order->total) >= 0.005) {
                 throw ValidationException::withMessages([
                     'amount' => 'Provider callback amount does not match the order.',
                 ]);
             }
+        } elseif ($status === 'completed') {
+            // Fail closed: a payment we cannot amount-check is never auto-fulfilled.
+            return $this->stateMachine->holdForReview(
+                $payment,
+                [
+                    'transid' => $providerState['transid'] ?? null,
+                    'reference' => $providerState['reference'] ?? null,
+                    'raw' => $providerState['payload'] ?? [],
+                ],
+                'completed_without_amount',
+            );
         }
 
         if (isset($providerState['currency']) && $providerState['currency'] !== '') {
