@@ -1,0 +1,45 @@
+source_index,category,product_slug,role,file,sort_order
+1,T-Shirts,kp-icon-black,front,assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp,1
+2,T-Shirts,redefined-graffiti-white,front,assets/wear/catalog/products/t-shirts/kp-wear-redefined-graffiti-white-front.webp,1
+3,T-Shirts,city-crown-sand,front,assets/wear/catalog/products/t-shirts/kp-wear-city-crown-sand-front.webp,1
+4,T-Shirts,nothing-but-konfidence-black,front,assets/wear/catalog/products/t-shirts/kp-wear-nothing-but-konfidence-black-front.webp,1
+5,T-Shirts,nothing-but-konfidence-black,back,assets/wear/catalog/products/t-shirts/kp-wear-nothing-but-konfidence-black-back.webp,2
+6,T-Shirts,nothing-but-konfidence-black,lifestyle,assets/wear/catalog/products/t-shirts/kp-wear-nothing-but-konfidence-black-lifestyle.webp,3
+7,T-Shirts,kp-signature-block-white,front,assets/wear/catalog/products/t-shirts/kp-wear-kp-signature-block-white-front.webp,1
+8,T-Shirts,kp-signature-block-white,back,assets/wear/catalog/products/t-shirts/kp-wear-kp-signature-block-white-back.webp,2
+9,T-Shirts,kp-signature-block-white,lifestyle,assets/wear/catalog/products/t-shirts/kp-wear-kp-signature-block-white-lifestyle.webp,3
+10,T-Shirts,kp-signature-block-white,lifestyle-2,assets/wear/catalog/products/t-shirts/kp-wear-kp-signature-block-white-lifestyle-2.webp,4
+11,Hoodies,redefined-graphic-red,front,assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-front.webp,1
+12,Hoodies,redefined-graphic-red,back,assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-back.webp,2
+13,Hoodies,redefined-graphic-red,lifestyle,assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-lifestyle.webp,3
+14,T-Shirts,kp-mascot-black,front,assets/wear/catalog/products/t-shirts/kp-wear-kp-mascot-black-front.webp,1
+15,T-Shirts,kp-mascot-black,back,assets/wear/catalog/products/t-shirts/kp-wear-kp-mascot-black-back.webp,2
+16,T-Shirts,kp-block-black,front,assets/wear/catalog/products/t-shirts/kp-wear-kp-block-black-front.webp,1
+17,T-Shirts,kp-block-black,back,assets/wear/catalog/products/t-shirts/kp-wear-kp-block-black-back.webp,2
+18,T-Shirts,kp-block-black,lifestyle,assets/wear/catalog/products/t-shirts/kp-wear-kp-block-black-lifestyle.webp,3
+19,T-Shirts,know-your-worth-peach,front,assets/wear/catalog/products/t-shirts/kp-wear-know-your-worth-peach-front.webp,1
+20,T-Shirts,know-your-worth-peach,back,assets/wear/catalog/products/t-shirts/kp-wear-know-your-worth-peach-back.webp,2
+21,T-Shirts,real-men-build-better-navy,front,assets/wear/catalog/products/t-shirts/kp-wear-real-men-build-better-navy-front.webp,1
+22,T-Shirts,real-men-build-better-navy,back,assets/wear/catalog/products/t-shirts/kp-wear-real-men-build-better-navy-back.webp,2
+23,Hoodies,kp-icon-navy,front,assets/wear/catalog/products/hoodies/kp-wear-kp-icon-navy-front.webp,1
+24,Hoodies,forest-cream-panel,front,assets/wear/catalog/products/hoodies/kp-wear-forest-cream-panel-front.webp,1
+25,Hoodies,mocha-cream-panel,front,assets/wear/catalog/products/hoodies/kp-wear-mocha-cream-panel-front.webp,1
+26,Hoodies,black-gold-statement,front,assets/wear/catalog/products/hoodies/kp-wear-black-gold-statement-front.webp,1
+27,Hoodies,navy-blue-colorblock,front,assets/wear/catalog/products/hoodies/kp-wear-navy-blue-colorblock-front.webp,1
+28,Long Sleeves,black-olive-diagonal,front,assets/wear/catalog/products/long-sleeves/kp-wear-black-olive-diagonal-front.webp,1
+29,Long Sleeves,white-black-olive-graphic,front,assets/wear/catalog/products/long-sleeves/kp-wear-white-black-olive-graphic-front.webp,1
+30,Long Sleeves,kilimanjaro-heritage-sand,front,assets/wear/catalog/products/long-sleeves/kp-wear-kilimanjaro-heritage-sand-front.webp,1
+31,Long Sleeves,black-lion,front,assets/wear/catalog/products/long-sleeves/kp-wear-black-lion-front.webp,1
+32,Polos,sand-black-diagonal,front,assets/wear/catalog/products/polos/kp-wear-sand-black-diagonal-front.webp,1
+33,Polos,sand-brown-minimal,front,assets/wear/catalog/products/polos/kp-wear-sand-brown-minimal-front.webp,1
+34,Polos,sand-red-graffiti,front,assets/wear/catalog/products/polos/kp-wear-sand-red-graffiti-front.webp,1
+35,Polos,sand-red-graffiti,back,assets/wear/catalog/products/polos/kp-wear-sand-red-graffiti-back.webp,2
+36,Polos,burgundy-classic,front,assets/wear/catalog/products/polos/kp-wear-burgundy-classic-front.webp,1
+37,Polos,burgundy-classic,back,assets/wear/catalog/products/polos/kp-wear-burgundy-classic-back.webp,2
+38,Polos,black-icon,front,assets/wear/catalog/products/polos/kp-wear-black-icon-front.webp,1
+39,Polos,black-icon,back,assets/wear/catalog/products/polos/kp-wear-black-icon-back.webp,2
+40,Polos,white-graffiti,front,assets/wear/catalog/products/polos/kp-wear-white-graffiti-front.webp,1
+41,Polos,white-graffiti,back,assets/wear/catalog/products/polos/kp-wear-white-graffiti-back.webp,2
+42,Polos,white-graffiti,lifestyle,assets/wear/catalog/products/polos/kp-wear-white-graffiti-lifestyle.webp,3
+43,Polos,white-graffiti,lifestyle-2,assets/wear/catalog/products/polos/kp-wear-white-graffiti-lifestyle-2.webp,4
+44,Polos,sand-minimal-icon,front,assets/wear/catalog/products/polos/kp-wear-sand-minimal-icon-front.webp,1

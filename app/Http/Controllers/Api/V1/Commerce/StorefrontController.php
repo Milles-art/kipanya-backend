@@ -104,7 +104,7 @@ final class StorefrontController extends Controller
         return response()->json([
             'data' => [
                 'hero' => [
-                    'eyebrow' => StorefrontSetting::value('hero_eyebrow', 'KIPANYA WEAR'),
+                    'eyebrow' => StorefrontSetting::value('hero_eyebrow', 'KP WEAR'),
                     'title' => StorefrontSetting::value('hero_title', 'Wear your story.'),
                     'description' => StorefrontSetting::value('hero_description'),
                     'cta_label' => StorefrontSetting::value('hero_cta_label', 'Shop now'),

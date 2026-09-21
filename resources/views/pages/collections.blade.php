@@ -68,22 +68,22 @@
 <div class="kp-store-page" data-product-url-template="{{ route('product', ['slug' => '__SLUG__']) }}">
     <div class="kp-store-wrap">
         {{-- Fashion-store hero: three shop catalogue images, no generated/editorial artwork. --}}
-        <section class="kp-store-hero kp-reveal" aria-label="Kipanya Wear collections">
+        <section class="kp-store-hero kp-reveal" aria-label="KP Wear collections">
             <article class="kp-store-hero-main">
-                <img class="kp-store-img" src="{{ asset('assets/wear/catalog/generated/product-01.jpg') }}" alt="Kipanya Wear featured piece">
+                <img class="kp-store-img" src="{{ asset('assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp') }}" alt="KP Wear featured piece">
                 <div class="kp-store-overlay">
-                    <div class="kp-store-label">Kipanya Wear / Collections</div>
+                    <div class="kp-store-label">KP Wear / Collections</div>
                     <h1>More than clothes.<br>It's a lifestyle.</h1>
                     <a class="kp-store-link" href="{{ route('shop') }}">Shop the pieces <span>→</span></a>
                 </div>
             </article>
             <div class="kp-store-hero-side">
                 <article>
-                    <img class="kp-store-img" src="{{ asset('assets/wear/catalog/generated/product-11.jpg') }}" alt="Kipanya Wear hoodie">
+                    <img class="kp-store-img" src="{{ asset('assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-front.webp') }}" alt="KP Wear hoodie">
                     <div class="kp-store-overlay"><div class="kp-store-label">Knitwear & Layers</div><h2>Everyday layers</h2></div>
                 </article>
                 <article>
-                    <img class="kp-store-img" src="{{ asset('assets/wear/catalog/generated/product-09.jpg') }}" alt="Kipanya Wear streetwear piece">
+                    <img class="kp-store-img" src="{{ asset('assets/wear/catalog/products/t-shirts/kp-wear-nothing-but-konfidence-black-front.webp') }}" alt="KP Wear streetwear piece">
                     <div class="kp-store-overlay"><div class="kp-store-label">Streetwear</div><h2>Made to move</h2></div>
                 </article>
             </div>
@@ -96,10 +96,15 @@
                 <a href="{{ route('shop') }}">View all →</a>
             </div>
             <div class="kp-store-products" data-collections-new-arrivals>
-                @foreach(range(1,4) as $i)
+                @foreach([
+                    ['kp-wear-redefined-graphic-red-front.webp', 'hoodies', 'KP Redefined Graphic Hoodie'],
+                    ['kp-redefined-graffiti-white-front.webp', 't-shirts', 'KP Redefined Graffiti T-Shirt'],
+                    ['kp-wear-sand-red-graffiti-front.webp', 'polos', 'KP Redefined Graffiti Polo'],
+                    ['kp-wear-kilimanjaro-heritage-sand-front.webp', 'long-sleeves', 'Kilimanjaro Heritage Long Sleeve'],
+                ] as [$file, $folder, $name])
                     <a class="kp-product-card" href="{{ route('shop') }}">
-                        <div class="kp-product-media"><img src="{{ asset('assets/wear/catalog/generated/product-0'.$i.'.jpg') }}" alt="Kipanya Wear product" loading="lazy"></div>
-                        <div class="kp-product-meta"><div class="kp-product-brand">Kipanya Wear</div><div class="kp-product-name">Shop the latest Wear pieces</div><div class="kp-product-price">View price →</div></div>
+                        <div class="kp-product-media"><img src="{{ asset('assets/wear/catalog/products/'.$folder.'/'.$file) }}" alt="{{ $name }}" loading="lazy"></div>
+                        <div class="kp-product-meta"><div class="kp-product-brand">KP Wear</div><div class="kp-product-name">{{ $name }}</div><div class="kp-product-price">Shop now →</div></div>
                     </a>
                 @endforeach
             </div>
@@ -116,16 +121,18 @@
                 <a class="kp-store-link" href="{{ route('collection', 'everyday-essentials') }}">Explore Everyday Essentials →</a>
             </div>
             <div class="kp-feature">
-                <div class="kp-feature-image"><img src="{{ asset('assets/wear/catalog/generated/product-05.jpg') }}" alt="Kipanya Wear everyday piece" loading="lazy"></div>
-                {{-- Fixed: filenames were unpadded for single-digit numbers
-                     (product-6.jpg, product-7.jpg) while every other asset
-                     in this file is two-digit (product-08, product-11,
-                     product-16...). sprintf pads them to match. --}}
+                <div class="kp-feature-image"><img src="{{ asset('assets/wear/catalog/products/long-sleeves/kp-wear-kilimanjaro-heritage-sand-front.webp') }}" alt="KP Wear everyday piece" loading="lazy"></div>
+                
                 <div class="kp-feature-products" data-collections-everyday>
-                    @foreach([6,7,10,12] as $i)
+                    @foreach([
+                        ['kp-wear-kp-icon-navy-front.webp', 'hoodies', 'KP Icon Hoodie'],
+                        ['kp-wear-kp-mascot-black-front.webp', 't-shirts', 'KP Mascot T-Shirt Black'],
+                        ['kp-wear-sand-minimal-icon-front.webp', 'polos', 'KP Minimal Icon Polo'],
+                        ['kp-wear-black-lion-front.webp', 'long-sleeves', 'Lion Heritage Long Sleeve'],
+                    ] as [$file, $folder, $name])
                         <a class="kp-product-card" href="{{ route('shop') }}">
-                            <div class="kp-product-media"><img src="{{ asset('assets/wear/catalog/generated/product-'.sprintf('%02d', $i).'.jpg') }}" alt="Kipanya Wear product" loading="lazy"></div>
-                            <div class="kp-product-meta"><div class="kp-product-brand">Kipanya Wear</div><div class="kp-product-name">Everyday collection piece</div><div class="kp-product-price">View price →</div></div>
+                            <div class="kp-product-media"><img src="{{ asset('assets/wear/catalog/products/'.$folder.'/'.$file) }}" alt="{{ $name }}" loading="lazy"></div>
+                            <div class="kp-product-meta"><div class="kp-product-brand">KP Wear</div><div class="kp-product-name">{{ $name }}</div><div class="kp-product-price">Shop now →</div></div>
                         </a>
                     @endforeach
                 </div>
@@ -135,7 +142,7 @@
         {{-- Story intro. --}}
         <section id="the-story" class="kp-story kp-reveal">
             <div>
-                <div class="kp-story-kicker">Kipanya Wear / Collections</div>
+                <div class="kp-story-kicker">KP Wear / Collections</div>
                 <h2>Wear your story.</h2>
             </div>
             <div>
@@ -154,7 +161,7 @@
         {{-- Full-width closing shop image. --}}
         <section class="kp-store-section kp-reveal" style="padding-bottom:72px">
             <div class="kp-full-image">
-                <img src="{{ asset('assets/wear/catalog/generated/product-16.jpg') }}" alt="Kipanya Wear collection" loading="lazy">
+                <img src="{{ asset('assets/wear/catalog/products/polos/kp-wear-white-graffiti-front.webp') }}" alt="KP Wear collection" loading="lazy">
             </div>
         </section>
     </div>
@@ -193,9 +200,9 @@
         if(!root || !products.length)return;
         root.innerHTML = products.map(p=>{
             const image=p.image||p.image_url||'';
-            const name=p.name||'Kipanya Wear product';
+            const name=p.name||'KP Wear product';
             const price=Number(p.price||0).toLocaleString('en-TZ');
-            return `<a class="kp-product-card" href="${productUrl(p)}"><div class="kp-product-media"><img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" loading="lazy"></div><div class="kp-product-meta"><div class="kp-product-brand">Kipanya Wear</div><div class="kp-product-name">${escapeHtml(name)}</div><div class="kp-product-price">TZS ${price}</div></div></a>`;
+            return `<a class="kp-product-card" href="${productUrl(p)}"><div class="kp-product-media"><img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" loading="lazy"></div><div class="kp-product-meta"><div class="kp-product-brand">KP Wear</div><div class="kp-product-name">${escapeHtml(name)}</div><div class="kp-product-price">TZS ${price}</div></div></a>`;
         }).join('');
     }
 

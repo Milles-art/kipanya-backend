@@ -290,7 +290,7 @@
     const image = product?.image;
 
     if (!image) {
-      return '/assets/wear/catalog/generated/product-01.jpg';
+      return '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp';
     }
 
     try {
@@ -387,7 +387,7 @@
                     src="${escapeHtml(image)}"
                     alt="${escapeHtml(p.name || 'Product')}"
                     loading="lazy"
-                    data-fallback="/assets/wear/catalog/generated/product-01.jpg"
+                    data-fallback="/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp"
                     class="h-full w-full object-contain p-4 transition duration-500 ease-out group-hover:scale-105"
                   >
                 </a>
@@ -694,7 +694,7 @@ const bootHome = async () => {
       }
 
       host.innerHTML = collections.slice(0, 3).map(collection => {
-        const image = collection.cover || collection.image || '/assets/wear/catalog/generated/product-01.jpg';
+        const image = collection.cover || collection.image || '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp';
 
         return `
           <a
@@ -706,7 +706,7 @@ const bootHome = async () => {
               alt="${escapeHtml(collection.name || 'Collection')}"
               class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
               loading="lazy"
-              data-fallback="/assets/wear/catalog/generated/product-01.jpg"
+              data-fallback="/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp"
             >
             <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"></div>
             <div class="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
@@ -839,19 +839,19 @@ const bootHome = async () => {
   if (!page || !grid) return;
 
   const fallbackImages = {
-    'new-arrivals': 'product-15.jpg',
-    'everyday-essentials': 'product-10.jpg',
-    'streetwear': 'product-07.jpg',
-    'polos-and-shirts': 'product-13.jpg',
-    't-shirts': 'product-03.jpg',
-    'hoodies-and-sweatshirts': 'product-11.jpg',
-    'premium-edit': 'product-16.jpg'
+        'new-arrivals': '/assets/wear/catalog/products/t-shirts/kp-wear-redefined-graffiti-white-front.webp',
+        'everyday-essentials': '/assets/wear/catalog/products/hoodies/kp-wear-kp-icon-navy-front.webp',
+        'streetwear': '/assets/wear/catalog/products/t-shirts/kp-wear-nothing-but-konfidence-black-front.webp',
+        'polos-and-shirts': '/assets/wear/catalog/products/polos/kp-wear-sand-brown-minimal-front.webp',
+        't-shirts': '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp',
+        'hoodies-and-sweatshirts': '/assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-front.webp',
+        'premium-edit': '/assets/wear/catalog/products/long-sleeves/kp-wear-kilimanjaro-heritage-sand-front.webp'
   };
 
   try {
     const collections = await fetchCollections();
     grid.innerHTML = collections.map((collection, index) => {
-      const image = collection.cover || `/assets/wear/catalog/generated/${fallbackImages[collection.slug] || 'product-01.jpg'}`;
+      const image = collection.cover || fallbackImages[collection.slug] || '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp';
       const wide = index === 0 || index === 2;
       return `
         <a href="/collections/${encodeURIComponent(collection.slug)}" class="group relative overflow-hidden rounded-[1.5rem] bg-gray-100 ${wide ? 'lg:col-span-8' : 'lg:col-span-4'} aspect-[4/3]">
@@ -1241,11 +1241,31 @@ const bootCatalog = async () => {
       main.alt = p.name || 'Product';
 
       const gallery = page.querySelector('[data-product-gallery]');
-      if (gallery && p.image) {
-        gallery.innerHTML = `<button type="button" data-gallery-image="${escapeHtml(p.image)}" class="overflow-hidden rounded-xl border-2 border-gray-950 bg-gray-50"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name || 'Product')}" class="aspect-square w-full object-contain p-2"></button>`;
+      const galleryItems = Array.isArray(p.gallery) && p.gallery.length
+        ? p.gallery
+        : (p.image ? [{ url: p.image, role: 'front', alt: p.name || 'Product' }] : []);
+
+      if (gallery) {
+        gallery.innerHTML = galleryItems.map((item, index) => {
+          const url = item?.url || item?.image || '';
+          if (!url) return '';
+          const active = index === 0;
+          return `<button type="button" data-gallery-image="${escapeHtml(url)}" class="overflow-hidden rounded-xl border-2 ${active ? 'border-gray-950' : 'border-transparent'} bg-gray-50 transition hover:border-gray-300" aria-label="${escapeHtml(item?.alt || p.name || 'Product')}">
+            <img src="${escapeHtml(url)}" alt="${escapeHtml(item?.alt || p.name || 'Product')}" class="aspect-square w-full object-contain p-2" loading="lazy">
+          </button>`;
+        }).join('');
+
         gallery.addEventListener('click', e => {
           const button = e.target.closest('[data-gallery-image]');
-          if (button) main.src = button.dataset.galleryImage;
+          if (!button) return;
+
+          main.src = button.dataset.galleryImage;
+          gallery.querySelectorAll('[data-gallery-image]').forEach(item => {
+            item.classList.remove('border-gray-950');
+            item.classList.add('border-transparent');
+          });
+          button.classList.remove('border-transparent');
+          button.classList.add('border-gray-950');
         });
       }
 
@@ -1369,7 +1389,7 @@ const bootCatalog = async () => {
         return `
           <article class="flex gap-4 py-5 sm:gap-6">
             <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-50 sm:h-32 sm:w-28">
-              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" data-fallback="/assets/wear/catalog/generated/product-01.jpg">
+              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" data-fallback="/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp">
             </a>
 
             <div class="min-w-0 flex-1">

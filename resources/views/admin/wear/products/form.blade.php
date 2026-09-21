@@ -51,7 +51,7 @@
             @endif
             <input class="field w-full" type="file" name="image" accept="image/jpeg,image/png,image/webp,image/avif">
             <p class="text-xs text-gray-400">Upload JPG, PNG, WebP or AVIF, up to 5 MB. You can still use a path or remote URL below.</p>
-            <input class="field w-full" name="image_path" value="{{ old('image_path', $product->image_path) }}" maxlength="500" placeholder="assets/wear/catalog/generated/product-01.jpg">
+            <input class="field w-full" name="image_path" value="{{ old('image_path', $product->image_path) }}" maxlength="500" placeholder="assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-front.webp">
         </div>
 
         <div>

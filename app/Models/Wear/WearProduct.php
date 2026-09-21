@@ -37,27 +37,27 @@ class WearProduct extends Model
         return $this->hasMany(WearProductVariant::class);
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(WearProductImage::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
     public function getImageUrlAttribute(): string
     {
         if (! $this->image_path) {
             return asset('assets/wear/catalog/placeholder.svg');
         }
 
-        if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
+        if (preg_match('/^https?:\/\//i', $this->image_path)) {
             return $this->image_path;
         }
 
-        if (preg_match('/product-(\d+)\.jpg$/', $this->image_path, $matches)) {
-            $number = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
-            $relative = "assets/wear/catalog/generated/product-{$number}.jpg";
+        $relative = ltrim($this->image_path, '/');
 
-            return file_exists(public_path($relative))
-                ? asset($relative)
-                : asset('assets/wear/catalog/placeholder.svg');
-        }
-
-        return file_exists(public_path($this->image_path))
-            ? asset($this->image_path)
+        return file_exists(public_path($relative))
+            ? asset($relative)
             : asset('assets/wear/catalog/placeholder.svg');
     }
 }

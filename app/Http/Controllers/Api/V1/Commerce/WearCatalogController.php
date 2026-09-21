@@ -116,7 +116,7 @@ final class WearCatalogController extends Controller
     {
         abort_unless($product->is_active, 404);
 
-        $product->load('variants');
+        $product->load(['variants', 'images']);
 
         return new WearProductResource($product);
     }

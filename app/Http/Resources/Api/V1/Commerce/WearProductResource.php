@@ -18,6 +18,12 @@ final class WearProductResource extends JsonResource
             'price' => (float) $this->price,
             'compare_at_price' => $this->compare_at_price !== null ? (float) $this->compare_at_price : null,
             'image' => $this->image_url,
+            'gallery' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
+                'id' => $image->id,
+                'url' => $image->url,
+                'role' => $image->role,
+                'alt' => $image->alt_text ?: $this->name,
+            ])->values()),
             'badge' => $this->badge,
             'is_featured' => (bool) $this->is_featured,
             'availability' => $this->availabilityLabel(),
