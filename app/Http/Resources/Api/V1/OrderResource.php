@@ -13,6 +13,7 @@ class OrderResource extends JsonResource
             'order_number' => $this->order_number,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
             'payment_status' => $this->payment_status instanceof \BackedEnum ? $this->payment_status->value : $this->payment_status,
+            'payment_method' => $this->payment_method,
             'subtotal' => (float) $this->subtotal,
             'delivery_fee' => (float) $this->delivery_fee,
             'total' => (float) $this->total,

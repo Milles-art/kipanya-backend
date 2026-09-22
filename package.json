@@ -1,8 +1,12 @@
 {
   "private": true,
   "type": "module",
-  "scripts": {"dev": "vite", "build": "vite build"},
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "autoprefixer": "^10.6.1",
     "laravel-vite-plugin": "^3.2.0",
     "postcss": "^8.4.49",

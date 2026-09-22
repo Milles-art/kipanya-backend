@@ -30,9 +30,13 @@ final class OrderService
 
     public function create(User $user, CreateWearOrderData $data): WearOrder
     {
+        // Falls back to the checkout page's default selection when the client omits it,
+        // rather than leaving the order with no recorded payment method.
+        $paymentMethod = $data->paymentMethod ?? 'mobile_money';
+
         // Identifies WHAT was requested, so replaying an idempotency key with a different
         // request is an error instead of silently returning the earlier order.
-        $fingerprint = hash('sha256', $data->addressId.'|'.($data->notes ?? ''));
+        $fingerprint = hash('sha256', $data->addressId.'|'.($data->notes ?? '').'|'.$paymentMethod);
 
         return DB::transaction(function () use ($user, $data, $fingerprint): WearOrder {
             $existing = WearOrder::query()
@@ -86,6 +90,7 @@ final class OrderService
                     'total' => $preview['total'],
                     'status' => OrderStatus::PendingPayment,
                     'payment_status' => PaymentStatus::Pending,
+                    'payment_method' => $paymentMethod,
                     'placed_at' => now(),
                 ]);
             } catch (QueryException $e) {

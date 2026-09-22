@@ -27,6 +27,7 @@ final class CheckoutController extends Controller
                 addressId: $request->integer('address_id'),
                 notes: $request->input('notes'),
                 idempotencyKey: $idempotencyKey,
+                paymentMethod: $request->input('payment_method'),
             ),
         );
 

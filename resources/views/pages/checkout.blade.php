@@ -114,7 +114,7 @@
 
                         </span>
 
-                        <a href="{{ route('account.profile') }}" class="text-xs font-medium text-emerald-600 hover:underline">Edit</a>
+                        <a href="{{ route('account.profile') }}" class="text-xs font-medium text-blue-600 hover:underline">Edit</a>
 
                     </div>
 
@@ -130,7 +130,7 @@
 
                     <div class="flex items-start gap-3">
 
-                        <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-violet-50 text-violet-600">
+                        <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
 
                             <x-tabler-map-pin size="18" />
 
@@ -142,7 +142,7 @@
 
                                 Delivery address
 
-                                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">Optional</span>
+                                <span data-address-required-badge class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">Required</span>
 
                             </p>
 
@@ -166,63 +166,22 @@
 
                     </button>
 
-                    <button type="button" data-open-address-modal class="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md">
+                    {{-- The header button above already opens this same address modal, so a
+                         second "Add delivery address" button here just duplicated it. This
+                         slot is the order-note shortcut instead — see the removed standalone
+                         Order note card below. --}}
 
-                        <x-tabler-plus size="16" />
+                    <button type="button" data-open-note-modal class="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:shadow">
 
-                        Add delivery address
-
-                    </button>
-
-                </div>
-
-            </section>
-
-            {{-- ORDER NOTE (compact, collapsed) --}}
-
-            <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
-                <button type="button" data-open-note-modal class="flex w-full items-start justify-between gap-3 text-left">
-
-                    <div class="flex items-start gap-3">
-
-                        <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-
-                            <x-tabler-file-text size="18" />
-
-                        </span>
-
-                        <div>
-
-                            <p class="flex items-center gap-2 text-base font-bold text-gray-900">
-
-                                Order note
-
-                                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">Optional</span>
-
-                            </p>
-
-                            <p data-checkout-note-summary class="mt-0.5 text-sm text-gray-500">Add special instructions for your order.</p>
-
-                        </div>
-
-                    </div>
-
-                    <x-tabler-chevron-right size="18" class="mt-1.5 flex-shrink-0 text-gray-300" />
-
-                </button>
-
-                <div data-checkout-note-actions class="mt-4">
-
-                    <button type="button" data-open-note-modal class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md">
-
-                        <x-tabler-plus size="16" />
+                        <x-tabler-file-text size="16" class="text-gray-400" />
 
                         Add order note
 
                     </button>
 
                 </div>
+
+                <p data-checkout-note-summary class="mt-3 hidden items-start gap-1.5 text-sm text-gray-500"></p>
 
             </section>
 
@@ -250,9 +209,9 @@
 
                 <div data-checkout-payment-methods class="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-live="polite">
 
-                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-gray-900 bg-white p-4 transition hover:shadow-sm" data-payment-card data-method="mobile_money">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-blue-600 bg-white p-4 transition hover:shadow-sm" data-payment-card data-method="mobile_money">
 
-                        <input type="radio" name="payment_method" value="mobile_money" class="h-4 w-4 accent-gray-900" checked>
+                        <input type="radio" name="payment_method" value="mobile_money" class="h-4 w-4 accent-blue-600" checked>
 
                         <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-700">
 
@@ -272,7 +231,7 @@
 
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 transition hover:shadow-sm" data-payment-card data-method="card">
 
-                        <input type="radio" name="payment_method" value="card" class="h-4 w-4 accent-gray-900">
+                        <input type="radio" name="payment_method" value="card" class="h-4 w-4 accent-blue-600">
 
                         <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-700">
 
@@ -336,7 +295,7 @@
 
                 <p class="text-lg font-bold text-gray-900">Order summary</p>
 
-                <a href="{{ route('cart') }}" class="text-sm font-medium text-emerald-600 hover:underline">Edit cart</a>
+                <a href="{{ route('cart') }}" class="text-sm font-medium text-blue-600 hover:underline">Edit cart</a>
 
             </div>
 
@@ -426,7 +385,7 @@
 
             <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
 
-                <x-tabler-map-pin size="18" class="text-violet-600" />
+                <x-tabler-map-pin size="18" class="text-blue-600" />
 
                 Add delivery address
 
@@ -442,7 +401,7 @@
 
         <div class="mt-5 grid grid-cols-2 gap-2">
 
-            <button type="button" data-address-tab="location" class="rounded-xl border-2 border-gray-900 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white">Use my location</button>
+            <button type="button" data-address-tab="location" class="rounded-xl border-2 border-blue-600 bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Use my location</button>
 
             <button type="button" data-address-tab="manual" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">Enter manually</button>
 
@@ -451,31 +410,37 @@
         {{-- Location panel --}}
 
         <div data-address-panel="location" class="mt-5">
+            <div class="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+                <div class="p-3">
+                    <div class="relative">
+                        <x-tabler-search size="17" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input id="checkout-map-search" data-map-search type="search" autocomplete="off"
+                               class="field w-full pl-10" placeholder="Search for an address or place">
+                        <div data-map-search-results class="absolute left-3 right-3 top-[calc(100%+6px)] z-30 hidden max-h-52 overflow-auto rounded-xl border border-gray-200 bg-white shadow-xl"></div>
+                    </div>
+                </div>
 
-            <div class="flex h-40 items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-400">
+                <div data-mapbox-container class="h-72 w-full"></div>
 
-                Map preview
-
+                <div class="absolute bottom-4 left-4 right-4 z-10 flex gap-2">
+                    <button type="button" data-request-location
+                            class="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 shadow-lg ring-1 ring-black/5 hover:bg-gray-50">
+                        <x-tabler-current-location size="16" />
+                        Use my current location
+                    </button>
+                    <button type="button" data-map-confirm disabled
+                            class="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50">
+                        <x-tabler-check size="16" />
+                        Confirm location
+                    </button>
+                </div>
             </div>
 
-            <p class="mt-4 text-sm text-gray-500">Allow KP Wear to access your location to find your address automatically.</p>
-
-            {{--
-
-                Permission is requested only when this button is clicked —
-
-                never on modal open or page load.
-
-            --}}
-
-            <button type="button" data-request-location class="button-dark mt-4 flex w-full items-center justify-center gap-2 py-3">
-
-                <x-tabler-current-location size="16" />
-
-                Use my current location
-
-            </button>
-
+            <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Selected location</p>
+                <p data-map-address class="mt-1 text-sm text-gray-700">Search, click the map, drag the pin, or use your current location.</p>
+            </div>
+            <p data-map-error class="mt-3 hidden text-sm text-red-600"></p>
         </div>
 
         {{-- Manual entry panel --}}
@@ -512,7 +477,7 @@
 
             <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
 
-                <x-tabler-file-text size="18" class="text-emerald-600" />
+                <x-tabler-file-text size="18" class="text-blue-600" />
 
                 Add order note
 
@@ -799,7 +764,7 @@
 
                 const selected = c === card;
 
-                c.classList.toggle('border-gray-900', selected);
+                c.classList.toggle('border-blue-600', selected);
 
                 c.classList.toggle('border-gray-200', !selected);
 
@@ -847,15 +812,41 @@
 
             if (summary) {
 
-                summary.textContent = [def.recipient_name, [def.region, def.district, def.ward].filter(Boolean).join(', '), def.street].filter(Boolean).join(' · ');
+                summary.textContent = formatAddressSummary(def);
 
             }
+
+            el('[data-address-required-badge]')?.classList.add('hidden');
+
+            updatePayButton();
 
         } catch (e) {
 
             console.error('Failed to load default address:', e);
 
         }
+
+    }
+
+    // De-duplicates parts so a street that's also stored as the region/district
+    // (bad legacy address data) doesn't render twice, e.g. "X · X".
+    function formatAddressSummary(address) {
+
+        const seen = new Set();
+
+        return [
+            address?.recipient_name,
+            [address?.region, address?.district, address?.ward].filter(Boolean).join(', '),
+            address?.street,
+        ]
+            .filter(Boolean)
+            .filter(part => {
+                const key = part.trim().toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            })
+            .join(' · ');
 
     }
 
@@ -874,6 +865,18 @@
         if (state.total === null) {
 
             label.textContent = 'Calculating total…';
+
+            btn.disabled = true;
+
+            arrow?.classList.add('hidden');
+
+            return;
+
+        }
+
+        if (!state.addressId) {
+
+            label.textContent = 'Add a delivery address to continue';
 
             btn.disabled = true;
 
@@ -940,6 +943,8 @@
                     address_id: state.addressId || null,
 
                     notes: state.note || null,
+
+                    payment_method: state.paymentMethod || null,
 
                 }),
 
@@ -1016,11 +1021,10 @@
     const addressModal = el('[data-address-choice-modal]');
 
     document.querySelectorAll('[data-open-address-modal]').forEach(b => b.addEventListener('click', () => {
-
         addressModal?.classList.remove('hidden');
-
         addressModal?.classList.add('flex');
-
+        document.querySelector('[data-address-tab="location"]')?.click();
+        openLocationPanel();
     }));
 
     document.querySelectorAll('[data-close-address-choice]').forEach(b => b.addEventListener('click', () => {
@@ -1041,11 +1045,11 @@
 
                 const active = t === tab;
 
-                t.classList.toggle('bg-gray-900', active);
+                t.classList.toggle('bg-blue-600', active);
 
                 t.classList.toggle('text-white', active);
 
-                t.classList.toggle('border-gray-900', active);
+                t.classList.toggle('border-blue-600', active);
 
                 t.classList.toggle('border-gray-200', !active);
 
@@ -1090,101 +1094,310 @@
         if (input && value) input.value = value;
     }
 
-    async function reverseGeocode(latitude, longitude) {
-        const url = new URL('https://nominatim.openstreetmap.org/reverse');
-        url.searchParams.set('format', 'jsonv2');
-        url.searchParams.set('lat', latitude);
-        url.searchParams.set('lon', longitude);
-        url.searchParams.set('zoom', '18');
-        url.searchParams.set('addressdetails', '1');
+    // ── Mapbox location picker ─────────────────────────────────────
+    const MAPBOX_TOKEN = @json(config('services.mapbox.token'));
 
-        const res = await fetch(url.toString(), {
-            headers: { Accept: 'application/json' },
-            cache: 'no-store',
-        });
+    let mapboxMap = null;
+    let mapboxMarker = null;
+    let selectedCoordinates = null;
+    let selectedMapAddress = null;
+    let mapboxLoad = null;
+    let searchTimer = null;
 
-        if (!res.ok) throw new Error(`Address lookup failed (${res.status})`);
-        return res.json();
+    function setMapError(message) {
+        const box = el('[data-map-error]');
+        if (!box) return;
+        box.textContent = message || '';
+        box.classList.toggle('hidden', !message);
     }
 
-    async function requestCurrentLocation() {
-        if (!('geolocation' in navigator)) {
-            openManualAddressPanel();
-            alert('Location is not supported on this device. Please enter your address manually.');
+    function setMapAddress(message) {
+        const box = el('[data-map-address]');
+        if (box) box.textContent = message || '';
+    }
+
+    function loadMapbox() {
+        if (window.mapboxgl) return Promise.resolve();
+        if (mapboxLoad) return mapboxLoad;
+
+        if (!MAPBOX_TOKEN) {
+            return Promise.reject(new Error('MAPBOX_ACCESS_TOKEN is missing from .env.'));
+        }
+
+        mapboxLoad = new Promise((resolve, reject) => {
+            if (!document.querySelector('[data-mapbox-css]')) {
+                const css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = 'https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css';
+                css.dataset.mapboxCss = '1';
+                document.head.appendChild(css);
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js';
+            script.async = true;
+            script.dataset.mapboxJs = '1';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Could not load Mapbox.'));
+            document.head.appendChild(script);
+        });
+
+        return mapboxLoad;
+    }
+
+    function addressFromFeature(feature) {
+        const c = feature?.properties?.context || {};
+        const pick = (...keys) => keys.map(k => c[k]?.name).find(Boolean) || '';
+
+        const street = feature?.properties?.address || feature?.properties?.name || '';
+        const ward = pick('locality', 'neighborhood');
+        const district = pick('district', 'place', 'locality');
+        const region = pick('region');
+
+        return {
+            recipient_name: window.KP_USER?.name || '',
+            phone: window.KP_USER?.phone || '',
+            region,
+            district,
+            ward,
+            street,
+            formatted: feature?.properties?.full_address ||
+                feature?.properties?.place_formatted ||
+                [street, ward, district, region].filter(Boolean).join(', ')
+        };
+    }
+
+    function applyMapSelection(feature, lng, lat) {
+        selectedCoordinates = { longitude: Number(lng), latitude: Number(lat) };
+        selectedMapAddress = addressFromFeature(feature);
+
+        mapboxMarker?.setLngLat([lng, lat]);
+        setMapAddress(selectedMapAddress.formatted || 'Location selected.');
+        el('[data-map-confirm]')?.removeAttribute('disabled');
+        setMapError('');
+    }
+
+    async function reverseGeocode(lat, lng) {
+        const url = new URL('https://api.mapbox.com/search/geocode/v6/reverse');
+        url.searchParams.set('latitude', lat);
+        url.searchParams.set('longitude', lng);
+        url.searchParams.set('limit', '1');
+        url.searchParams.set('language', 'en');
+        url.searchParams.set('access_token', MAPBOX_TOKEN);
+
+        const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+        if (!res.ok) throw new Error(`Mapbox address lookup failed (${res.status}).`);
+
+        const payload = await res.json();
+        if (!payload?.features?.[0]) throw new Error('No readable address was found here.');
+        return payload.features[0];
+    }
+
+    async function chooseCoordinates(lng, lat, fly = true) {
+        try {
+            setMapError('');
+            setMapAddress('Finding address…');
+
+            const feature = await reverseGeocode(lat, lng);
+
+            if (fly) {
+                mapboxMap?.flyTo({ center: [lng, lat], zoom: 16, essential: true });
+            }
+
+            applyMapSelection(feature, lng, lat);
+        } catch (error) {
+            console.error(error);
+            el('[data-map-confirm]')?.setAttribute('disabled', '');
+            setMapAddress('Location found, but no address could be resolved.');
+            setMapError(error.message || 'Could not resolve this location.');
+        }
+    }
+
+    async function initMapbox() {
+        await loadMapbox();
+
+        if (mapboxMap) {
+            mapboxMap.resize();
             return;
         }
 
-        const locationButton = el('[data-request-location]');
-        const original = locationButton?.innerHTML;
+        mapboxgl.accessToken = MAPBOX_TOKEN;
 
-        if (locationButton) {
-            locationButton.disabled = true;
-            locationButton.innerHTML = 'Finding your location…';
+        mapboxMap = new mapboxgl.Map({
+            container: el('[data-mapbox-container]'),
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [39.2083, -6.7924],
+            zoom: 11
+        });
+
+        mapboxMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        mapboxMarker = new mapboxgl.Marker({ draggable: true })
+            .setLngLat([39.2083, -6.7924])
+            .addTo(mapboxMap);
+
+        mapboxMarker.on('dragend', async () => {
+            const p = mapboxMarker.getLngLat();
+            await chooseCoordinates(p.lng, p.lat);
+        });
+
+        mapboxMap.on('click', async (event) => {
+            mapboxMarker.setLngLat(event.lngLat);
+            await chooseCoordinates(event.lngLat.lng, event.lngLat.lat);
+        });
+
+        mapboxMap.once('load', () => mapboxMap.resize());
+    }
+
+    async function requestCurrentLocation() {
+        if (!navigator.geolocation) {
+            setMapError('Location is not supported on this device. Search for your address instead.');
+            return;
+        }
+
+        const button = el('[data-request-location]');
+        const original = button?.innerHTML;
+
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Finding location…';
         }
 
         navigator.geolocation.getCurrentPosition(
-            async (pos) => {
+            async position => {
                 try {
-                    const result = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-                    const a = result?.address || {};
-
-                    openManualAddressPanel();
-
-                    setAddressField('region', a.state || a.region);
-                    setAddressField(
-                        'district',
-                        a.state_district || a.county || a.city_district ||
-                        a.city || a.town || a.municipality
+                    await initMapbox();
+                    await chooseCoordinates(
+                        position.coords.longitude,
+                        position.coords.latitude,
+                        true
                     );
-                    setAddressField(
-                        'ward',
-                        a.suburb || a.neighbourhood || a.quarter || a.village
-                    );
-                    setAddressField(
-                        'street',
-                        [a.house_number, a.road].filter(Boolean).join(' ')
-                    );
-
-                    const user = window.KP_USER || null;
-                    setAddressField('recipient_name', user?.name);
-                    setAddressField('phone', user?.phone);
                 } catch (error) {
-                    console.error('Reverse geocoding failed:', error);
-                    openManualAddressPanel();
-                    alert('We found your location, but could not resolve the address. Please complete the address manually.');
+                    setMapError(error.message || 'Could not load the map.');
                 } finally {
-                    if (locationButton) {
-                        locationButton.disabled = false;
-                        locationButton.innerHTML = original || 'Use my current location';
+                    if (button) {
+                        button.disabled = false;
+                        button.innerHTML = original || 'Use my current location';
                     }
                 }
             },
-            (err) => {
-                console.warn('Geolocation failed:', err);
-                openManualAddressPanel();
-
-                if (locationButton) {
-                    locationButton.disabled = false;
-                    locationButton.innerHTML = original || 'Use my current location';
-                }
-
-                alert(
-                    err.code === 1
-                        ? 'Location permission was denied. Please enter your address manually.'
-                        : 'Could not get your current location. Please enter your address manually.'
+            error => {
+                setMapError(
+                    error.code === 1
+                        ? 'Location permission was denied. Search for your address or drag the pin.'
+                        : 'Could not get your current location. Search for your address or drag the pin.'
                 );
+
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = original || 'Use my current location';
+                }
             },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 60000,
-            }
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
         );
     }
 
+    async function openLocationPanel() {
+        try {
+            await initMapbox();
+            requestAnimationFrame(() => mapboxMap?.resize());
+        } catch (error) {
+            setMapError(error.message || 'Could not load Mapbox.');
+        }
+    }
+
+    function confirmMapLocation() {
+        if (!selectedMapAddress) {
+            setMapError('Select a location on the map first.');
+            return;
+        }
+
+        setAddressField('recipient_name', selectedMapAddress.recipient_name);
+        setAddressField('phone', selectedMapAddress.phone);
+        setAddressField('region', selectedMapAddress.region);
+        setAddressField('district', selectedMapAddress.district);
+        setAddressField('ward', selectedMapAddress.ward);
+        setAddressField('street', selectedMapAddress.street || selectedMapAddress.formatted);
+
+        openManualAddressPanel();
+    }
+
+    async function searchMapbox(query) {
+        const url = new URL('https://api.mapbox.com/search/geocode/v6/forward');
+        url.searchParams.set('q', query);
+        url.searchParams.set('country', 'TZ');
+        url.searchParams.set('language', 'en');
+        url.searchParams.set('limit', '5');
+        url.searchParams.set('access_token', MAPBOX_TOKEN);
+
+        const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+        if (!res.ok) throw new Error(`Mapbox search failed (${res.status}).`);
+
+        const payload = await res.json();
+        return payload?.features || [];
+    }
+
+    el('[data-map-search]')?.addEventListener('input', event => {
+        clearTimeout(searchTimer);
+
+        const query = event.target.value.trim();
+        const box = el('[data-map-search-results]');
+        if (!box) return;
+
+        if (query.length < 3) {
+            box.innerHTML = '';
+            box.classList.add('hidden');
+            return;
+        }
+
+        searchTimer = setTimeout(async () => {
+            try {
+                const features = await searchMapbox(query);
+
+                box.innerHTML = features.map((feature, index) => `
+                    <button type="button" data-map-result="${index}"
+                        class="block w-full border-b border-gray-100 px-3 py-3 text-left text-sm text-gray-700 hover:bg-gray-50">
+                        ${escapeHtml(feature?.properties?.full_address || feature?.properties?.place_formatted || feature?.properties?.name || 'Location')}
+                    </button>
+                `).join('');
+
+                box.classList.toggle('hidden', !features.length);
+
+                box.querySelectorAll('[data-map-result]').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const feature = features[Number(button.dataset.mapResult)];
+                        const coords = feature?.geometry?.coordinates;
+                        if (!Array.isArray(coords)) return;
+
+                        await initMapbox();
+                        mapboxMap.flyTo({ center: coords, zoom: 16, essential: true });
+                        mapboxMarker.setLngLat(coords);
+                        applyMapSelection(feature, coords[0], coords[1]);
+                        box.classList.add('hidden');
+                    });
+                });
+            } catch (error) {
+                box.classList.add('hidden');
+                setMapError(error.message || 'Address search failed.');
+            }
+        }, 350);
+    });
+
+    el('[data-map-confirm]')?.addEventListener('click', confirmMapLocation);
+
     // Opening the checkout never requests location permission.
+    // "Use my current location" jumps straight to the browser's geolocation
+    // prompt once the map is ready; "Add delivery address" just opens the
+    // modal and lets the customer search, click the map, or enter manually.
+    // Previously both buttons ran the exact same three lines below and were
+    // functionally identical — confusing since they read as different actions.
     document.querySelectorAll('[data-use-current-location]')
-        .forEach(b => b.addEventListener('click', openAddressModal));
+        .forEach(b => b.addEventListener('click', async () => {
+            openAddressModal();
+            document.querySelector('[data-address-tab="location"]')?.click();
+            await openLocationPanel();
+            requestCurrentLocation();
+        }));
 
     el('[data-request-location]')?.addEventListener('click', requestCurrentLocation);
 
@@ -1248,9 +1461,13 @@
 
             if (summary) {
 
-                summary.textContent = [data?.recipient_name, [data?.region, data?.district, data?.ward].filter(Boolean).join(', '), data?.street].filter(Boolean).join(' · ');
+                summary.textContent = formatAddressSummary(data);
 
             }
+
+            el('[data-address-required-badge]')?.classList.add('hidden');
+
+            updatePayButton();
 
             addressModal?.classList.add('hidden');
 
@@ -1320,7 +1537,15 @@
 
         const summary = el('[data-checkout-note-summary]');
 
-        if (summary) summary.textContent = state.note ? state.note.slice(0, 60) + (state.note.length > 60 ? '…' : '') : 'Add special instructions for your order.';
+        if (summary) {
+
+            summary.classList.toggle('hidden', !state.note);
+
+            summary.classList.toggle('flex', !!state.note);
+
+            summary.textContent = state.note ? '📝 ' + state.note.slice(0, 60) + (state.note.length > 60 ? '…' : '') : '';
+
+        }
 
         noteModal?.classList.add('hidden');
 

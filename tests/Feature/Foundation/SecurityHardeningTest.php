@@ -73,7 +73,9 @@ class SecurityHardeningTest extends TestCase
 
         $this->assertMatchesRegularExpression("/script-src [^;]*'nonce-[^']+'/", $policy);
         $this->assertDoesNotMatchRegularExpression("/script-src [^;]*'unsafe-inline'/", $policy);
-        $this->assertStringContainsString("worker-src 'none'", $policy);
+        // worker-src allows blob: for Mapbox GL's vector-tile worker (checkout's
+        // location picker) rather than 'none' — everything else stays locked down.
+        $this->assertStringContainsString("worker-src 'self' blob:", $policy);
         $this->assertStringContainsString("manifest-src 'self'", $policy);
         $this->assertStringContainsString("frame-src 'none'", $policy);
         $this->assertMatchesRegularExpression('/<script nonce="[^"]+">/', (string) $response->getContent());

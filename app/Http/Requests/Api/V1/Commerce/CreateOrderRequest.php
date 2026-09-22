@@ -24,6 +24,7 @@ class CreateOrderRequest extends FormRequest
                 ),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'payment_method' => ['nullable', 'string', Rule::in(['mobile_money', 'card'])],
         ];
     }
 }

@@ -84,4 +84,20 @@ return [
         ))),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Mapbox
+    |--------------------------------------------------------------------------
+    |
+    | Public (client-side) access token for the checkout address picker's
+    | map + geocoding search. This is a browser-facing token, not a secret —
+    | scope it to your domain(s) in the Mapbox dashboard. Left empty, the
+    | "Use my location" map simply won't load.
+    |
+    */
+
+    'mapbox' => [
+        'token' => env('MAPBOX_ACCESS_TOKEN'),
+    ],
+
 ];

@@ -1,72 +1,242 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base { body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; } }
-@layer components {
-  .field { @apply rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-gray-900 focus:ring-0; }
-  .button-dark { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50; }
-  .badge { @apply absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white; }
+@layer base {
+    body {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
 }
 
-/* Design #2 storefront interaction refinements */
-[data-product-card] button { -webkit-tap-highlight-color: transparent; }
-[data-catalog-filter-toggle] svg, [data-catalog-filter-close] svg { flex-shrink: 0; }
-
 @layer components {
-  .kp-product-card img { backface-visibility: hidden; }
-  .kp-product-card button { -webkit-tap-highlight-color: transparent; }
-  .kp-filter-option { color: rgb(75 85 99); transition: background-color .2s ease, color .2s ease; }
-  .kp-filter-option:hover { background: rgb(249 250 251); }
-  .kp-filter-active { background: rgb(236 253 245); color: rgb(4 120 87); font-weight: 500; }
+    .field {
+        @apply rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-gray-900 focus:ring-0;
+    }
+
+    .button-dark {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    .badge {
+        @apply absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white;
+    }
+
+    .kp-product-card img {
+        backface-visibility: hidden;
+    }
+
+    .kp-product-card button {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .kp-filter-option {
+        color: rgb(75 85 99);
+        transition: background-color .2s ease, color .2s ease;
+    }
+
+    .kp-filter-option:hover {
+        background: rgb(249 250 251);
+    }
+
+    .kp-filter-active {
+        background: rgb(236 253 245);
+        color: rgb(4 120 87);
+        font-weight: 500;
+    }
+
+    .kp-admin-body {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .kp-admin-sidebar {
+        box-shadow: 10px 0 30px rgba(15, 23, 42, .05);
+    }
+
+    .kp-admin-nav-link {
+        @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-slate-300 transition;
+    }
+
+    .kp-admin-nav-link:hover {
+        @apply bg-white/5 text-white;
+    }
+
+    .kp-admin-nav-link.is-active {
+        @apply bg-amber-500/90 text-white shadow-sm;
+    }
+
+    .kp-admin-topbar {
+        box-shadow: 0 1px 12px rgba(15, 23, 42, .03);
+    }
+
+    .kp-admin-search {
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .02);
+    }
+
+    .kp-admin-icon-button {
+        @apply flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-950;
+    }
+
+    .kp-admin-primary-button {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800;
+    }
+
+    .kp-admin-card {
+        @apply rounded-xl border border-slate-200/80 bg-white;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, .035);
+    }
+
+    .kp-admin-link {
+        @apply inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700;
+    }
+
+    .kp-section-icon {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-700;
+    }
+
+    .kp-summary-card {
+        @apply flex min-w-0 items-start gap-3 rounded-xl border bg-white p-4;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, .035);
+    }
+
+    .kp-summary-icon {
+        @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl;
+    }
+
+    .kp-summary-card.tone-emerald {
+        @apply border-emerald-100 bg-emerald-50/20;
+    }
+
+    .kp-summary-card.tone-emerald .kp-summary-icon {
+        @apply bg-emerald-100 text-emerald-600;
+    }
+
+    .kp-summary-card.tone-blue {
+        @apply border-blue-100 bg-blue-50/20;
+    }
+
+    .kp-summary-card.tone-blue .kp-summary-icon {
+        @apply bg-blue-100 text-blue-600;
+    }
+
+    .kp-summary-card.tone-violet {
+        @apply border-violet-100 bg-violet-50/20;
+    }
+
+    .kp-summary-card.tone-violet .kp-summary-icon {
+        @apply bg-violet-100 text-violet-600;
+    }
+
+    .kp-summary-card.tone-amber {
+        @apply border-amber-100 bg-amber-50/20;
+    }
+
+    .kp-summary-card.tone-amber .kp-summary-icon {
+        @apply bg-amber-100 text-amber-600;
+    }
+
+    .kp-pipeline-item {
+        @apply flex items-center justify-between rounded-xl border bg-white px-4 py-3;
+    }
+
+    .kp-pipeline-icon {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full;
+    }
+
+    .kp-pipeline-item.tone-amber {
+        @apply border-amber-100;
+    }
+
+    .kp-pipeline-item.tone-amber .kp-pipeline-icon {
+        @apply bg-amber-50 text-amber-600;
+    }
+
+    .kp-pipeline-item.tone-blue {
+        @apply border-blue-100;
+    }
+
+    .kp-pipeline-item.tone-blue .kp-pipeline-icon {
+        @apply bg-blue-50 text-blue-600;
+    }
+
+    .kp-pipeline-item.tone-violet {
+        @apply border-violet-100;
+    }
+
+    .kp-pipeline-item.tone-violet .kp-pipeline-icon {
+        @apply bg-violet-50 text-violet-600;
+    }
+
+    .kp-pipeline-item.tone-emerald {
+        @apply border-emerald-100;
+    }
+
+    .kp-pipeline-item.tone-emerald .kp-pipeline-icon {
+        @apply bg-emerald-50 text-emerald-600;
+    }
+
+    .kp-inventory-row {
+        @apply flex items-center gap-3 rounded-xl border px-3 py-2.5;
+    }
+
+    .kp-inventory-icon {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl;
+    }
+
+    .kp-inventory-row.tone-blue {
+        @apply border-blue-100 bg-blue-50/60;
+    }
+
+    .kp-inventory-row.tone-blue .kp-inventory-icon {
+        @apply bg-blue-100 text-blue-600;
+    }
+
+    .kp-inventory-row.tone-emerald {
+        @apply border-emerald-100 bg-emerald-50/60;
+    }
+
+    .kp-inventory-row.tone-emerald .kp-inventory-icon {
+        @apply bg-emerald-100 text-emerald-600;
+    }
+
+    .kp-inventory-row.tone-amber {
+        @apply border-amber-100 bg-amber-50/60;
+    }
+
+    .kp-inventory-row.tone-amber .kp-inventory-icon {
+        @apply bg-amber-100 text-amber-600;
+    }
+
+    .kp-inventory-row.tone-red {
+        @apply border-red-100 bg-red-50/60;
+    }
+
+    .kp-inventory-row.tone-red .kp-inventory-icon {
+        @apply bg-red-100 text-red-600;
+    }
+
+    .kp-quick-action {
+        @apply flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50;
+    }
 }
 
-
-@layer components {
-  .kp-admin-body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-  .kp-admin-sidebar { box-shadow: 10px 0 30px rgba(15,23,42,.05); }
-  .kp-admin-nav-link { @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-slate-300 transition; }
-  .kp-admin-nav-link:hover { @apply bg-white/5 text-white; }
-  .kp-admin-nav-link.is-active { @apply bg-amber-500/90 text-white shadow-sm; }
-  .kp-admin-topbar { box-shadow: 0 1px 12px rgba(15,23,42,.03); }
-  .kp-admin-search { box-shadow: inset 0 1px 2px rgba(15,23,42,.02); }
-  .kp-admin-icon-button { @apply flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-950; }
-  .kp-admin-primary-button { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800; }
-  .kp-admin-card { @apply rounded-xl border border-slate-200/80 bg-white shadow-[0_2px_12px_rgba(15,23,42,.035)]; }
-  .kp-admin-link { @apply inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700; }
-  .kp-section-icon { @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-700; }
-  .kp-summary-card { @apply flex min-w-0 items-start gap-3 rounded-xl border bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,.035)]; }
-  .kp-summary-icon { @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl; }
-  .kp-summary-card.tone-emerald { @apply border-emerald-100 bg-emerald-50/20; }
-  .kp-summary-card.tone-emerald .kp-summary-icon { @apply bg-emerald-100 text-emerald-600; }
-  .kp-summary-card.tone-blue { @apply border-blue-100 bg-blue-50/20; }
-  .kp-summary-card.tone-blue .kp-summary-icon { @apply bg-blue-100 text-blue-600; }
-  .kp-summary-card.tone-violet { @apply border-violet-100 bg-violet-50/20; }
-  .kp-summary-card.tone-violet .kp-summary-icon { @apply bg-violet-100 text-violet-600; }
-  .kp-summary-card.tone-amber { @apply border-amber-100 bg-amber-50/20; }
-  .kp-summary-card.tone-amber .kp-summary-icon { @apply bg-amber-100 text-amber-600; }
-  .kp-pipeline-item { @apply flex items-center justify-between rounded-xl border bg-white px-4 py-3; }
-  .kp-pipeline-icon { @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full; }
-  .kp-pipeline-item.tone-amber { @apply border-amber-100; } .kp-pipeline-item.tone-amber .kp-pipeline-icon { @apply bg-amber-50 text-amber-600; }
-  .kp-pipeline-item.tone-blue { @apply border-blue-100; } .kp-pipeline-item.tone-blue .kp-pipeline-icon { @apply bg-blue-50 text-blue-600; }
-  .kp-pipeline-item.tone-violet { @apply border-violet-100; } .kp-pipeline-item.tone-violet .kp-pipeline-icon { @apply bg-violet-50 text-violet-600; }
-  .kp-pipeline-item.tone-emerald { @apply border-emerald-100; } .kp-pipeline-item.tone-emerald .kp-pipeline-icon { @apply bg-emerald-50 text-emerald-600; }
-  .kp-inventory-row { @apply flex items-center gap-3 rounded-xl border px-3 py-2.5; }
-  .kp-inventory-icon { @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl; }
-  .kp-inventory-row.tone-blue { @apply border-blue-100 bg-blue-50/60; } .kp-inventory-row.tone-blue .kp-inventory-icon { @apply bg-blue-100 text-blue-600; }
-  .kp-inventory-row.tone-emerald { @apply border-emerald-100 bg-emerald-50/60; } .kp-inventory-row.tone-emerald .kp-inventory-icon { @apply bg-emerald-100 text-emerald-600; }
-  .kp-inventory-row.tone-amber { @apply border-amber-100 bg-amber-50/60; } .kp-inventory-row.tone-amber .kp-inventory-icon { @apply bg-amber-100 text-amber-600; }
-  .kp-inventory-row.tone-red { @apply border-red-100 bg-red-50/60; } .kp-inventory-row.tone-red .kp-inventory-icon { @apply bg-red-100 text-red-600; }
-  .kp-quick-action { @apply flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50; }
-  @media (max-width: 1023px) { .kp-admin-sidebar { position: relative; } }
+[data-product-card] button {
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Mobile storefront: hover-only product actions must remain reachable on touch devices. */
+[data-catalog-filter-toggle] svg,
+[data-catalog-filter-close] svg {
+    flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+    .kp-admin-sidebar {
+        position: relative;
+    }
+}
+
 @media (max-width: 767px) {
-  [data-product-card] [data-wishlist-product],
-  [data-product-card] [data-quick-add] {
-    opacity: 1 !important;
-    transform: translateY(0) !important;
-  }
+    [data-product-card] [data-wishlist-product],
+    [data-product-card] [data-quick-add] {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+    }
 }

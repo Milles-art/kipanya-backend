@@ -1,6 +1,21 @@
 (() => {
   const API = '/api/v1';
+  const TOKEN_KEY = 'kp_api_token';
+  const USER_KEY = 'kp_user';
   const GUEST_KEY = 'kp_guest_cart_token';
+
+  const getJson = (key, fallback = null) => {
+    try {
+      return JSON.parse(
+        localStorage.getItem(key) ?? JSON.stringify(fallback)
+      );
+    } catch {
+      return fallback;
+    }
+  };
+
+  const setJson = (key, value) =>
+    localStorage.setItem(key, JSON.stringify(value));
 
   const toast = (message) => {
     const node = document.querySelector('#toast');
@@ -27,11 +42,7 @@
     .replaceAll('\"', '&quot;')
     .replaceAll("'", '&#039;');
 
-  const signedIn = () =>
-    document
-      .querySelector('meta[name="kp-signed-in"]')
-      ?.getAttribute('content') === '1';
-
+  const token = () => localStorage.getItem(TOKEN_KEY);
   const guestToken = () => localStorage.getItem(GUEST_KEY);
 
   const ensureGuestToken = () => {
@@ -63,7 +74,14 @@
       headers.set('Content-Type', 'application/json');
     }
 
-    if (!signedIn()) {
+    if (token()) {
+      headers.set(
+        'Authorization',
+        `Bearer ${token()}`
+      );
+    }
+
+    if (!token()) {
       headers.set(
         'X-Guest-Cart-Token',
         ensureGuestToken()
@@ -91,21 +109,14 @@
     }
 
     if (response.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+
       if (
         !location.pathname.includes('/login') &&
         !location.pathname.includes('/register')
       ) {
         toast('Please sign in to continue.');
-
-        if (
-          ['/account', '/checkout', '/wishlist', '/orders', '/returns'].some(
-            prefix => location.pathname.startsWith(prefix)
-          )
-        ) {
-          window.setTimeout(() => {
-            location.href = '/login';
-          }, 400);
-        }
       }
     }
 
@@ -122,12 +133,21 @@
     return data;
   };
 
-  const syncToggleAria = (selector, expanded) => {
-    document.querySelectorAll(selector).forEach(button => {
-      button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    });
+  const setAuth = (payload) => {
+    if (payload?.token) {
+      localStorage.setItem(
+        TOKEN_KEY,
+        payload.token
+      );
+    }
+
+    if (payload?.user) {
+      setJson(USER_KEY, payload.user);
+    }
   };
 
+  const currentUser = () =>
+    getJson(USER_KEY, null);
 
   const counts = async () => {
     try {
@@ -146,13 +166,13 @@
         });
     } catch {}
 
-    if (signedIn()) {
+    if (token()) {
       try {
         const wishlist =
           await api('/wishlist');
 
         const wishCount =
-          wishlist?.meta?.total ?? (wishlist?.data || []).length;
+          (wishlist?.data || []).length;
 
         document
           .querySelectorAll('[data-wishlist-count]')
@@ -290,7 +310,7 @@
     const image = product?.image;
 
     if (!image) {
-      return '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp';
+      return '/assets/wear/catalog/generated/product-01.jpg';
     }
 
     try {
@@ -387,7 +407,7 @@
                     src="${escapeHtml(image)}"
                     alt="${escapeHtml(p.name || 'Product')}"
                     loading="lazy"
-                    data-fallback="/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp"
+                    onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'"
                     class="h-full w-full object-contain p-4 transition duration-500 ease-out group-hover:scale-105"
                   >
                 </a>
@@ -583,6 +603,9 @@
   const fetchCollections = async () =>
     (await api('/wear/collections'))?.data || [];
 
+  const fetchCollection = async slug =>
+    (await api(`/wear/collections/${encodeURIComponent(slug)}`))?.data || null;
+
   const findFirstVariant = product =>
     (product.variants || []).find(
       v => v.in_stock
@@ -617,7 +640,7 @@
     productId,
     button = null
   ) => {
-    if (!signedIn()) {
+    if (!token()) {
       location.href = '/login';
       return;
     }
@@ -694,7 +717,7 @@ const bootHome = async () => {
       }
 
       host.innerHTML = collections.slice(0, 3).map(collection => {
-        const image = collection.cover || collection.image || '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp';
+        const image = collection.cover || collection.image || '/assets/wear/catalog/generated/product-01.jpg';
 
         return `
           <a
@@ -706,7 +729,7 @@ const bootHome = async () => {
               alt="${escapeHtml(collection.name || 'Collection')}"
               class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
               loading="lazy"
-              data-fallback="/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp"
+              onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'"
             >
             <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"></div>
             <div class="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
@@ -759,20 +782,12 @@ const bootHome = async () => {
         if (hero.cta_label) ctaLabel ? ctaLabel.textContent = hero.cta_label : cta.textContent = hero.cta_label;
       }
 
-      if (image) {
-        const desktopSrc = hero.image_desktop || image.dataset.desktopSrc || image.src;
-        const mobileSrc = hero.image_mobile || '';
-        image.dataset.desktopSrc = desktopSrc;
-        image.dataset.mobileSrc = mobileSrc;
-        const applyResponsiveImage = () => {
-          image.src = window.matchMedia('(max-width: 860px)').matches && mobileSrc ? mobileSrc : desktopSrc;
-        };
-        applyResponsiveImage();
-        if (!image.dataset.mobileListener) {
-          const media = window.matchMedia('(max-width: 860px)');
-          media.addEventListener?.('change', applyResponsiveImage);
-          image.dataset.mobileListener = '1';
-        }
+      if (image && hero.image_desktop) {
+        image.src = hero.image_desktop;
+      }
+
+      if (image && hero.image_mobile) {
+        image.dataset.mobileSrc = hero.image_mobile;
       }
     };
 
@@ -839,19 +854,19 @@ const bootHome = async () => {
   if (!page || !grid) return;
 
   const fallbackImages = {
-        'new-arrivals': '/assets/wear/catalog/products/t-shirts/kp-wear-redefined-graffiti-white-front.webp',
-        'everyday-essentials': '/assets/wear/catalog/products/hoodies/kp-wear-kp-icon-navy-front.webp',
-        'streetwear': '/assets/wear/catalog/products/t-shirts/kp-wear-nothing-but-konfidence-black-front.webp',
-        'polos-and-shirts': '/assets/wear/catalog/products/polos/kp-wear-sand-brown-minimal-front.webp',
-        't-shirts': '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp',
-        'hoodies-and-sweatshirts': '/assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-front.webp',
-        'premium-edit': '/assets/wear/catalog/products/long-sleeves/kp-wear-kilimanjaro-heritage-sand-front.webp'
+    'new-arrivals': 'product-15.jpg',
+    'everyday-essentials': 'product-10.jpg',
+    'streetwear': 'product-07.jpg',
+    'polos-and-shirts': 'product-13.jpg',
+    't-shirts': 'product-03.jpg',
+    'hoodies-and-sweatshirts': 'product-11.jpg',
+    'premium-edit': 'product-16.jpg'
   };
 
   try {
     const collections = await fetchCollections();
     grid.innerHTML = collections.map((collection, index) => {
-      const image = collection.cover || fallbackImages[collection.slug] || '/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp';
+      const image = collection.cover || `/assets/wear/catalog/generated/${fallbackImages[collection.slug] || 'product-01.jpg'}`;
       const wide = index === 0 || index === 2;
       return `
         <a href="/collections/${encodeURIComponent(collection.slug)}" class="group relative overflow-hidden rounded-[1.5rem] bg-gray-100 ${wide ? 'lg:col-span-8' : 'lg:col-span-4'} aspect-[4/3]">
@@ -1005,6 +1020,113 @@ const bootCatalog = async () => {
 
       return true;
     };
+
+    const renderFilters =
+      categories => {
+        const markup = `
+          <div class="space-y-8">
+            <div>
+              <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900">
+                  Category
+                </h3>
+
+                <button
+                  type="button"
+                  data-catalog-clear-mobile
+                  class="text-xs font-medium text-emerald-600"
+                >
+                  Clear all
+                </button>
+              </div>
+
+              <div class="space-y-1">
+                <button
+                  type="button"
+                  data-category=""
+                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
+                >
+                  All Products
+                </button>
+
+                ${categories
+                  .map(
+                    c => `
+                      <button
+                        type="button"
+                        data-category="${c.slug || slugify(c.name)}"
+                        class="w-full rounded-lg px-3 py-2 text-left text-sm"
+                      >
+                        ${c.name}
+                      </button>
+                    `
+                  )
+                  .join('')}
+              </div>
+            </div>
+
+            <div>
+              <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">
+                Price Range
+              </h3>
+
+              <div class="space-y-1">
+                <button
+                  type="button"
+                  data-price="all"
+                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
+                >
+                  All Prices
+                </button>
+
+                <button
+                  type="button"
+                  data-price="under-50000"
+                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
+                >
+                  Under 50,000 TZS
+                </button>
+
+                <button
+                  type="button"
+                  data-price="50000-150000"
+                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
+                >
+                  50,000 – 150,000 TZS
+                </button>
+
+                <button
+                  type="button"
+                  data-price="over-150000"
+                  class="w-full rounded-lg px-3 py-2 text-left text-sm"
+                >
+                  Over 150,000 TZS
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        if (mobileContent) {
+          mobileContent.innerHTML =
+            markup;
+        }
+
+        if (categoryHost) {
+          categoryHost.innerHTML =
+            markup
+              .split(
+                '<div class="space-y-8">'
+              )[1]
+              ?.split(
+                '<div><h3'
+              )[0]
+              ?.replace(
+                '</div></div><div>',
+                ''
+              ) || '';
+        }
+      };
 
     let debounceTimer;
     let requestController = null;
@@ -1241,31 +1363,11 @@ const bootCatalog = async () => {
       main.alt = p.name || 'Product';
 
       const gallery = page.querySelector('[data-product-gallery]');
-      const galleryItems = Array.isArray(p.gallery) && p.gallery.length
-        ? p.gallery
-        : (p.image ? [{ url: p.image, role: 'front', alt: p.name || 'Product' }] : []);
-
-      if (gallery) {
-        gallery.innerHTML = galleryItems.map((item, index) => {
-          const url = item?.url || item?.image || '';
-          if (!url) return '';
-          const active = index === 0;
-          return `<button type="button" data-gallery-image="${escapeHtml(url)}" class="overflow-hidden rounded-xl border-2 ${active ? 'border-gray-950' : 'border-transparent'} bg-gray-50 transition hover:border-gray-300" aria-label="${escapeHtml(item?.alt || p.name || 'Product')}">
-            <img src="${escapeHtml(url)}" alt="${escapeHtml(item?.alt || p.name || 'Product')}" class="aspect-square w-full object-contain p-2" loading="lazy">
-          </button>`;
-        }).join('');
-
+      if (gallery && p.image) {
+        gallery.innerHTML = `<button type="button" data-gallery-image="${escapeHtml(p.image)}" class="overflow-hidden rounded-xl border-2 border-gray-950 bg-gray-50"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name || 'Product')}" class="aspect-square w-full object-contain p-2"></button>`;
         gallery.addEventListener('click', e => {
           const button = e.target.closest('[data-gallery-image]');
-          if (!button) return;
-
-          main.src = button.dataset.galleryImage;
-          gallery.querySelectorAll('[data-gallery-image]').forEach(item => {
-            item.classList.remove('border-gray-950');
-            item.classList.add('border-transparent');
-          });
-          button.classList.remove('border-transparent');
-          button.classList.add('border-gray-950');
+          if (button) main.src = button.dataset.galleryImage;
         });
       }
 
@@ -1283,7 +1385,7 @@ const bootCatalog = async () => {
       }
 
       // Pre-select the customer's saved size when it matches an available variant.
-      if (signedIn() && variants.length) {
+      if (token() && variants.length) {
         try {
           const preferenceResponse = await api('/account/preferences');
           const saved = preferenceResponse?.data?.size_profile || {};
@@ -1389,7 +1491,7 @@ const bootCatalog = async () => {
         return `
           <article class="flex gap-4 py-5 sm:gap-6">
             <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-50 sm:h-32 sm:w-28">
-              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" data-fallback="/assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp">
+              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'">
             </a>
 
             <div class="min-w-0 flex-1">
@@ -1584,6 +1686,8 @@ const bootCatalog = async () => {
               body
             });
 
+          setAuth(payload);
+
           const guest =
             guestToken();
 
@@ -1633,7 +1737,7 @@ const bootCatalog = async () => {
       const count =
         page.querySelector('[data-wishlist-page-count]');
 
-      if (!signedIn()) {
+      if (!token()) {
         loading?.classList.add('hidden');
         auth?.classList.remove('hidden');
         grid?.classList.add('hidden');
@@ -1652,7 +1756,7 @@ const bootCatalog = async () => {
             .map(i => i.product)
             .filter(Boolean);
 
-        const total = data?.meta?.total ?? products.length;
+        const total = products.length;
         if (count) {
           count.textContent = total;
           count.classList.toggle('hidden', total === 0);
@@ -1687,11 +1791,14 @@ const bootCatalog = async () => {
       .forEach(b =>
         b.addEventListener(
           'click',
-          () => {
-            const panel = document.querySelector('[data-search-panel]');
-            panel?.classList.toggle('hidden');
-            syncToggleAria('[data-search-toggle]', !panel?.classList.contains('hidden'));
-          }
+          () =>
+            document
+              .querySelector(
+                '[data-search-panel]'
+              )
+              ?.classList.toggle(
+                'hidden'
+              )
         )
       );
 
@@ -1702,11 +1809,14 @@ const bootCatalog = async () => {
       .forEach(b =>
         b.addEventListener(
           'click',
-          () => {
-            const menu = document.querySelector('[data-mobile-menu]');
-            menu?.classList.toggle('hidden');
-            syncToggleAria('[data-menu-toggle]', !menu?.classList.contains('hidden'));
-          }
+          () =>
+            document
+              .querySelector(
+                '[data-mobile-menu]'
+              )
+              ?.classList.toggle(
+                'hidden'
+              )
         )
       );
 
@@ -1789,349 +1899,403 @@ const bootCatalog = async () => {
   const bootCheckout = async () => {
     const page = document.querySelector('[data-checkout-page]');
     if (!page) return;
-    // The checkout page is now fully self-managed by its own inline
-    // script (renders summary, payment cards, address/note modals,
-    // and posts to POST /api/v1/checkout). Bail here so this legacy
-    // wiring never double-binds or writes into [data-checkout-error].
-    if (page.querySelector('[data-place-order]')) return;
 
     const authNotice = page.querySelector('[data-checkout-auth]');
-    const addressSummary = page.querySelector('[data-address-summary]');
-    const addressTrigger = page.querySelector('[data-address-trigger]');
+    const addressList = page.querySelector('[data-address-list]');
+    const addressForm = page.querySelector('[data-address-form]');
+    const summary = page.querySelector('[data-checkout-summary]');
+    const itemCount = page.querySelector('[data-checkout-item-count]');
+    const errorBox = page.querySelector('[data-checkout-error]');
+    const placeButton = page.querySelector('[data-place-order]');
+    const paymentCards = [...page.querySelectorAll('[data-payment-method]')];
     const addressModal = page.querySelector('[data-address-modal]');
-    const addressModalClose = page.querySelector('[data-address-modal-close]');
-    const addressEditBtn = page.querySelector('[data-address-edit]');
-    const geolocationStatus = page.querySelector('[data-geolocation-status]');
-    const noteSummary = page.querySelector('[data-note-summary]');
-    const noteTrigger = page.querySelector('[data-note-trigger]');
     const noteModal = page.querySelector('[data-note-modal]');
-    const noteModalClose = page.querySelector('[data-note-modal-close]');
-    const noteSave = page.querySelector('[data-note-save]');
-    const noteCancel = page.querySelector('[data-note-cancel]');
-    const notesTextarea = page.querySelector('[data-order-notes]');
-    const paymentMethodsContainer = page.querySelector('[data-payment-methods]');
-    const payBtn = page.querySelector('[data-pay-btn]');
-    const payAmount = page.querySelector('#pay-amount');
+    const noteField = page.querySelector('[data-order-notes]');
+    const noteEditor = page.querySelector('[data-note-editor]');
+    const notePreview = page.querySelector('[data-note-preview]');
+    const addressSummary = page.querySelector('[data-address-summary]');
+
+    const MAPBOX_TOKEN = page.dataset.mapboxToken || '';
+
+    let selectedAddress = null;
+    let paymentMethod = null;
+    let checkoutTotal = 0;
+    let selectedCoordinates = null;
 
     const showError = (message) => {
-      const errorBox = page.querySelector('[data-checkout-error]');
       if (!errorBox) return;
-      errorBox.textContent = message;
+      errorBox.textContent = message || 'Something went wrong.';
       errorBox.classList.remove('hidden');
     };
 
-    const clearError = () => {
-      const errorBox = page.querySelector('[data-checkout-error]');
-      if (errorBox) errorBox.classList.add('hidden');
+    const clearError = () => errorBox?.classList.add('hidden');
+
+    const closeModal = (modal) => {
+      modal?.classList.add('hidden');
+      modal?.classList.remove('flex');
     };
 
-    if (!signedIn()) {
-      authNotice?.classList.remove('hidden');
-      return;
-    }
+    const openModal = (modal) => {
+      modal?.classList.remove('hidden');
+      modal?.classList.add('flex');
+    };
 
-    // ---- Selected state ----
-    let selectedAddress = null;
-    let selectedPaymentMethod = null; // 'mobile_money' | 'card'
-    let noteValue = '';
+    const updatePayButton = () => {
+      const ready = Boolean(selectedAddress && paymentMethod && checkoutTotal > 0);
+      if (ready) {
+        placeButton?.removeAttribute('disabled');
+      } else {
+        placeButton?.setAttribute('disabled', 'disabled');
+      }
+    };
 
-    // ---- Delivery address ----
-    const updateAddressSummary = () => {
+    const formatAddress = (a) => [
+      a?.street,
+      a?.ward,
+      a?.district,
+      a?.region,
+    ].filter(Boolean).join(', ');
+
+    const renderSelectedAddress = (address) => {
       if (!addressSummary) return;
-      if (selectedAddress) {
-        addressSummary.classList.remove('hidden');
-        // Try to fetch address details
-        fetch(`/api/v1/addresses/${selectedAddress}`)
-          .then(r => r.json())
-          .then(d => {
-            const addr = d.data || null;
-            if (addr) {
-              addressSummary.querySelector('[data-address-text]').textContent =
-                `${escapeHtml(addr.recipient_name)} · ${escapeHtml(addr.phone)} · ${escapeHtml(addr.region || '')}, ${escapeHtml(addr.district || '')}${addr.ward ? ', ' + escapeHtml(addr.ward) : ''} · ${escapeHtml(addr.street)}`;
-            } else {
-              addressSummary.querySelector('[data-address-text]').textContent = 'Address saved';
-            }
-          })
-          .catch(() => {
-            addressSummary.querySelector('[data-address-text]').textContent = 'Address saved';
-          });
-      } else {
-        addressSummary.classList.add('hidden');
-        addressSummary.querySelector('[data-address-text]').textContent = 'No delivery address selected';
-      }
-    };
-
-    const loadAddresses = async () => {
-      try {
-        const data = await api('/addresses');
-        const addresses = data?.data || [];
-        if (!selectedAddress && addresses.length > 0) {
-          const def = addresses.find(a => a.is_default);
-          if (def) selectedAddress = Number(def.id);
-        }
-        updateAddressSummary();
-      } catch {
-        // Silently fail - address may not be saved yet
-      }
-    };
-
-    // ---- Geolocation ----
-    const handleGeolocation = async () => {
-      if (!navigator.geolocation) return showError('Geolocation not supported by your browser.');
-
-      geolocationStatus.classList.add('hidden');
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          // Geolocation succeeded - mark as location-sourced
-          addressSource = 'location';
-          // We don't create a DB address record automatically;
-          // just show the modal so user can confirm/edit
-          selectedAddress = null;
-          updateAddressSummary();
-          addressModal.classList.remove('hidden');
-          addressModal.classList.add('flex');
-        },
-        (err) => {
-          geolocationStatus.classList.remove('hidden');
-          geolocationStatus.textContent = 'Location permission denied';
-        },
-        { timeout: 15000 }
-      );
-    };
-
-    addressTrigger?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (addressSource === 'location') {
-        // User already chose location - show modal for editing
-        addressModal.classList.remove('hidden');
-        addressModal.classList.add('flex');
-      } else {
-        handleGeolocation();
-      }
-    });
-
-    addressModalClose?.addEventListener('click', () => {
-      addressModal.classList.add('hidden');
-      addressModal.classList.remove('flex');
-    });
-
-    // Click outside modal to close
-    addressModal?.addEventListener('click', (e) => {
-      if (e.target === addressModal) {
-        addressModal.classList.add('hidden');
-        addressModal.classList.remove('flex');
-      }
-    });
-
-    // Manual address save
-    // We listen on the modal itself for the save button since it may be rendered dynamically
-    addressModal?.addEventListener('click', (e) => {
-      const saveBtn = e.target.closest('[data-address-manual-save]');
-      if (saveBtn) {
-        e.stopPropagation();
-        if (!addressManualForm) return;
-        clearError();
-        const fd = new FormData(addressManualForm);
-        api('/addresses', {
-          method: 'POST',
-          body: {
-            type: 'shipping',
-            recipient_name: fd.get('recipient_name'),
-            phone: fd.get('phone'),
-            region: fd.get('region'),
-            district: fd.get('district'),
-            ward: fd.get('ward') || null,
-            street: fd.get('street'),
-            is_default: true
-          }
-        }).then(async (created) => {
-          const data = created?.data || null;
-          if (data?.id) {
-            selectedAddress = Number(data.id);
-            addressSource = 'manual';
-            addressModal.classList.add('hidden');
-            addressModal.classList.remove('flex');
-            updateAddressSummary();
-            toast('Address saved');
-          }
-        }).catch((err) => {
-          showError(err.message || 'Failed to save address');
-        });
-      }
-    });
-
-    // ---- Order note ----
-    const updateNoteSummary = () => {
-      if (!noteSummary) return;
-      if (noteValue) {
-        noteSummary.classList.remove('hidden');
-        noteSummary.querySelector('[data-note-text]').textContent = escapeHtml(noteValue);
-      } else {
-        noteSummary.classList.add('hidden');
-        noteSummary.querySelector('[data-note-text]').textContent = 'No order note';
-      }
-    };
-
-    noteTrigger?.addEventListener('click', () => {
-      if (noteModal) {
-        noteModal.classList.remove('hidden');
-        noteModal.classList.add('flex');
-        const textarea = noteModal.querySelector('[data-order-notes]');
-        if (textarea) textarea.focus();
-      }
-    });
-
-    noteModalClose?.addEventListener('click', () => {
-      if (noteModal) {
-        noteModal.classList.add('hidden');
-        noteModal.classList.remove('flex');
-      }
-    });
-
-    noteModal?.addEventListener('click', (e) => {
-      if (e.target === noteModal) {
-        noteModal.classList.add('hidden');
-        noteModal.classList.remove('flex');
-      }
-    });
-
-    // Note save - use event delegation on the modal
-    noteModal?.addEventListener('click', (e) => {
-      const saveBtn = e.target.closest('[data-note-save]');
-      if (saveBtn) {
-        e.stopPropagation();
-        clearError();
-        noteValue = (notesTextarea ? notesTextarea.value : '') || '';
-        if (noteModal) {
-          noteModal.classList.add('hidden');
-          noteModal.classList.remove('flex');
-        }
-        updateNoteSummary();
-        toast('Note saved');
-      }
-    });
-
-    noteCancel?.addEventListener('click', () => {
-      if (noteModal) {
-        noteModal.classList.add('hidden');
-        noteModal.classList.remove('flex');
-      }
-      if (notesTextarea) notesTextarea.value = '';
-      noteValue = '';
-      updateNoteSummary();
-    });
-
-    // ---- Payment methods rendering ----
-    // Render payment method cards from available options.
-    // The existing backend/payment integration (Selcom Checkout) supports
-    // mobile money and card payments. We render two selectable cards.
-    const renderPaymentMethods = () => {
-      if (!paymentMethodsContainer) return;
-
-      const methods = [
-        { id: 'mobile_money', name: 'Mobile Money', description: 'Pay with M-Pesa or similar', icon: 'mobile phone' },
-        { id: 'card', name: 'Card', description: 'Pay with debit/credit card', icon: 'credit card' }
-      ];
-
-      paymentMethodsContainer.innerHTML = methods.map(m => `
-        <label class="payment-method-item relative rounded border border-gray-200 bg-white py-3 px-4 cursor-pointer select-none ${selectedPaymentMethod === m.id ? 'border-emerald-600' : ''}" data-payment-method="${m.id}">
-          <span class="flex items-center gap-3">
-            <x-tabler-${m.icon} class="h-5 w-5 text-emerald-600" />
-            <div>
-              <p class="font-medium text-gray-900">${m.name}</p>
-              <p class="text-xs text-gray-500">${m.description}</p>
+      if (!address) {
+        addressSummary.innerHTML = `
+          <div class="flex items-center gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
+            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm">
+              <span class="[&>svg]:size-[18px]"><x-tabler-map-pin /></span>
+            </span>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-700">No delivery address selected</p>
+              <p class="mt-0.5 text-xs text-gray-500">Add an address to continue.</p>
             </div>
-          </span>
-          <span class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full w-3 h-3 border-2 transition-colors ${selectedPaymentMethod === m.id ? 'bg-emerald-600 border-emerald-600' : 'border-transparent'}"></span>
-        </label>
-      `).join('');
+          </div>`;
+        return;
+      }
 
-      // Attach click handlers to method items
-      paymentMethodsContainer.querySelectorAll('.payment-method-item').forEach(item => {
-        item.addEventListener('click', () => {
-          // Deselect all
-          paymentMethodsContainer.querySelectorAll('.payment-method-item').forEach(i => {
-            i.classList.remove('border-emerald-600');
-            i.querySelector('span:last-child')?.classList.remove('bg-emerald-600', 'border-emerald-600');
-            i.querySelector('span:last-child')?.classList.add('border-transparent');
-          });
-          // Select clicked
-          item.classList.add('border-emerald-600');
-          item.querySelector('span:last-child')?.classList.add('bg-emerald-600', 'border-emerald-600');
-          item.querySelector('span:last-child')?.classList.remove('border-transparent');
-          selectedPaymentMethod = item.dataset.paymentMethod;
+      addressSummary.innerHTML = `
+        <div class="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="flex min-w-0 items-start gap-3">
+            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white text-emerald-600 shadow-sm">
+              <span class="[&>svg]:size-[18px]"><x-tabler-map-pin /></span>
+            </span>
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold text-gray-900">${escapeHtml(address.recipient_name || 'Delivery address')}</p>
+              <p class="mt-1 text-sm leading-5 text-gray-500">${escapeHtml(formatAddress(address))}</p>
+              <p class="mt-1 text-xs text-gray-400">${escapeHtml(address.phone || '')}</p>
+            </div>
+          </div>
+          <button type="button" data-change-address class="flex-shrink-0 text-xs font-semibold text-gray-700 underline underline-offset-4 hover:text-emerald-600">Change</button>
+        </div>`;
+
+      addressSummary.querySelector('[data-change-address]')?.addEventListener('click', () => openModal(addressModal));
+    };
+
+    const renderAddresses = (addresses) => {
+      const list = Array.isArray(addresses) ? addresses : [];
+      if (!addressList) return;
+
+      addressList.innerHTML = list.length
+        ? list.map((a) => `
+          <label class="flex cursor-pointer gap-3 rounded-xl border p-4 transition hover:border-gray-400 ${Number(a.id) === selectedAddress ? 'border-gray-950 bg-gray-50' : 'border-gray-200'}">
+            <input type="radio" name="address_id" value="${Number(a.id)}" ${Number(a.id) === selectedAddress ? 'checked' : ''} class="mt-1 accent-gray-950">
+            <span class="min-w-0 flex-1">
+              <strong class="text-sm text-gray-900">${escapeHtml(a.recipient_name)}</strong>
+              <span class="mt-1 block text-sm leading-6 text-gray-500">${escapeHtml(formatAddress(a))}</span>
+              <span class="mt-0.5 block text-xs text-gray-400">${escapeHtml(a.phone || '')}</span>
+            </span>
+          </label>`).join('')
+        : '<div class="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-500">No saved addresses yet.</div>';
+
+      addressList.querySelectorAll('input[name="address_id"]').forEach(input => {
+        input.addEventListener('change', () => {
+          selectedAddress = Number(input.value);
+          const address = list.find(a => Number(a.id) === selectedAddress);
+          renderSelectedAddress(address);
+          addressList.querySelectorAll('label').forEach(label => label.classList.remove('border-gray-950', 'bg-gray-50'));
+          input.closest('label')?.classList.add('border-gray-950', 'bg-gray-50');
+          clearError();
+          updatePayButton();
+          closeModal(addressModal);
         });
       });
     };
 
-    // Initial render of payment methods
-    renderPaymentMethods();
-
-    // Update payment amount from order total
-    const updatePayAmount = async () => {
-      try {
-        const preview = await api('/cart/checkout/preview');
-        const total = (preview?.data?.total || 0);
-        if (payAmount) payAmount.textContent = `Pay TZS ${total.toLocaleString()}`;
-      } catch (e) {
-        // If preview fails, keep display but mark as error
-        if (payAmount) payAmount.textContent = 'Pay TZS 0';
-        showError('Unable to load checkout total. Please try again.');
-      }
+    const selectAddress = (address) => {
+      if (!address?.id) return;
+      selectedAddress = Number(address.id);
+      renderSelectedAddress(address);
+      renderAddresses(window.__kpCheckoutAddresses || []);
+      updatePayButton();
     };
 
-    // Initial amount load
-    await updatePayAmount();
+    const saveAddress = async (payload) => {
+      const created = await api('/addresses', {
+        method: 'POST',
+        body: { type: 'shipping', ...payload, is_default: true }
+      });
+      const saved = created?.data || null;
+      if (!saved?.id) throw new Error('The address could not be saved.');
+      window.__kpCheckoutAddresses = [saved, ...(window.__kpCheckoutAddresses || []).filter(a => Number(a.id) !== Number(saved.id))];
+      selectAddress(saved);
+      toast('Address saved');
+      return saved;
+    };
 
-    // Pay button click - initiate payment
-    payBtn?.addEventListener('click', async () => {
-      if (!payBtn || payBtn.disabled) return;
+    const reverseGeocode = async (latitude, longitude) => {
+      if (!MAPBOX_TOKEN) {
+        throw new Error('Current-location address lookup needs a Mapbox access token. You can enter the address manually for now.');
+      }
 
+      const url = new URL('https://api.mapbox.com/search/geocode/v6/reverse');
+      url.searchParams.set('latitude', String(latitude));
+      url.searchParams.set('longitude', String(longitude));
+      url.searchParams.set('limit', '1');
+      url.searchParams.set('language', 'en');
+      url.searchParams.set('access_token', MAPBOX_TOKEN);
+
+      const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+      if (!response.ok) throw new Error(`Mapbox address lookup failed (${response.status}).`);
+
+      const payload = await response.json();
+      const feature = payload?.features?.[0];
+      if (!feature) throw new Error('No readable address was found at this location.');
+
+      const context = feature.properties?.context || {};
+      const get = (...keys) => keys.map(key => context[key]?.name).find(Boolean) || '';
+      const street = feature.properties?.address || feature.properties?.name || '';
+
+      return {
+        recipient_name: window.KP_USER?.name || '',
+        phone: window.KP_USER?.phone || '',
+        region: get('region'),
+        district: get('district', 'place', 'locality'),
+        ward: get('locality', 'neighborhood'),
+        street,
+        latitude,
+        longitude,
+      };
+    };
+
+    page.querySelector('[data-use-location]')?.addEventListener('click', () => {
       clearError();
-      if (!selectedAddress) {
-        return showError('Add or select a delivery address before placing your order.');
-      }
-      if (!selectedPaymentMethod) {
-        return showError('Select a payment method before placing your order.');
+      if (!navigator.geolocation) {
+        showError('Location is not supported by this browser. Enter your address manually.');
+        return;
       }
 
-      // Disable repeated clicks
-      payBtn.disabled = true;
-      payBtn.setAttribute('aria-busy', 'true');
-      const originalText = payBtn.textContent;
+      const button = page.querySelector('[data-use-location]');
+      const original = button?.innerHTML;
+      if (button) {
+        button.disabled = true;
+        button.innerHTML = '<span class="animate-pulse">Finding your location…</span>';
+      }
 
-      try {
-        // Initiate payment via the API
-        const order = await api('/checkout', {
-          method: 'POST',
-          headers: { 'Idempotency-Key': `kp-${Date.now()}-${Math.random().toString(36).slice(2, 18)}` },
-          body: {
-            address_id: selectedAddress,
-            notes: notesTextarea ? notesTextarea.value || null : null,
-            payment_method: selectedPaymentMethod
+      navigator.geolocation.getCurrentPosition(async position => {
+        try {
+          selectedCoordinates = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          const address = await reverseGeocode(position.coords.latitude, position.coords.longitude);
+          page.querySelector('[data-location-confirm]')?.classList.remove('hidden');
+          page.querySelector('[data-location-text]')?.replaceChildren(document.createTextNode(formatAddress(address) || 'Location found'));
+          page.__pendingLocationAddress = address;
+        } catch (error) {
+          showError(error.message);
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.innerHTML = original;
           }
-        });
-
-        // Navigate to order detail / confirmation page
-        if (order?.data?.order_number) {
-          sessionStorage.setItem('kp_last_order_number', order.data.order_number);
-          sessionStorage.setItem('kp_last_idempotency_key', order.data.idempotencyKey ?? '');
-          location.href = `/orders/${order.data.order_number}`;
-        } else {
-          throw new Error('Order creation failed - no order number returned');
         }
-      } catch (e) {
-        payBtn.disabled = false;
-        payBtn.removeAttribute('aria-busy');
-        payBtn.textContent = originalText;
-        showError(e.message || 'Payment initiation failed. Please try again.');
+      }, error => {
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = original;
+        }
+        showError(error.code === 1 ? 'Location permission was denied. You can enter the address manually.' : 'Could not determine your location. Please enter the address manually.');
+      }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+    });
+
+    page.querySelector('[data-confirm-location]')?.addEventListener('click', async () => {
+      try {
+        clearError();
+        const address = page.__pendingLocationAddress;
+        if (!address) throw new Error('Find your location first.');
+        const saved = await saveAddress(address);
+        selectedCoordinates = { latitude: saved.latitude ?? selectedCoordinates?.latitude, longitude: saved.longitude ?? selectedCoordinates?.longitude };
+        page.__pendingLocationAddress = null;
+        page.querySelector('[data-location-confirm]')?.classList.add('hidden');
+        closeModal(addressModal);
+      } catch (error) {
+        showError(error.message);
       }
     });
 
-    // ---- Init ----
-    await loadAddresses();
-    updateAddressSummary();
-    updateNoteSummary();
+    page.querySelector('[data-open-manual-address]')?.addEventListener('click', () => {
+      page.querySelector('[data-address-choice]')?.classList.add('hidden');
+      page.querySelector('[data-manual-address]')?.classList.remove('hidden');
+    });
+
+    page.querySelector('[data-back-address-choice]')?.addEventListener('click', () => {
+      page.querySelector('[data-manual-address]')?.classList.add('hidden');
+      page.querySelector('[data-address-choice]')?.classList.remove('hidden');
+    });
+
+    page.querySelectorAll('[data-close-address]').forEach(button => button.addEventListener('click', () => closeModal(addressModal)));
+    page.querySelectorAll('[data-close-note]').forEach(button => button.addEventListener('click', () => closeModal(noteModal)));
+
+    addressForm?.addEventListener('submit', async e => {
+      e.preventDefault();
+      clearError();
+      const submit = e.currentTarget.querySelector('button[type="submit"]');
+      submit?.setAttribute('disabled', 'disabled');
+      const fd = new FormData(e.currentTarget);
+
+      try {
+        await saveAddress({
+          recipient_name: fd.get('recipient_name'),
+          phone: fd.get('phone'),
+          region: fd.get('region'),
+          district: fd.get('district'),
+          ward: fd.get('ward') || null,
+          street: fd.get('street'),
+        });
+        e.currentTarget.reset();
+        page.querySelector('[data-address-choice]')?.classList.remove('hidden');
+        page.querySelector('[data-manual-address]')?.classList.add('hidden');
+        closeModal(addressModal);
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        submit?.removeAttribute('disabled');
+      }
+    });
+
+    page.querySelector('[data-add-address]')?.addEventListener('click', () => {
+      page.querySelector('[data-address-choice]')?.classList.remove('hidden');
+      page.querySelector('[data-manual-address]')?.classList.add('hidden');
+      openModal(addressModal);
+    });
+
+    page.querySelector('[data-add-note]')?.addEventListener('click', () => openModal(noteModal));
+    page.querySelector('[data-save-note]')?.addEventListener('click', () => {
+      const value = noteEditor?.value?.trim() || '';
+      if (noteField) noteField.value = value;
+      if (notePreview) {
+        notePreview.textContent = value || 'No note added';
+        notePreview.classList.toggle('text-gray-900', Boolean(value));
+        notePreview.classList.toggle('text-gray-400', !value);
+      }
+      closeModal(noteModal);
+    });
+
+    paymentCards.forEach(card => {
+      card.addEventListener('click', () => {
+        paymentCards.forEach(item => {
+          item.classList.remove('border-gray-950', 'bg-gray-50');
+          item.setAttribute('aria-checked', 'false');
+        });
+        card.classList.add('border-gray-950', 'bg-gray-50');
+        card.setAttribute('aria-checked', 'true');
+        paymentMethod = card.dataset.paymentMethod || null;
+        updatePayButton();
+        clearError();
+      });
+    });
+
+    if (!token()) {
+      authNotice?.classList.remove('hidden');
+      placeButton?.setAttribute('disabled', 'disabled');
+      summary.innerHTML = '<p class="text-sm text-gray-500">Sign in to continue to checkout.</p>';
+      return;
+    }
+
+    try {
+      const [addresses, preview] = await Promise.all([
+        api('/addresses'),
+        api('/cart/checkout/preview')
+      ]);
+
+      const addressData = Array.isArray(addresses?.data) ? addresses.data : [];
+      window.__kpCheckoutAddresses = addressData;
+      const defaultAddress = addressData.find(a => a.is_default) || addressData[0] || null;
+      if (defaultAddress) {
+        selectedAddress = Number(defaultAddress.id);
+        renderSelectedAddress(defaultAddress);
+      } else {
+        renderSelectedAddress(null);
+      }
+      renderAddresses(addressData);
+
+      const d = preview?.data || {};
+      const items = Array.isArray(d.items) ? d.items : [];
+      const count = items.reduce((total, item) => total + Number(item.quantity || 0), 0);
+      checkoutTotal = Number(d.total || 0);
+      if (itemCount) itemCount.textContent = `${count} item${count === 1 ? '' : 's'}`;
+
+      summary.innerHTML = `
+        ${items.length ? `<div class="space-y-3 border-b border-gray-200 pb-4">${items.map(item => `
+          <div class="flex items-start justify-between gap-4">
+            <span class="min-w-0 text-gray-600">${escapeHtml(item.name || item.product_name || 'Item')} <span class="text-gray-400">× ${Number(item.quantity || 0)}</span></span>
+            <strong class="whitespace-nowrap text-gray-900">${Number(item.line_total || 0).toLocaleString('en-TZ')} TZS</strong>
+          </div>`).join('')}</div>` : '<p class="text-sm text-gray-500">Your bag is empty.</p>'}
+        <div class="space-y-2 pt-1">
+          <div class="flex justify-between"><span>Subtotal</span><strong>${Number(d.subtotal || 0).toLocaleString('en-TZ')} TZS</strong></div>
+          <div class="flex justify-between"><span>Delivery</span><strong>${Number(d.delivery_fee || 0).toLocaleString('en-TZ')} TZS</strong></div>
+        </div>
+        <div class="mt-4 flex justify-between border-t border-gray-200 pt-4 text-lg"><span class="font-semibold text-gray-900">Total</span><strong class="text-gray-900">${checkoutTotal.toLocaleString('en-TZ')} TZS</strong></div>
+        <p class="mt-4 flex items-start gap-2 text-xs leading-5 text-gray-400"><span class="mt-0.5"><x-tabler-lock size="13" /></span> Secure payment. Your card or mobile money details are handled by the payment provider.</p>`;
+
+      updatePayButton();
+    } catch (e) {
+      summary.innerHTML = '<p class="text-sm text-red-600">We could not load your checkout summary. Please return to your cart and try again.</p>';
+      placeButton?.setAttribute('disabled', 'disabled');
+      showError(e.message);
+    }
+
+    placeButton?.addEventListener('click', async () => {
+      clearError();
+      if (!selectedAddress) return showError('Add or select a delivery address before placing your order.');
+      if (!paymentMethod) return showError('Choose a payment method before continuing.');
+      if (placeButton.disabled) return;
+
+      placeButton.setAttribute('disabled', 'disabled');
+      placeButton.setAttribute('aria-busy', 'true');
+      const originalText = placeButton.innerHTML;
+      placeButton.innerHTML = '<span class="animate-pulse">Preparing payment…</span>';
+
+      let key = sessionStorage.getItem('kp_checkout_idempotency_key');
+      if (!key) {
+        key = `kp-${Date.now()}-${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`;
+        sessionStorage.setItem('kp_checkout_idempotency_key', key);
+      }
+
+      try {
+        const order = await api('/checkout', {
+          method: 'POST',
+          headers: { 'Idempotency-Key': key },
+          body: {
+            address_id: Number(selectedAddress),
+            notes: noteField?.value?.trim() || null,
+            payment_method: paymentMethod,
+          }
+        });
+
+        sessionStorage.removeItem('kp_checkout_idempotency_key');
+        const gatewayUrl = order?.data?.payment_gateway_url || order?.data?.payment_url || order?.payment_gateway_url;
+        if (gatewayUrl && /^https:\/\//i.test(gatewayUrl)) {
+          window.location.assign(gatewayUrl);
+          return;
+        }
+        window.location.assign(`/orders/${encodeURIComponent(order.data.order_number)}`);
+      } catch (e) {
+        placeButton.removeAttribute('disabled');
+        placeButton.removeAttribute('aria-busy');
+        placeButton.innerHTML = originalText;
+        showError(e.message);
+      }
+    });
   };
 
   const bootAccount =
@@ -2163,7 +2327,7 @@ const bootCatalog = async () => {
         return;
       }
 
-      if (!signedIn()) {
+      if (!token()) {
         if (account) {
           location.href =
             '/login';
@@ -2175,6 +2339,10 @@ const bootCatalog = async () => {
       try {
         const me =
           await api('/auth/me');
+
+        setAuth({
+          user: me.data
+        });
 
         document
           .querySelectorAll(
@@ -2233,7 +2401,6 @@ const bootCatalog = async () => {
           account.querySelector(
             '[data-account-orders-count]'
           ).textContent =
-            orders.meta?.total ??
             orders.data?.length ??
             0;
         }
@@ -2265,7 +2432,7 @@ const bootCatalog = async () => {
   const bootReturns = async () => {
     const page = document.querySelector('[data-returns-page]');
     if (!page) return;
-    if (!signedIn()) { location.href = '/login'; return; }
+    if (!token()) { location.href = '/login'; return; }
 
     const list = page.querySelector('[data-returns-list]');
     const empty = page.querySelector('[data-returns-empty]');
@@ -2301,41 +2468,19 @@ const bootCatalog = async () => {
     };
 
     try {
-      const [requestsResponse, ordersResponse] = await Promise.all([api('/returns'), api('/returns/eligible-orders')]);
+      const [requestsResponse, ordersResponse] = await Promise.all([api('/returns'), api('/orders')]);
       const requests = Array.isArray(requestsResponse?.data) ? requestsResponse.data : [];
-      let eligibleOrders = Array.isArray(ordersResponse?.data) ? ordersResponse.data : [];
+      const orders = Array.isArray(ordersResponse?.data) ? ordersResponse.data : [];
       renderRequests(requests);
 
+      const eligibleOrders = orders.filter(o => String(o.status || '').toLowerCase() === 'delivered');
       orderSelect.innerHTML = '<option value="">Choose an order…</option>' + eligibleOrders.map(o =>
         `<option value="${escapeHtml(o.id)}">${escapeHtml(o.order_number)} · ${Number(o.total || 0).toLocaleString()} TZS</option>`
       ).join('');
 
-      const loadMoreEligible = async (pageNumber) => {
-        if (!pageNumber) return null;
-        const response = await api(`/returns/eligible-orders?page=${pageNumber}`);
-        const more = Array.isArray(response?.data) ? response.data : [];
-        eligibleOrders = eligibleOrders.concat(more);
-        orderSelect.insertAdjacentHTML('beforeend', more.map(o =>
-          `<option value="${escapeHtml(o.id)}">${escapeHtml(o.order_number)} · ${Number(o.total || 0).toLocaleString()} TZS</option>`
-        ).join(''));
-        return response?.meta || null;
-      };
-
       const openModal = () => {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        if (!page.querySelector('[data-return-load-more]') && ordersResponse?.meta?.current_page < ordersResponse?.meta?.last_page) {
-          const button = document.createElement('button');
-          button.type = 'button'; button.dataset.returnLoadMore = '1';
-          button.className = 'mt-2 text-xs font-semibold text-emerald-700 hover:underline';
-          button.textContent = 'Load older delivered orders';
-          orderSelect.insertAdjacentElement('afterend', button);
-          let nextPage = Number(ordersResponse.meta.current_page) + 1;
-          button.addEventListener('click', async () => {
-            button.disabled = true; button.textContent = 'Loading…';
-            try { const meta = await loadMoreEligible(nextPage); nextPage = Number(meta?.current_page || nextPage) + 1; if (!meta || nextPage > Number(meta.last_page)) button.remove(); else { button.disabled = false; button.textContent = 'Load older delivered orders'; } } catch (e) { button.disabled = false; button.textContent = 'Load older delivered orders'; toast(e.message); }
-          });
-        }
       };
       const closeModal = () => {
         modal.classList.add('hidden');
@@ -2379,8 +2524,7 @@ const bootCatalog = async () => {
             notes: form.querySelector('[name="notes"]')?.value || null,
           }});
           closeModal();
-          const refreshed = await api('/returns');
-          renderRequests(refreshed?.data || []);
+          renderRequests((await api('/returns'))?.data || []);
           toast('Return request submitted.');
         } catch (e) { toast(e.message); }
         finally { submit.disabled = false; submit.textContent = 'Submit request'; }
@@ -2399,7 +2543,7 @@ const bootCatalog = async () => {
     const iconBox = page.querySelector('[data-order-status-icon]');
     const actions = page.querySelector('[data-order-status-actions]');
 
-    if (!signedIn()) {
+    if (!token()) {
       if (text) text.textContent = 'Please sign in to view this order.';
       return;
     }
@@ -2444,17 +2588,22 @@ const bootCatalog = async () => {
     const page = document.querySelector('[data-orders-page]');
     if (!page) return;
 
-    if (!signedIn()) {
+    if (!token()) {
       location.href = '/login';
       return;
     }
 
-    const list = page.querySelector('[data-orders-list]');
-    const render = (data, meta) => {
+    try {
+      const orders = await api('/orders');
+      const list = page.querySelector('[data-orders-list]');
+      const data = Array.isArray(orders.data) ? orders.data : [];
+
       if (!data.length) {
         list.innerHTML = `
           <div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-6 py-14 text-center">
-            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-100">📦</div>
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V4h12v5"/><path d="M4 9h16v11H4z"/><path d="M9 13h6"/></svg>
+            </div>
             <h2 class="mt-5 text-lg font-semibold text-gray-950">No orders yet</h2>
             <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">Your completed and pending purchases will appear here.</p>
             <a href="/shop" class="button-dark mt-6">Start shopping</a>
@@ -2473,32 +2622,32 @@ const bootCatalog = async () => {
               </div>
               <span class="w-fit rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${orderStatusClass(o.status)}">${escapeHtml(formatOrderStatus(o.status))}</span>
             </div>
+
             <div class="grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-3">
-              <div><p class="text-xs text-gray-400">Items</p><p class="mt-1 text-sm font-semibold text-gray-900">${Array.isArray(o.items) ? o.items.reduce((n, i) => n + Number(i.quantity || 0), 0) : '—'}</p></div>
-              <div><p class="text-xs text-gray-400">Payment</p><p class="mt-1 text-sm font-semibold capitalize text-gray-900">${escapeHtml(formatOrderStatus(o.payment_status))}</p></div>
-              <div><p class="text-xs text-gray-400">Total</p><p class="mt-1 text-sm font-bold text-gray-950">${Number(o.total || 0).toLocaleString()} TZS</p></div>
+              <div>
+                <p class="text-xs text-gray-400">Items</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900">${Array.isArray(o.items) ? o.items.reduce((n, i) => n + Number(i.quantity || 0), 0) : '—'}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Payment</p>
+                <p class="mt-1 text-sm font-semibold capitalize text-gray-900">${escapeHtml(formatOrderStatus(o.payment_status))}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Total</p>
+                <p class="mt-1 text-sm font-bold text-gray-950">${Number(o.total || 0).toLocaleString()} TZS</p>
+              </div>
             </div>
+
             <div class="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-5">
               <a href="/account/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50">View details</a>
               ${String(o.status || '').toLowerCase() === 'pending_payment' ? `<a href="/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800">Continue payment</a>` : ''}
             </div>
           </div>
-        </article>`).join('');
-
-      if (meta?.last_page > 1) {
-        list.insertAdjacentHTML('beforeend', `<div class="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm"><span class="text-gray-500">Page ${meta.current_page} of ${meta.last_page} · ${meta.total} orders</span><div class="flex gap-2">${meta.current_page > 1 ? `<button type="button" data-orders-page-nav="${meta.current_page - 1}" class="rounded-lg border px-3 py-2 font-semibold">Previous</button>` : ''}${meta.current_page < meta.last_page ? `<button type="button" data-orders-page-nav="${meta.current_page + 1}" class="rounded-lg bg-gray-950 px-3 py-2 font-semibold text-white">Next</button>` : ''}</div></div>`);
-        list.querySelectorAll('[data-orders-page-nav]').forEach(button => button.addEventListener('click', async () => {
-          button.disabled = true;
-          try { const next = await api(`/orders?page=${button.dataset.ordersPageNav}`); render(next.data || [], next.meta); } catch (e) { toast(e.message); button.disabled = false; }
-        }));
-      }
-    };
-
-    try {
-      const orders = await api('/orders');
-      render(Array.isArray(orders.data) ? orders.data : [], orders.meta);
+        </article>
+      `).join('');
     } catch (e) {
-      list.innerHTML = `<div class="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">${escapeHtml(e.message || 'Unable to load your orders.')}</div>`;
+      page.querySelector('[data-orders-list]').innerHTML = `
+        <div class="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">${escapeHtml(e.message || 'Unable to load your orders.')}</div>`;
     }
   };
 
@@ -2506,7 +2655,7 @@ const bootCatalog = async () => {
     const page = document.querySelector('[data-order-detail]');
     if (!page) return;
 
-    if (!signedIn()) {
+    if (!token()) {
       location.href = '/login';
       return;
     }
@@ -2598,7 +2747,7 @@ const bootCatalog = async () => {
 
       if (!page) return;
 
-      if (!signedIn()) {
+      if (!token()) {
         location.href =
           '/login';
 
@@ -2618,7 +2767,10 @@ const bootCatalog = async () => {
                 <div class="rounded-2xl border border-gray-100 p-5">
                   <div class="flex items-center justify-between">
                     <strong>
-                      ${escapeHtml(a.label || 'Shipping address')}
+                      ${
+                        a.label ||
+                        'Shipping address'
+                      }
                     </strong>
 
                     ${
@@ -2672,6 +2824,14 @@ const bootCatalog = async () => {
                 }
               );
             } catch {}
+
+            localStorage.removeItem(
+              TOKEN_KEY
+            );
+
+            localStorage.removeItem(
+              USER_KEY
+            );
 
             location.href = '/';
           }

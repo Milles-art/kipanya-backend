@@ -8,5 +8,6 @@ final readonly class CreateWearOrderData
         public int $addressId,
         public ?string $notes,
         public string $idempotencyKey,
+        public ?string $paymentMethod = null,
     ) {}
 }

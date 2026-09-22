@@ -32,6 +32,11 @@ final class SecurityHeaders
         // replace the scheme with an explicit host allowlist once image
         // origins are pinned. `worker-src`/`manifest-src`/`frame-src` are
         // locked down because the storefront uses none of them.
+        // Mapbox GL JS (checkout's delivery-location picker) loads its script/CSS
+        // from api.mapbox.com, calls the Mapbox geocoding + tile APIs over fetch,
+        // sends anonymous usage pings to events.mapbox.com, and parses vector
+        // tiles in a blob: web worker — each is added narrowly below rather than
+        // relaxing these directives generally.
         $policy = implode('; ', [
             "default-src 'self'",
             "base-uri 'self'",
@@ -39,14 +44,14 @@ final class SecurityHeaders
             "frame-ancestors 'self'",
             "frame-src 'none'",
             "form-action 'self'",
-            "script-src 'self' 'nonce-{$nonce}'",
-            "style-src 'self' https://fonts.googleapis.com",
-            "style-src-elem 'self' 'nonce-{$nonce}' https://fonts.googleapis.com",
+            "script-src 'self' 'nonce-{$nonce}' https://api.mapbox.com",
+            "style-src 'self' https://fonts.googleapis.com https://api.mapbox.com",
+            "style-src-elem 'self' 'nonce-{$nonce}' https://fonts.googleapis.com https://api.mapbox.com",
             "style-src-attr 'unsafe-inline'",
             "font-src 'self' data: https://fonts.gstatic.com",
             'img-src '.config('security.csp_img_src', "'self' data: blob: https:"),
-            "connect-src 'self'",
-            "worker-src 'none'",
+            "connect-src 'self' https://api.mapbox.com https://events.mapbox.com",
+            "worker-src 'self' blob:",
             "manifest-src 'self'",
         ]);
         $response->headers->set('Content-Security-Policy', $policy);
