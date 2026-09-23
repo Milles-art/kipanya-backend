@@ -1,33 +1,33 @@
 @extends('layouts.app')
 @section('content')
-<div class="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+<div class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
     <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
 
         @include('components.account-sidebar')
 
         <div data-size-profile-page>
-            <div class="border-b border-gray-200 pb-6">
-                <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <div class="border-b border-emerald-950/12 pb-6">
+                <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black">
                     <x-tabler-ruler-2 size="14" />
                     Fit
                 </p>
-                <h1 class="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Size profile</h1>
-                <p class="mt-2 text-sm text-gray-500">Save your usual sizes so we can pre-select them for you on product pages.</p>
+                <h1 class="mt-2 text-2xl font-bold tracking-tight text-black sm:text-3xl">Size profile</h1>
+                <p class="mt-2 text-sm text-black">Save your usual sizes so we can pre-select them for you on product pages.</p>
             </div>
 
             <form data-size-profile-form class="mt-6 space-y-4">
 
                 {{-- Tops --}}
-                <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
-                            <x-tabler-shirt size="17" class="text-gray-600" />
+                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50/70">
+                            <x-tabler-shirt size="17" class="text-black" />
                         </div>
-                        <p class="text-sm font-medium text-gray-900">Tops</p>
+                        <p class="text-sm font-medium text-black">Tops</p>
                     </div>
                     <div class="mt-4 flex flex-wrap gap-2">
                         @foreach(['XS','S','M','L','XL','XXL'] as $size)
-                            <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-sm font-medium text-gray-700 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+                            <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-emerald-950/12 text-sm font-medium text-black has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white">
                                 <input type="radio" name="size_top" value="{{ $size }}" class="hidden">
                                 {{ $size }}
                             </label>
@@ -36,16 +36,16 @@
                 </section>
 
                 {{-- Bottoms --}}
-                <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
-                            <x-tabler-hanger size="17" class="text-gray-600" />
+                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50/70">
+                            <x-tabler-hanger size="17" class="text-black" />
                         </div>
-                        <p class="text-sm font-medium text-gray-900">Bottoms</p>
+                        <p class="text-sm font-medium text-black">Bottoms</p>
                     </div>
                     <div class="mt-4 flex flex-wrap gap-2">
                         @foreach(['28','30','32','34','36','38'] as $size)
-                            <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-sm font-medium text-gray-700 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+                            <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-emerald-950/12 text-sm font-medium text-black has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white">
                                 <input type="radio" name="size_bottom" value="{{ $size }}" class="hidden">
                                 {{ $size }}
                             </label>
@@ -54,16 +54,16 @@
                 </section>
 
                 {{-- Shoes --}}
-                <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
-                            <x-tabler-shoe size="17" class="text-gray-600" />
+                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50/70">
+                            <x-tabler-shoe size="17" class="text-black" />
                         </div>
-                        <p class="text-sm font-medium text-gray-900">Shoes</p>
+                        <p class="text-sm font-medium text-black">Shoes</p>
                     </div>
                     <div class="mt-4 flex flex-wrap gap-2">
                         @foreach(['39','40','41','42','43','44','45'] as $size)
-                            <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-sm font-medium text-gray-700 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+                            <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-emerald-950/12 text-sm font-medium text-black has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white">
                                 <input type="radio" name="size_shoe" value="{{ $size }}" class="hidden">
                                 {{ $size }}
                             </label>
@@ -71,11 +71,11 @@
                     </div>
                 </section>
 
-                <button class="button-dark inline-flex items-center gap-2 rounded-full px-6">Save size profile</button>
+                <button class="button-dark px-6">Save size profile</button>
             </form>
 
-            <div class="mt-6 flex items-start gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-500">
-                <x-tabler-info-circle size="16" class="mt-0.5 flex-shrink-0 text-gray-400" />
+            <div class="mt-6 flex items-start gap-2.5 rounded-2xl border border-emerald-950/12 bg-emerald-50/50 p-4 text-xs text-black">
+                <x-tabler-info-circle size="16" class="mt-0.5 flex-shrink-0 text-black" />
                 We'll pre-select these sizes automatically on product pages — you can still change your selection anytime before adding to bag.
             </div>
         </div>

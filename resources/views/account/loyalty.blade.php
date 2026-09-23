@@ -1,20 +1,20 @@
 @extends('layouts.app')
 @section('content')
-<div class="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+<div class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
     <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         @include('components.account-sidebar')
 
         <div data-loyalty-page class="min-w-0">
-            <div class="border-b border-gray-200 pb-6">
-                <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <div class="border-b border-emerald-950/12 pb-6">
+                <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black">
                     <x-tabler-gift size="14" />
                     Rewards
                 </p>
-                <h1 class="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Loyalty &amp; referrals</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Rewards are being prepared for KP Wear. This page will become your home for points, referral rewards, and member benefits.</p>
+                <h1 class="mt-2 text-2xl font-bold tracking-tight text-black sm:text-3xl">Loyalty &amp; referrals</h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-black">Rewards are being prepared for KP Wear. This page will become your home for points, referral rewards, and member benefits.</p>
             </div>
 
-            <section class="mt-6 overflow-hidden rounded-3xl bg-gray-950 p-6 text-white shadow-sm sm:p-8">
+            <section class="mt-6 overflow-hidden rounded-3xl bg-black p-6 text-white shadow-sm sm:p-8">
                 <div class="max-w-2xl">
                     <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
                         <x-tabler-sparkles size="21" />
@@ -42,39 +42,39 @@
                 </div>
             </section>
 
-            <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+            <section class="mt-6 rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
                 <div class="flex items-start gap-3">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100">
-                        <x-tabler-clock size="18" class="text-gray-600" />
+                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50/70">
+                        <x-tabler-clock size="18" class="text-black" />
                     </div>
                     <div>
-                        <h2 class="text-sm font-semibold text-gray-900">Rewards programme coming soon</h2>
-                        <p class="mt-1 text-sm leading-6 text-gray-500">Your account is ready for the loyalty experience. Points balances, redemption, referral codes, and referral history will appear here once the rewards system is connected.</p>
+                        <h2 class="text-sm font-semibold text-black">Rewards programme coming soon</h2>
+                        <p class="mt-1 text-sm leading-6 text-black">Your account is ready for the loyalty experience. Points balances, redemption, referral codes, and referral history will appear here once the rewards system is connected.</p>
                     </div>
                 </div>
             </section>
 
             <section class="mt-6 grid gap-4 sm:grid-cols-2">
-                <a href="{{ route('shop') }}" class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md sm:p-6">
+                <a href="{{ route('shop') }}" class="group rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-black hover:shadow-md sm:p-6">
                     <div class="flex items-center justify-between">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
-                            <x-tabler-shopping-bag size="18" class="text-gray-600" />
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50/70">
+                            <x-tabler-shopping-bag size="18" class="text-black" />
                         </div>
-                        <span class="text-gray-400 transition group-hover:translate-x-1">→</span>
+                        <span class="text-black transition group-hover:translate-x-1">→</span>
                     </div>
-                    <h2 class="mt-5 text-sm font-semibold text-gray-900">Shop KP Wear</h2>
-                    <p class="mt-1 text-sm leading-6 text-gray-500">Explore the latest pieces and build your wardrobe.</p>
+                    <h2 class="mt-5 text-sm font-semibold text-black">Shop KP Wear</h2>
+                    <p class="mt-1 text-sm leading-6 text-black">Explore the latest pieces and build your wardrobe.</p>
                 </a>
 
-                <a href="{{ route('contact') }}" class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md sm:p-6">
+                <a href="{{ route('contact') }}" class="group rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-black hover:shadow-md sm:p-6">
                     <div class="flex items-center justify-between">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
-                            <x-tabler-message-circle size="18" class="text-gray-600" />
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50/70">
+                            <x-tabler-message-circle size="18" class="text-black" />
                         </div>
-                        <span class="text-gray-400 transition group-hover:translate-x-1">→</span>
+                        <span class="text-black transition group-hover:translate-x-1">→</span>
                     </div>
-                    <h2 class="mt-5 text-sm font-semibold text-gray-900">Need help?</h2>
-                    <p class="mt-1 text-sm leading-6 text-gray-500">Contact KP Wear for questions about your account or orders.</p>
+                    <h2 class="mt-5 text-sm font-semibold text-black">Need help?</h2>
+                    <p class="mt-1 text-sm leading-6 text-black">Contact KP Wear for questions about your account or orders.</p>
                 </a>
             </section>
         </div>

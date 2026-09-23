@@ -19,11 +19,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body class="bg-white text-gray-950 antialiased">
+<body @class(['kp-storefront bg-white text-black antialiased', 'kp-has-mobile-bottom-nav' => !request()->routeIs('login', 'register', 'checkout')])>
     @include('components.navbar')
     <main class="min-h-[70vh]">@yield('content')</main>
-    @include('components.footer')
-    <div id="toast" class="fixed bottom-5 left-1/2 z-[80] hidden -translate-x-1/2 rounded-full bg-gray-950 px-5 py-3 text-sm font-medium text-white shadow-xl"></div>
+    @if(!request()->routeIs('login', 'register'))
+        @include('components.footer')
+    @endif
+    <div id="toast" class="fixed bottom-5 left-1/2 z-[80] hidden -translate-x-1/2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white shadow-xl"></div>
     @stack('scripts')
 </body>
 </html>

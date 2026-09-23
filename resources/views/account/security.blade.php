@@ -1,26 +1,26 @@
 @extends('layouts.app')
 @section('content')
-<div class="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+<div class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
     <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         @include('components.account-sidebar')
         <section data-security-page class="space-y-6">
-            <div class="border-b border-gray-200 pb-6">
-                <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400"><x-tabler-shield-lock size="14" /> Account</p>
-                <h1 class="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Security &amp; login</h1>
-                <p class="mt-2 text-sm text-gray-500">Your KP Wear account uses your verified phone number and one-time verification codes to sign in.</p>
+            <div class="border-b border-emerald-950/12 pb-6">
+                <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black"><x-tabler-shield-lock size="14" /> Account</p>
+                <h1 class="mt-2 text-2xl font-bold tracking-tight text-black sm:text-3xl">Security &amp; login</h1>
+                <p class="mt-2 text-sm text-black">Your KP Wear account uses your verified phone number and one-time verification codes to sign in.</p>
             </div>
 
-            <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+            <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
                 <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100"><x-tabler-device-mobile size="18" class="text-gray-600" /></div>
-                    <div><p class="text-sm font-medium text-gray-900">Verified phone number</p><p data-security-phone class="text-sm text-gray-500">Loading…</p></div>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50/70"><x-tabler-device-mobile size="18" class="text-black" /></div>
+                    <div><p class="text-sm font-medium text-black">Verified phone number</p><p data-security-phone class="text-sm text-black">Loading…</p></div>
                 </div>
-                <div class="mt-5 rounded-xl bg-gray-50 p-4 text-sm leading-6 text-gray-600">Sign-in is protected by a one-time code sent to this number. Phone-number changes require a separate verified OTP workflow and are not exposed as a fake action here.</div>
+                <div class="mt-5 rounded-xl bg-emerald-50/50 p-4 text-sm leading-6 text-black">Sign-in is protected by a one-time code sent to this number. Phone-number changes require a separate verified OTP workflow and are not exposed as a fake action here.</div>
             </section>
 
-            <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-                <div class="flex items-center gap-3"><div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100"><x-tabler-logout size="18" class="text-gray-600" /></div><div><p class="text-sm font-medium text-gray-900">Sign out</p><p class="text-sm text-gray-500">End your current authenticated session.</p></div></div>
-                <button data-logout type="button" class="mt-5 rounded-full border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Sign out</button>
+            <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
+                <div class="flex items-center gap-3"><div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50/70"><x-tabler-logout size="18" class="text-black" /></div><div><p class="text-sm font-medium text-black">Sign out</p><p class="text-sm text-black">End your current authenticated session.</p></div></div>
+                <button data-logout type="button" class="mt-5 rounded-full border border-emerald-950/12 px-5 py-2.5 text-sm font-semibold text-black hover:bg-emerald-50/50">Sign out</button>
             </section>
 
             <section class="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">

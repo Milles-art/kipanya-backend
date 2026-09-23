@@ -74,14 +74,14 @@
       headers.set('Content-Type', 'application/json');
     }
 
+    // Browser auth uses the HttpOnly kp_web_session cookie. Fetch sends
+    // same-origin cookies automatically, so never require a JS-readable token.
     if (token()) {
       headers.set(
         'Authorization',
         `Bearer ${token()}`
       );
-    }
-
-    if (!token()) {
+    } else if (!signedIn()) {
       headers.set(
         'X-Guest-Cart-Token',
         ensureGuestToken()
@@ -149,6 +149,14 @@
   const currentUser = () =>
     getJson(USER_KEY, null);
 
+  // Browser authentication is carried by the HttpOnly kp_web_session cookie.
+  // The cookie is intentionally unreadable from JavaScript, so the server-rendered
+  // signed-in state is the source of truth for frontend guards.
+  const signedIn = () =>
+    document
+      .querySelector('meta[name="kp-signed-in"]')
+      ?.getAttribute('content') === '1';
+
   const counts = async () => {
     try {
       const data = await api('/cart');
@@ -166,7 +174,7 @@
         });
     } catch {}
 
-    if (token()) {
+    if (signedIn()) {
       try {
         const wishlist =
           await api('/wishlist');
@@ -220,7 +228,7 @@
 
               button.classList.remove(
                 'bg-white',
-                'text-gray-800'
+                'text-black'
               );
             }
           });
@@ -273,13 +281,13 @@
   };
 
   const colorHex = {
-    black: '#1a1a1a',
+    black: '#000000',
     white: '#f5f5f5',
     navy: '#1e3a5f',
     olive: '#5b6f4a',
     burgundy: '#6b2c2c',
     camel: '#c4a882',
-    gray: '#8a8a8a',
+    gray: '#000000',
     sage: '#9caf88',
     sand: '#d7c4a3'
   };
@@ -326,10 +334,10 @@
 
     container.innerHTML = Array.from({ length: count }, () => `
       <article class="min-w-0 animate-pulse">
-        <div class="mb-4 aspect-square overflow-hidden rounded-2xl bg-gray-200"></div>
-        <div class="mb-2 h-3 w-20 rounded bg-gray-200"></div>
-        <div class="h-4 w-3/4 rounded bg-gray-200"></div>
-        <div class="mt-2 h-4 w-24 rounded bg-gray-200"></div>
+        <div class="mb-4 aspect-square overflow-hidden rounded-2xl bg-white"></div>
+        <div class="mb-2 h-3 w-20 rounded bg-white"></div>
+        <div class="h-4 w-3/4 rounded bg-white"></div>
+        <div class="mt-2 h-4 w-24 rounded bg-white"></div>
       </article>
     `).join('');
   };
@@ -397,7 +405,7 @@
               data-product-id="${escapeHtml(p.id)}"
             >
               <div
-                class="relative mb-4 aspect-square overflow-hidden rounded-2xl bg-gray-100"
+                class="relative mb-4 aspect-square overflow-hidden rounded-2xl bg-white"
               >
                 <a
                   href="/product/${encodeURIComponent(p.slug)}"
@@ -434,7 +442,7 @@
                       `
                       : !onSale && p.badge
                       ? `
-                        <span class="w-fit rounded-full bg-gray-950 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                        <span class="w-fit rounded-full bg-black px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
                           ${escapeHtml(p.badge)}
                         </span>
                       `
@@ -446,7 +454,7 @@
                   p.availability ===
                   'out_of_stock'
                     ? `
-                      <span class="pointer-events-none absolute right-3 top-3 rounded-full bg-gray-900 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                      <span class="pointer-events-none absolute right-3 top-3 rounded-full bg-black px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
                         Sold out
                       </span>
                     `
@@ -463,7 +471,7 @@
                   type="button"
                   data-wishlist-product="${escapeHtml(p.id)}"
                   data-saved="0"
-                  class="absolute bottom-3 left-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full bg-white text-gray-800 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-rose-500 hover:text-white"
+                  class="absolute bottom-3 left-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full bg-white text-black opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-rose-500 hover:text-white"
                   aria-label="Toggle wishlist for ${escapeHtml(p.name || 'product')}"
                 >
                   ${icon('heart')}
@@ -479,7 +487,7 @@
                       ? 'disabled'
                       : ''
                   }
-                  class="absolute bottom-3 right-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full bg-white text-gray-800 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-emerald-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  class="absolute bottom-3 right-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full bg-white text-black opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-emerald-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Add ${escapeHtml(p.name || 'product')} to bag"
                 >
                   ${icon('bag')}
@@ -487,14 +495,14 @@
               </div>
 
               <div>
-                <p class="mb-1 text-xs text-gray-400">
+                <p class="mb-1 text-xs text-black">
                   ${escapeHtml(p.category || '')}
                 </p>
 
                 ${
                   rating > 0
                     ? `
-                      <div class="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                      <div class="mb-1 flex items-center gap-1 text-xs text-black">
                         <span class="inline-flex text-amber-400">
                           ${icon('star', 13)}
                         </span>
@@ -514,20 +522,20 @@
 
                 <a
                   href="/product/${encodeURIComponent(p.slug)}"
-                  class="line-clamp-1 text-sm font-medium text-gray-950 transition-colors hover:text-emerald-700"
+                  class="line-clamp-1 text-sm font-medium text-black transition-colors hover:text-emerald-700"
                 >
                   ${escapeHtml(p.name || '')}
                 </a>
 
                 <div class="mt-1 flex items-center gap-2">
-                  <span class="text-sm font-semibold text-gray-950">
+                  <span class="text-sm font-semibold text-black">
                     ${price.toLocaleString()} TZS
                   </span>
 
                   ${
                     onSale
                       ? `
-                        <span class="text-xs text-gray-400 line-through">
+                        <span class="text-xs text-black line-through">
                           ${compare.toLocaleString()} TZS
                         </span>
                       `
@@ -544,14 +552,14 @@
                           .map(
                             c => `
                               <span
-                                class="h-3.5 w-3.5 rounded-full border border-gray-200 shadow-sm"
+                                class="h-3.5 w-3.5 rounded-full border border-black shadow-sm"
                                 style="background-color:${
                                   colorHex[
                                     String(
                                       c
                                     ).toLowerCase()
                                   ] ||
-                                  '#d1d5db'
+                                  '#000000'
                                 }"
                                 title="${escapeHtml(c)}"
                               ></span>
@@ -562,7 +570,7 @@
                         ${
                           colors.length > 5
                             ? `
-                              <span class="text-[11px] text-gray-400">
+                              <span class="text-[11px] text-black">
                                 +${colors.length - 5}
                               </span>
                             `
@@ -577,6 +585,18 @@
           `;
         })
         .join('');
+
+    if (products.length >= 12) {
+      const editorialMount = document.createElement('div');
+      editorialMount.setAttribute('data-catalog-editorial-slider', '');
+      editorialMount.setAttribute('aria-label', 'KP Wear editorial feature');
+      editorialMount.setAttribute('role', 'region');
+      editorialMount.className = 'col-span-full';
+      const anchor = container.children[11];
+      if (anchor) {
+        anchor.insertAdjacentElement('afterend', editorialMount);
+      }
+    }
 
     document.dispatchEvent(
       new Event('kp:grid-rendered')
@@ -640,7 +660,7 @@
     productId,
     button = null
   ) => {
-    if (!token()) {
+    if (!signedIn()) {
       location.href = '/login';
       return;
     }
@@ -667,7 +687,7 @@
 
         button.classList.add(
           'bg-white',
-          'text-gray-800'
+          'text-black'
         );
       }
 
@@ -691,7 +711,7 @@
 
         button.classList.remove(
           'bg-white',
-          'text-gray-800'
+          'text-black'
         );
       }
 
@@ -712,7 +732,7 @@ const bootHome = async () => {
       if (!host) return;
 
       if (!collections.length) {
-        host.innerHTML = '<div class="sm:col-span-2 lg:col-span-3 rounded-2xl border border-dashed border-gray-200 py-16 text-center text-sm text-gray-500">No featured collections are available yet.</div>';
+        host.innerHTML = '<div class="sm:col-span-2 lg:col-span-3 rounded-2xl border border-dashed border-black py-16 text-center text-sm text-black">No featured collections are available yet.</div>';
         return;
       }
 
@@ -722,7 +742,7 @@ const bootHome = async () => {
         return `
           <a
             href="/collections/${encodeURIComponent(collection.slug)}"
-            class="group relative overflow-hidden rounded-2xl bg-gray-100 aspect-[4/3]"
+            class="group relative overflow-hidden rounded-2xl bg-white aspect-[4/3]"
           >
             <img
               src="${escapeHtml(image)}"
@@ -827,12 +847,12 @@ const bootHome = async () => {
         catGrid.innerHTML = categorySource.map(category => `
           <a
             href="/category/${encodeURIComponent(category.slug)}"
-            class="group rounded-xl border border-gray-100 bg-gray-50 p-3.5 transition hover:-translate-y-0.5 hover:border-gray-200"
+            class="group rounded-xl border border-black bg-white p-3.5 transition hover:-translate-y-0.5 hover:border-black"
           >
             <p class="text-xs font-semibold text-slate-900 sm:text-sm">
               ${escapeHtml(category.name)}
             </p>
-            <p class="mt-0.5 text-[11px] text-gray-500 sm:text-xs">
+            <p class="mt-0.5 text-[11px] text-black sm:text-xs">
               Shop collection
             </p>
           </a>
@@ -869,7 +889,7 @@ const bootHome = async () => {
       const image = collection.cover || `/assets/wear/catalog/generated/${fallbackImages[collection.slug] || 'product-01.jpg'}`;
       const wide = index === 0 || index === 2;
       return `
-        <a href="/collections/${encodeURIComponent(collection.slug)}" class="group relative overflow-hidden rounded-[1.5rem] bg-gray-100 ${wide ? 'lg:col-span-8' : 'lg:col-span-4'} aspect-[4/3]">
+        <a href="/collections/${encodeURIComponent(collection.slug)}" class="group relative overflow-hidden rounded-[1.5rem] bg-white ${wide ? 'lg:col-span-8' : 'lg:col-span-4'} aspect-[4/3]">
           <img src="${escapeHtml(image)}" alt="${escapeHtml(collection.name)}" class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]">
           <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"></div>
           <div class="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
@@ -879,14 +899,14 @@ const bootHome = async () => {
                 <h3 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">${escapeHtml(collection.name)}</h3>
                 <p class="mt-2 max-w-md text-sm leading-6 text-white/70">${escapeHtml(collection.description || '')}</p>
               </div>
-              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-lg text-gray-950 transition group-hover:-rotate-45">↗</span>
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-lg text-black transition group-hover:-rotate-45">↗</span>
             </div>
           </div>
         </a>`;
     }).join('');
 
     if (!collections.length) {
-      grid.innerHTML = '<div class="col-span-full rounded-2xl border border-dashed border-gray-200 py-20 text-center text-sm text-gray-500">No collections are available yet.</div>';
+      grid.innerHTML = '<div class="col-span-full rounded-2xl border border-dashed border-black py-20 text-center text-sm text-black">No collections are available yet.</div>';
     }
   } catch (error) {
     grid.innerHTML = '<div class="col-span-full rounded-2xl border border-red-100 bg-red-50 py-16 text-center text-sm text-red-700">Unable to load collections right now.</div>';
@@ -1027,7 +1047,7 @@ const bootCatalog = async () => {
           <div class="space-y-8">
             <div>
               <div class="mb-4 flex items-center justify-between">
-                <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-black">
                   Category
                 </h3>
 
@@ -1066,7 +1086,7 @@ const bootCatalog = async () => {
             </div>
 
             <div>
-              <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">
+              <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-black">
                 Price Range
               </h3>
 
@@ -1204,9 +1224,9 @@ const bootCatalog = async () => {
           const last = Number(response?.meta?.last_page || 1);
           pagination.innerHTML = (!state.collection && last > 1) ? `
             <div class="mt-10 flex items-center justify-center gap-3">
-              <button type="button" data-catalog-page="${Math.max(1,current-1)}" ${current <= 1 ? 'disabled' : ''} class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
-              <span class="text-sm text-gray-500">Page ${current} of ${last}</span>
-              <button type="button" data-catalog-page="${Math.min(last,current+1)}" ${current >= last ? 'disabled' : ''} class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+              <button type="button" data-catalog-page="${Math.max(1,current-1)}" ${current <= 1 ? 'disabled' : ''} class="rounded-xl border border-black px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+              <span class="text-sm text-black">Page ${current} of ${last}</span>
+              <button type="button" data-catalog-page="${Math.min(last,current+1)}" ${current >= last ? 'disabled' : ''} class="rounded-xl border border-black px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40">Next</button>
             </div>` : '';
         }
       } catch (e) {
@@ -1234,7 +1254,7 @@ const bootCatalog = async () => {
       if (filterCount) filterCount.textContent = String(filters);
       clearButton?.classList.toggle('hidden', filters === 0);
       saleToggle?.classList.toggle('bg-emerald-600', state.saleOnly);
-      saleToggle?.classList.toggle('bg-gray-200', !state.saleOnly);
+      saleToggle?.classList.toggle('bg-white', !state.saleOnly);
       saleToggle?.setAttribute('aria-pressed', state.saleOnly ? 'true' : 'false');
       saleToggle?.querySelector('span')?.classList.toggle('translate-x-5', state.saleOnly);
       saleToggle?.querySelector('span')?.classList.toggle('translate-x-0', !state.saleOnly);
@@ -1244,7 +1264,7 @@ const bootCatalog = async () => {
         button.classList.toggle('bg-emerald-50', active);
         button.classList.toggle('text-emerald-700', active);
         button.classList.toggle('font-medium', active);
-        button.classList.toggle('text-gray-600', !active);
+        button.classList.toggle('text-black', !active);
       });
 
       clearTimeout(debounceTimer);
@@ -1288,7 +1308,7 @@ const bootCatalog = async () => {
       categoryHost.innerHTML = ['<button type="button" data-category="" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Products</button>', ...categories.map(c => `<button type="button" data-category="${escapeHtml(c.slug || slugify(c.name))}" class="w-full rounded-lg px-3 py-2 text-left text-sm">${escapeHtml(c.name)}</button>`)].join('');
     }
     if (mobileContent) {
-      mobileContent.innerHTML = `<div class="space-y-8"><div><div class="mb-4 flex items-center justify-between"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900">Category</h3><button type="button" data-catalog-clear-mobile class="text-xs font-medium text-emerald-600">Clear all</button></div><div data-mobile-categories class="space-y-1"><button type="button" data-category="" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Products</button>${categories.map(c=>`<button type="button" data-category="${escapeHtml(c.slug || slugify(c.name))}" class="w-full rounded-lg px-3 py-2 text-left text-sm">${escapeHtml(c.name)}</button>`).join('')}</div></div><div><h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">Price Range</h3><div class="space-y-1"><button type="button" data-price="all" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Prices</button><button type="button" data-price="under-50000" class="w-full rounded-lg px-3 py-2 text-left text-sm">Under 50,000 TZS</button><button type="button" data-price="50000-150000" class="w-full rounded-lg px-3 py-2 text-left text-sm">50,000 – 150,000 TZS</button><button type="button" data-price="over-150000" class="w-full rounded-lg px-3 py-2 text-left text-sm">Over 150,000 TZS</button></div></div><div><h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-900">Special</h3><label class="flex items-center gap-3"><button type="button" data-catalog-sale-toggle-mobile class="relative h-6 w-11 rounded-full bg-gray-200"><span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"></span></button><span class="text-sm text-gray-700">On Sale Only</span></label></div></div>`;
+      mobileContent.innerHTML = `<div class="space-y-8"><div><div class="mb-4 flex items-center justify-between"><h3 class="text-sm font-semibold uppercase tracking-wider text-black">Category</h3><button type="button" data-catalog-clear-mobile class="text-xs font-medium text-emerald-600">Clear all</button></div><div data-mobile-categories class="space-y-1"><button type="button" data-category="" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Products</button>${categories.map(c=>`<button type="button" data-category="${escapeHtml(c.slug || slugify(c.name))}" class="w-full rounded-lg px-3 py-2 text-left text-sm">${escapeHtml(c.name)}</button>`).join('')}</div></div><div><h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-black">Price Range</h3><div class="space-y-1"><button type="button" data-price="all" class="w-full rounded-lg px-3 py-2 text-left text-sm">All Prices</button><button type="button" data-price="under-50000" class="w-full rounded-lg px-3 py-2 text-left text-sm">Under 50,000 TZS</button><button type="button" data-price="50000-150000" class="w-full rounded-lg px-3 py-2 text-left text-sm">50,000 – 150,000 TZS</button><button type="button" data-price="over-150000" class="w-full rounded-lg px-3 py-2 text-left text-sm">Over 150,000 TZS</button></div></div><div><h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-black">Special</h3><label class="flex items-center gap-3"><button type="button" data-catalog-sale-toggle-mobile class="relative h-6 w-11 rounded-full bg-white"><span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"></span></button><span class="text-sm text-black">On Sale Only</span></label></div></div>`;
     }
 
     const catalogClickHandler = event => {
@@ -1356,7 +1376,7 @@ const bootCatalog = async () => {
       const stock = page.querySelector('[data-product-stock]');
       stock.textContent = totalStock > 0 ? `${totalStock} in stock` : 'Out of stock';
       stock.classList.toggle('text-red-600', totalStock === 0);
-      stock.classList.toggle('text-gray-700', totalStock > 0);
+      stock.classList.toggle('text-black', totalStock > 0);
 
       const main = page.querySelector('[data-product-image]');
       main.src = p.image || '';
@@ -1364,7 +1384,7 @@ const bootCatalog = async () => {
 
       const gallery = page.querySelector('[data-product-gallery]');
       if (gallery && p.image) {
-        gallery.innerHTML = `<button type="button" data-gallery-image="${escapeHtml(p.image)}" class="overflow-hidden rounded-xl border-2 border-gray-950 bg-gray-50"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name || 'Product')}" class="aspect-square w-full object-contain p-2"></button>`;
+        gallery.innerHTML = `<button type="button" data-gallery-image="${escapeHtml(p.image)}" class="overflow-hidden rounded-xl border-2 border-black bg-white"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name || 'Product')}" class="aspect-square w-full object-contain p-2"></button>`;
         gallery.addEventListener('click', e => {
           const button = e.target.closest('[data-gallery-image]');
           if (button) main.src = button.dataset.galleryImage;
@@ -1378,14 +1398,14 @@ const bootCatalog = async () => {
       if (variantsBox) {
         variantsBox.innerHTML = variants.map(v => {
           const label = [v.size, v.color].filter(Boolean).join(' · ') || `Option ${v.id}`;
-          return `<button type="button" data-variant="${escapeHtml(v.id)}" data-stock="${escapeHtml(v.stock)}" data-label="${escapeHtml(label)}" class="rounded-xl border px-4 py-2.5 text-sm ${String(v.id) === String(firstAvailable?.id || '') ? 'border-gray-950 bg-gray-950 text-white' : 'border-gray-200'}" ${!v.in_stock ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(label)}${!v.in_stock ? ' · Sold out' : ''}</button>`;
-        }).join('') || '<span class="text-sm text-gray-500">No variants available.</span>';
+          return `<button type="button" data-variant="${escapeHtml(v.id)}" data-stock="${escapeHtml(v.stock)}" data-label="${escapeHtml(label)}" class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${String(v.id) === String(firstAvailable?.id || '') ? 'border-black bg-black text-white' : 'border-black bg-white text-black hover:border-emerald-600 hover:bg-emerald-50'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2" ${!v.in_stock ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(label)}${!v.in_stock ? ' · Sold out' : ''}</button>`;
+        }).join('') || '<span class="text-sm text-black">No variants available.</span>';
         selectedLabel.textContent = firstAvailable ? [firstAvailable.size, firstAvailable.color].filter(Boolean).join(' · ') : '';
         page.querySelector('[data-quantity]')?.setAttribute('max', String(Math.min(50, Math.max(1, Number(firstAvailable?.stock || 1)))));
       }
 
       // Pre-select the customer's saved size when it matches an available variant.
-      if (token() && variants.length) {
+      if (signedIn() && variants.length) {
         try {
           const preferenceResponse = await api('/account/preferences');
           const saved = preferenceResponse?.data?.size_profile || {};
@@ -1398,8 +1418,8 @@ const bootCatalog = async () => {
             selectedLabel.textContent = [preferred.size, preferred.color].filter(Boolean).join(' · ');
             variantsBox?.querySelectorAll('[data-variant]').forEach(button => {
               const active = String(button.dataset.variant) === String(preferred.id);
-              button.classList.toggle('border-gray-950', active);
-              button.classList.toggle('bg-gray-950', active);
+              button.classList.toggle('border-black', active);
+              button.classList.toggle('bg-black', active);
               button.classList.toggle('text-white', active);
             });
           }
@@ -1409,8 +1429,8 @@ const bootCatalog = async () => {
       const setVariant = btn => {
         page.dataset.selectedVariant = btn.dataset.variant;
         selectedLabel.textContent = btn.dataset.label || '';
-        page.querySelectorAll('[data-variant]').forEach(x => x.classList.remove('border-gray-950', 'bg-gray-950', 'text-white'));
-        btn.classList.add('border-gray-950', 'bg-gray-950', 'text-white');
+        page.querySelectorAll('[data-variant]').forEach(x => x.classList.remove('border-black', 'bg-black', 'text-white'));
+        btn.classList.add('border-black', 'bg-black', 'text-white');
         const quantityInput = page.querySelector('[data-quantity]');
         const maxStock = Math.min(50, Math.max(1, Number(btn.dataset.stock || 1)));
         quantityInput.max = String(maxStock);
@@ -1471,7 +1491,9 @@ const bootCatalog = async () => {
     const page = document.querySelector('[data-cart-page]');
     if (!page) return;
 
-    const render = async () => {
+    const render = async (showLoading = false) => {
+      const loading = page.querySelector('[data-cart-loading]');
+      if (showLoading) loading?.classList.remove('hidden');
       const data = await api('/cart');
       const cart = data?.data || { items: [], subtotal: 0, item_count: 0 };
       const items = Array.isArray(cart.items) ? cart.items : [];
@@ -1489,37 +1511,37 @@ const bootCatalog = async () => {
         const lineTotal = Number(item.line_total || unitPrice * quantity);
 
         return `
-          <article class="flex gap-4 py-5 sm:gap-6">
-            <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-50 sm:h-32 sm:w-28">
-              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2" loading="lazy" onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'">
+          <article class="kp-cart-item grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-4 py-5 sm:grid-cols-[152px_minmax(0,1fr)_150px_150px] sm:items-center sm:gap-6 lg:grid-cols-[152px_minmax(0,1fr)_132px_150px]">
+            <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-xl bg-emerald-50/30 ring-1 ring-emerald-950/6 sm:h-[152px] sm:w-[152px]">
+              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2.5" loading="lazy" onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'">
             </a>
 
-            <div class="min-w-0 flex-1">
-              <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                <div class="min-w-0">
-                  <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="font-semibold hover:underline underline-offset-4">
-                    ${escapeHtml(item.product?.name || 'Product')}
-                  </a>
-                  ${variantLabel ? `<p class="mt-1 text-sm text-gray-500">${escapeHtml(variantLabel)}</p>` : ''}
-                </div>
-                <p class="font-semibold whitespace-nowrap">${lineTotal.toLocaleString()} TZS</p>
-              </div>
+            <div class="min-w-0 self-stretch sm:flex sm:flex-col sm:justify-center">
+              <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="text-base font-bold tracking-tight text-black hover:underline hover:underline-offset-4">
+                ${escapeHtml(item.product?.name || 'Product')}
+              </a>
+              ${variantLabel ? `<p class="mt-1.5 text-sm text-black">${escapeHtml(variantLabel.replace(' · ', '  ·  '))}</p>` : ''}
+              <p class="mt-2 text-sm text-black">${unitPrice.toLocaleString()} TZS each</p>
+              <button type="button" data-cart-remove="${item.variant_id}" class="kp-remove-btn mt-3 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-black underline underline-offset-4" aria-label="Remove ${escapeHtml(item.product?.name || 'item')} from bag">
+                <span aria-hidden="true">×</span> Remove
+              </button>
+            </div>
 
-              <p class="mt-1 text-xs text-gray-500">${unitPrice.toLocaleString()} TZS each</p>
-
-              <div class="mt-4 flex flex-wrap items-center gap-3">
-                <div class="inline-flex items-center rounded-full border border-gray-300 bg-white">
-                  <button type="button" data-cart-minus="${item.variant_id}" class="flex h-9 w-9 items-center justify-center rounded-full text-lg hover:bg-gray-50" aria-label="Decrease quantity">−</button>
-                  <span class="min-w-8 text-center text-sm font-medium">${quantity}</span>
-                  <button type="button" data-cart-plus="${item.variant_id}" class="flex h-9 w-9 items-center justify-center rounded-full text-lg hover:bg-gray-50" aria-label="Increase quantity">+</button>
-                </div>
-                <button type="button" data-cart-remove="${item.variant_id}" class="text-sm text-gray-500 underline underline-offset-4 hover:text-black">Remove</button>
+            <div class="col-span-2 flex items-center justify-start sm:col-span-1 sm:justify-center">
+              <div class="inline-flex h-11 items-center rounded-xl border border-black bg-white px-1">
+                <button type="button" data-cart-minus="${item.variant_id}" class="kp-qty-btn flex h-9 w-9 items-center justify-center rounded-lg text-base font-medium text-black" aria-label="Decrease quantity for ${escapeHtml(item.product?.name || 'item')}">−</button>
+                <span class="min-w-9 text-center text-sm font-semibold text-black" aria-live="polite">${quantity}</span>
+                <button type="button" data-cart-plus="${item.variant_id}" class="kp-qty-btn flex h-9 w-9 items-center justify-center rounded-lg text-base font-medium text-black" aria-label="Increase quantity for ${escapeHtml(item.product?.name || 'item')}">+</button>
               </div>
             </div>
+
+            <p class="col-span-2 text-right text-base font-bold tracking-tight text-black sm:col-span-1 sm:text-right sm:text-lg">${lineTotal.toLocaleString()} TZS</p>
           </article>
         `;
       }).join('');
 
+      page.querySelector('[data-cart-loading]')?.classList.add('hidden');
+      page.querySelector('[data-cart-loading]')?.setAttribute('aria-busy', 'false');
       page.querySelector('[data-cart-empty]')?.classList.toggle('hidden', items.length > 0);
       page.querySelector('[data-cart-content]')?.classList.toggle('hidden', items.length === 0);
       page.querySelector('[data-cart-mobile-actions]')?.classList.toggle('hidden', items.length > 0);
@@ -1533,8 +1555,11 @@ const bootCatalog = async () => {
     };
 
     try {
-      await render();
+      await render(true);
     } catch (e) {
+      page.querySelector('[data-cart-loading]')?.classList.add('hidden');
+      page.querySelector('[data-cart-loading]')?.setAttribute('aria-busy', 'false');
+      page.querySelector('[data-cart-empty]')?.classList.add('hidden');
       const errorBox = page.querySelector('[data-cart-error]');
       if (errorBox) {
         errorBox.textContent = e.message || 'Unable to load your bag.';
@@ -1550,7 +1575,7 @@ const bootCatalog = async () => {
 
       try {
         if (button.matches('[data-cart-clear]')) {
-          if (!window.confirm('Remove all items from your bag?')) return;
+          if (!(await window.kpConfirm?.('Remove all items from your bag?', { title: 'Clear your bag?' }))) return;
           await api('/cart', { method: 'DELETE' });
           await render();
           return;
@@ -1596,6 +1621,30 @@ const bootCatalog = async () => {
 
     if (!form) return;
 
+    const authError = form.querySelector('[data-auth-error]');
+    const clearAuthError = () => {
+      authError?.classList.add('hidden');
+      authError?.removeAttribute('role');
+      form.querySelectorAll('[aria-invalid=\"true\"]').forEach(input => {
+        input.removeAttribute('aria-invalid');
+        input.removeAttribute('aria-describedby');
+      });
+    };
+    const showAuthError = (message) => {
+      if (!authError) return;
+      authError.textContent = message || 'Something went wrong. Please try again.';
+      authError.classList.remove('hidden');
+      authError.setAttribute('role', 'alert');
+      const activeStep = form.querySelector('[data-otp-step]:not(.hidden)') || form.querySelector('[data-primary-step]:not(.hidden)');
+      const input = activeStep?.querySelector('input:not([type=\"hidden\"]):not([disabled])');
+      if (input) {
+        input.setAttribute('aria-invalid', 'true');
+        input.setAttribute('aria-describedby', 'kp-auth-error');
+        input.focus();
+      }
+    };
+    authError?.setAttribute('id', 'kp-auth-error');
+
     // Auth is a two-step flow. Native browser validation must not block the
     // submit handler while the OTP step is still hidden. Validation is handled
     // by the API/FormRequest on each step instead.
@@ -1605,6 +1654,7 @@ const bootCatalog = async () => {
       'submit',
       async e => {
         e.preventDefault();
+        clearAuthError();
 
         const fd =
           new FormData(form);
@@ -1709,7 +1759,7 @@ const bootCatalog = async () => {
           location.href =
             '/account';
         } catch (err) {
-          toast(err.message);
+          showAuthError(err.message);
         }
       }
     );
@@ -1896,408 +1946,6 @@ const bootCatalog = async () => {
     counts();
   };
 
-  const bootCheckout = async () => {
-    const page = document.querySelector('[data-checkout-page]');
-    if (!page) return;
-
-    const authNotice = page.querySelector('[data-checkout-auth]');
-    const addressList = page.querySelector('[data-address-list]');
-    const addressForm = page.querySelector('[data-address-form]');
-    const summary = page.querySelector('[data-checkout-summary]');
-    const itemCount = page.querySelector('[data-checkout-item-count]');
-    const errorBox = page.querySelector('[data-checkout-error]');
-    const placeButton = page.querySelector('[data-place-order]');
-    const paymentCards = [...page.querySelectorAll('[data-payment-method]')];
-    const addressModal = page.querySelector('[data-address-modal]');
-    const noteModal = page.querySelector('[data-note-modal]');
-    const noteField = page.querySelector('[data-order-notes]');
-    const noteEditor = page.querySelector('[data-note-editor]');
-    const notePreview = page.querySelector('[data-note-preview]');
-    const addressSummary = page.querySelector('[data-address-summary]');
-
-    const MAPBOX_TOKEN = page.dataset.mapboxToken || '';
-
-    let selectedAddress = null;
-    let paymentMethod = null;
-    let checkoutTotal = 0;
-    let selectedCoordinates = null;
-
-    const showError = (message) => {
-      if (!errorBox) return;
-      errorBox.textContent = message || 'Something went wrong.';
-      errorBox.classList.remove('hidden');
-    };
-
-    const clearError = () => errorBox?.classList.add('hidden');
-
-    const closeModal = (modal) => {
-      modal?.classList.add('hidden');
-      modal?.classList.remove('flex');
-    };
-
-    const openModal = (modal) => {
-      modal?.classList.remove('hidden');
-      modal?.classList.add('flex');
-    };
-
-    const updatePayButton = () => {
-      const ready = Boolean(selectedAddress && paymentMethod && checkoutTotal > 0);
-      if (ready) {
-        placeButton?.removeAttribute('disabled');
-      } else {
-        placeButton?.setAttribute('disabled', 'disabled');
-      }
-    };
-
-    const formatAddress = (a) => [
-      a?.street,
-      a?.ward,
-      a?.district,
-      a?.region,
-    ].filter(Boolean).join(', ');
-
-    const renderSelectedAddress = (address) => {
-      if (!addressSummary) return;
-      if (!address) {
-        addressSummary.innerHTML = `
-          <div class="flex items-center gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
-            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm">
-              <span class="[&>svg]:size-[18px]"><x-tabler-map-pin /></span>
-            </span>
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-gray-700">No delivery address selected</p>
-              <p class="mt-0.5 text-xs text-gray-500">Add an address to continue.</p>
-            </div>
-          </div>`;
-        return;
-      }
-
-      addressSummary.innerHTML = `
-        <div class="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="flex min-w-0 items-start gap-3">
-            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white text-emerald-600 shadow-sm">
-              <span class="[&>svg]:size-[18px]"><x-tabler-map-pin /></span>
-            </span>
-            <div class="min-w-0">
-              <p class="truncate text-sm font-semibold text-gray-900">${escapeHtml(address.recipient_name || 'Delivery address')}</p>
-              <p class="mt-1 text-sm leading-5 text-gray-500">${escapeHtml(formatAddress(address))}</p>
-              <p class="mt-1 text-xs text-gray-400">${escapeHtml(address.phone || '')}</p>
-            </div>
-          </div>
-          <button type="button" data-change-address class="flex-shrink-0 text-xs font-semibold text-gray-700 underline underline-offset-4 hover:text-emerald-600">Change</button>
-        </div>`;
-
-      addressSummary.querySelector('[data-change-address]')?.addEventListener('click', () => openModal(addressModal));
-    };
-
-    const renderAddresses = (addresses) => {
-      const list = Array.isArray(addresses) ? addresses : [];
-      if (!addressList) return;
-
-      addressList.innerHTML = list.length
-        ? list.map((a) => `
-          <label class="flex cursor-pointer gap-3 rounded-xl border p-4 transition hover:border-gray-400 ${Number(a.id) === selectedAddress ? 'border-gray-950 bg-gray-50' : 'border-gray-200'}">
-            <input type="radio" name="address_id" value="${Number(a.id)}" ${Number(a.id) === selectedAddress ? 'checked' : ''} class="mt-1 accent-gray-950">
-            <span class="min-w-0 flex-1">
-              <strong class="text-sm text-gray-900">${escapeHtml(a.recipient_name)}</strong>
-              <span class="mt-1 block text-sm leading-6 text-gray-500">${escapeHtml(formatAddress(a))}</span>
-              <span class="mt-0.5 block text-xs text-gray-400">${escapeHtml(a.phone || '')}</span>
-            </span>
-          </label>`).join('')
-        : '<div class="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-500">No saved addresses yet.</div>';
-
-      addressList.querySelectorAll('input[name="address_id"]').forEach(input => {
-        input.addEventListener('change', () => {
-          selectedAddress = Number(input.value);
-          const address = list.find(a => Number(a.id) === selectedAddress);
-          renderSelectedAddress(address);
-          addressList.querySelectorAll('label').forEach(label => label.classList.remove('border-gray-950', 'bg-gray-50'));
-          input.closest('label')?.classList.add('border-gray-950', 'bg-gray-50');
-          clearError();
-          updatePayButton();
-          closeModal(addressModal);
-        });
-      });
-    };
-
-    const selectAddress = (address) => {
-      if (!address?.id) return;
-      selectedAddress = Number(address.id);
-      renderSelectedAddress(address);
-      renderAddresses(window.__kpCheckoutAddresses || []);
-      updatePayButton();
-    };
-
-    const saveAddress = async (payload) => {
-      const created = await api('/addresses', {
-        method: 'POST',
-        body: { type: 'shipping', ...payload, is_default: true }
-      });
-      const saved = created?.data || null;
-      if (!saved?.id) throw new Error('The address could not be saved.');
-      window.__kpCheckoutAddresses = [saved, ...(window.__kpCheckoutAddresses || []).filter(a => Number(a.id) !== Number(saved.id))];
-      selectAddress(saved);
-      toast('Address saved');
-      return saved;
-    };
-
-    const reverseGeocode = async (latitude, longitude) => {
-      if (!MAPBOX_TOKEN) {
-        throw new Error('Current-location address lookup needs a Mapbox access token. You can enter the address manually for now.');
-      }
-
-      const url = new URL('https://api.mapbox.com/search/geocode/v6/reverse');
-      url.searchParams.set('latitude', String(latitude));
-      url.searchParams.set('longitude', String(longitude));
-      url.searchParams.set('limit', '1');
-      url.searchParams.set('language', 'en');
-      url.searchParams.set('access_token', MAPBOX_TOKEN);
-
-      const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
-      if (!response.ok) throw new Error(`Mapbox address lookup failed (${response.status}).`);
-
-      const payload = await response.json();
-      const feature = payload?.features?.[0];
-      if (!feature) throw new Error('No readable address was found at this location.');
-
-      const context = feature.properties?.context || {};
-      const get = (...keys) => keys.map(key => context[key]?.name).find(Boolean) || '';
-      const street = feature.properties?.address || feature.properties?.name || '';
-
-      return {
-        recipient_name: window.KP_USER?.name || '',
-        phone: window.KP_USER?.phone || '',
-        region: get('region'),
-        district: get('district', 'place', 'locality'),
-        ward: get('locality', 'neighborhood'),
-        street,
-        latitude,
-        longitude,
-      };
-    };
-
-    page.querySelector('[data-use-location]')?.addEventListener('click', () => {
-      clearError();
-      if (!navigator.geolocation) {
-        showError('Location is not supported by this browser. Enter your address manually.');
-        return;
-      }
-
-      const button = page.querySelector('[data-use-location]');
-      const original = button?.innerHTML;
-      if (button) {
-        button.disabled = true;
-        button.innerHTML = '<span class="animate-pulse">Finding your location…</span>';
-      }
-
-      navigator.geolocation.getCurrentPosition(async position => {
-        try {
-          selectedCoordinates = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          const address = await reverseGeocode(position.coords.latitude, position.coords.longitude);
-          page.querySelector('[data-location-confirm]')?.classList.remove('hidden');
-          page.querySelector('[data-location-text]')?.replaceChildren(document.createTextNode(formatAddress(address) || 'Location found'));
-          page.__pendingLocationAddress = address;
-        } catch (error) {
-          showError(error.message);
-        } finally {
-          if (button) {
-            button.disabled = false;
-            button.innerHTML = original;
-          }
-        }
-      }, error => {
-        if (button) {
-          button.disabled = false;
-          button.innerHTML = original;
-        }
-        showError(error.code === 1 ? 'Location permission was denied. You can enter the address manually.' : 'Could not determine your location. Please enter the address manually.');
-      }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
-    });
-
-    page.querySelector('[data-confirm-location]')?.addEventListener('click', async () => {
-      try {
-        clearError();
-        const address = page.__pendingLocationAddress;
-        if (!address) throw new Error('Find your location first.');
-        const saved = await saveAddress(address);
-        selectedCoordinates = { latitude: saved.latitude ?? selectedCoordinates?.latitude, longitude: saved.longitude ?? selectedCoordinates?.longitude };
-        page.__pendingLocationAddress = null;
-        page.querySelector('[data-location-confirm]')?.classList.add('hidden');
-        closeModal(addressModal);
-      } catch (error) {
-        showError(error.message);
-      }
-    });
-
-    page.querySelector('[data-open-manual-address]')?.addEventListener('click', () => {
-      page.querySelector('[data-address-choice]')?.classList.add('hidden');
-      page.querySelector('[data-manual-address]')?.classList.remove('hidden');
-    });
-
-    page.querySelector('[data-back-address-choice]')?.addEventListener('click', () => {
-      page.querySelector('[data-manual-address]')?.classList.add('hidden');
-      page.querySelector('[data-address-choice]')?.classList.remove('hidden');
-    });
-
-    page.querySelectorAll('[data-close-address]').forEach(button => button.addEventListener('click', () => closeModal(addressModal)));
-    page.querySelectorAll('[data-close-note]').forEach(button => button.addEventListener('click', () => closeModal(noteModal)));
-
-    addressForm?.addEventListener('submit', async e => {
-      e.preventDefault();
-      clearError();
-      const submit = e.currentTarget.querySelector('button[type="submit"]');
-      submit?.setAttribute('disabled', 'disabled');
-      const fd = new FormData(e.currentTarget);
-
-      try {
-        await saveAddress({
-          recipient_name: fd.get('recipient_name'),
-          phone: fd.get('phone'),
-          region: fd.get('region'),
-          district: fd.get('district'),
-          ward: fd.get('ward') || null,
-          street: fd.get('street'),
-        });
-        e.currentTarget.reset();
-        page.querySelector('[data-address-choice]')?.classList.remove('hidden');
-        page.querySelector('[data-manual-address]')?.classList.add('hidden');
-        closeModal(addressModal);
-      } catch (error) {
-        showError(error.message);
-      } finally {
-        submit?.removeAttribute('disabled');
-      }
-    });
-
-    page.querySelector('[data-add-address]')?.addEventListener('click', () => {
-      page.querySelector('[data-address-choice]')?.classList.remove('hidden');
-      page.querySelector('[data-manual-address]')?.classList.add('hidden');
-      openModal(addressModal);
-    });
-
-    page.querySelector('[data-add-note]')?.addEventListener('click', () => openModal(noteModal));
-    page.querySelector('[data-save-note]')?.addEventListener('click', () => {
-      const value = noteEditor?.value?.trim() || '';
-      if (noteField) noteField.value = value;
-      if (notePreview) {
-        notePreview.textContent = value || 'No note added';
-        notePreview.classList.toggle('text-gray-900', Boolean(value));
-        notePreview.classList.toggle('text-gray-400', !value);
-      }
-      closeModal(noteModal);
-    });
-
-    paymentCards.forEach(card => {
-      card.addEventListener('click', () => {
-        paymentCards.forEach(item => {
-          item.classList.remove('border-gray-950', 'bg-gray-50');
-          item.setAttribute('aria-checked', 'false');
-        });
-        card.classList.add('border-gray-950', 'bg-gray-50');
-        card.setAttribute('aria-checked', 'true');
-        paymentMethod = card.dataset.paymentMethod || null;
-        updatePayButton();
-        clearError();
-      });
-    });
-
-    if (!token()) {
-      authNotice?.classList.remove('hidden');
-      placeButton?.setAttribute('disabled', 'disabled');
-      summary.innerHTML = '<p class="text-sm text-gray-500">Sign in to continue to checkout.</p>';
-      return;
-    }
-
-    try {
-      const [addresses, preview] = await Promise.all([
-        api('/addresses'),
-        api('/cart/checkout/preview')
-      ]);
-
-      const addressData = Array.isArray(addresses?.data) ? addresses.data : [];
-      window.__kpCheckoutAddresses = addressData;
-      const defaultAddress = addressData.find(a => a.is_default) || addressData[0] || null;
-      if (defaultAddress) {
-        selectedAddress = Number(defaultAddress.id);
-        renderSelectedAddress(defaultAddress);
-      } else {
-        renderSelectedAddress(null);
-      }
-      renderAddresses(addressData);
-
-      const d = preview?.data || {};
-      const items = Array.isArray(d.items) ? d.items : [];
-      const count = items.reduce((total, item) => total + Number(item.quantity || 0), 0);
-      checkoutTotal = Number(d.total || 0);
-      if (itemCount) itemCount.textContent = `${count} item${count === 1 ? '' : 's'}`;
-
-      summary.innerHTML = `
-        ${items.length ? `<div class="space-y-3 border-b border-gray-200 pb-4">${items.map(item => `
-          <div class="flex items-start justify-between gap-4">
-            <span class="min-w-0 text-gray-600">${escapeHtml(item.name || item.product_name || 'Item')} <span class="text-gray-400">× ${Number(item.quantity || 0)}</span></span>
-            <strong class="whitespace-nowrap text-gray-900">${Number(item.line_total || 0).toLocaleString('en-TZ')} TZS</strong>
-          </div>`).join('')}</div>` : '<p class="text-sm text-gray-500">Your bag is empty.</p>'}
-        <div class="space-y-2 pt-1">
-          <div class="flex justify-between"><span>Subtotal</span><strong>${Number(d.subtotal || 0).toLocaleString('en-TZ')} TZS</strong></div>
-          <div class="flex justify-between"><span>Delivery</span><strong>${Number(d.delivery_fee || 0).toLocaleString('en-TZ')} TZS</strong></div>
-        </div>
-        <div class="mt-4 flex justify-between border-t border-gray-200 pt-4 text-lg"><span class="font-semibold text-gray-900">Total</span><strong class="text-gray-900">${checkoutTotal.toLocaleString('en-TZ')} TZS</strong></div>
-        <p class="mt-4 flex items-start gap-2 text-xs leading-5 text-gray-400"><span class="mt-0.5"><x-tabler-lock size="13" /></span> Secure payment. Your card or mobile money details are handled by the payment provider.</p>`;
-
-      updatePayButton();
-    } catch (e) {
-      summary.innerHTML = '<p class="text-sm text-red-600">We could not load your checkout summary. Please return to your cart and try again.</p>';
-      placeButton?.setAttribute('disabled', 'disabled');
-      showError(e.message);
-    }
-
-    placeButton?.addEventListener('click', async () => {
-      clearError();
-      if (!selectedAddress) return showError('Add or select a delivery address before placing your order.');
-      if (!paymentMethod) return showError('Choose a payment method before continuing.');
-      if (placeButton.disabled) return;
-
-      placeButton.setAttribute('disabled', 'disabled');
-      placeButton.setAttribute('aria-busy', 'true');
-      const originalText = placeButton.innerHTML;
-      placeButton.innerHTML = '<span class="animate-pulse">Preparing payment…</span>';
-
-      let key = sessionStorage.getItem('kp_checkout_idempotency_key');
-      if (!key) {
-        key = `kp-${Date.now()}-${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`;
-        sessionStorage.setItem('kp_checkout_idempotency_key', key);
-      }
-
-      try {
-        const order = await api('/checkout', {
-          method: 'POST',
-          headers: { 'Idempotency-Key': key },
-          body: {
-            address_id: Number(selectedAddress),
-            notes: noteField?.value?.trim() || null,
-            payment_method: paymentMethod,
-          }
-        });
-
-        sessionStorage.removeItem('kp_checkout_idempotency_key');
-        const gatewayUrl = order?.data?.payment_gateway_url || order?.data?.payment_url || order?.payment_gateway_url;
-        if (gatewayUrl && /^https:\/\//i.test(gatewayUrl)) {
-          window.location.assign(gatewayUrl);
-          return;
-        }
-        window.location.assign(`/orders/${encodeURIComponent(order.data.order_number)}`);
-      } catch (e) {
-        placeButton.removeAttribute('disabled');
-        placeButton.removeAttribute('aria-busy');
-        placeButton.innerHTML = originalText;
-        showError(e.message);
-      }
-    });
-  };
-
   const bootAccount =
     async () => {
       const account =
@@ -2327,7 +1975,7 @@ const bootCatalog = async () => {
         return;
       }
 
-      if (!token()) {
+      if (!signedIn()) {
         if (account) {
           location.href =
             '/login';
@@ -2432,7 +2080,7 @@ const bootCatalog = async () => {
   const bootReturns = async () => {
     const page = document.querySelector('[data-returns-page]');
     if (!page) return;
-    if (!token()) { location.href = '/login'; return; }
+    if (!signedIn()) { location.href = '/login'; return; }
 
     const list = page.querySelector('[data-returns-list]');
     const empty = page.querySelector('[data-returns-empty]');
@@ -2451,18 +2099,18 @@ const bootCatalog = async () => {
       empty.classList.add('hidden');
       empty.classList.remove('flex');
       list.innerHTML = requests.map(r => `
-        <article class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+        <article class="rounded-2xl border border-black bg-white p-5 shadow-sm sm:p-6">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">${escapeHtml(r.request_type || 'request')}</p>
-              <h2 class="mt-1 text-sm font-bold text-gray-950">Order #${escapeHtml(r.order_number || '')}</h2>
-              <p class="mt-1 text-xs text-gray-500">${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</p>
+              <p class="text-xs font-semibold uppercase tracking-wider text-black">${escapeHtml(r.request_type || 'request')}</p>
+              <h2 class="mt-1 text-sm font-bold text-black">Order #${escapeHtml(r.order_number || '')}</h2>
+              <p class="mt-1 text-xs text-black">${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</p>
             </div>
             <span class="rounded-full px-3 py-1 text-[11px] font-semibold capitalize ${returnStatusClass(r.status)}">${escapeHtml(String(r.status || '').replaceAll('_', ' '))}</span>
           </div>
-          <div class="mt-4 border-t border-gray-100 pt-4">
-            ${(r.items || []).map(i => `<p class="text-sm text-gray-700">${escapeHtml(i.product_name)}${i.size ? ` · Size ${escapeHtml(i.size)}` : ''} · Qty ${Number(i.quantity || 0)}</p>`).join('')}
-            <p class="mt-1 text-xs text-gray-400">Reason: ${escapeHtml(String(r.reason || '').replaceAll('_', ' '))}</p>
+          <div class="mt-4 border-t border-black pt-4">
+            ${(r.items || []).map(i => `<p class="text-sm text-black">${escapeHtml(i.product_name)}${i.size ? ` · Size ${escapeHtml(i.size)}` : ''} · Qty ${Number(i.quantity || 0)}</p>`).join('')}
+            <p class="mt-1 text-xs text-black">Reason: ${escapeHtml(String(r.reason || '').replaceAll('_', ' '))}</p>
           </div>
         </article>`).join('');
     };
@@ -2501,10 +2149,10 @@ const bootCatalog = async () => {
           const response = await api(`/orders/${encodeURIComponent(selected.order_number)}`);
           const items = Array.isArray(response?.data?.items) ? response.data.items : [];
           itemsNode.innerHTML = items.length ? items.map(i => `
-            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50">
-              <input type="checkbox" name="item_ids[]" value="${escapeHtml(i.id)}" class="mt-1 rounded border-gray-300" checked>
-              <span class="min-w-0"><span class="block text-sm font-medium text-gray-800">${escapeHtml(i.name)}</span><span class="mt-0.5 block text-xs text-gray-500">${escapeHtml([i.size, i.color].filter(Boolean).join(' · ') || 'Standard')} · Qty ${Number(i.quantity || 0)}</span></span>
-            </label>`).join('') : '<p class="text-sm text-gray-500">No items found for this order.</p>';
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-black p-3 hover:bg-white">
+              <input type="checkbox" name="item_ids[]" value="${escapeHtml(i.id)}" class="mt-1 rounded border-black" checked>
+              <span class="min-w-0"><span class="block text-sm font-medium text-black">${escapeHtml(i.name)}</span><span class="mt-0.5 block text-xs text-black">${escapeHtml([i.size, i.color].filter(Boolean).join(' · ') || 'Standard')} · Qty ${Number(i.quantity || 0)}</span></span>
+            </label>`).join('') : '<p class="text-sm text-black">No items found for this order.</p>';
         } catch (e) { itemsNode.innerHTML = `<p class="text-sm text-rose-600">${escapeHtml(e.message)}</p>`; }
       });
 
@@ -2543,7 +2191,7 @@ const bootCatalog = async () => {
     const iconBox = page.querySelector('[data-order-status-icon]');
     const actions = page.querySelector('[data-order-status-actions]');
 
-    if (!token()) {
+    if (!signedIn()) {
       if (text) text.textContent = 'Please sign in to view this order.';
       return;
     }
@@ -2567,9 +2215,9 @@ const bootCatalog = async () => {
         iconBox.innerHTML = cancelled ? icon('x',30) : paid ? icon('check',30) : icon('clock',30);
       }
       if (actions) {
-        actions.innerHTML = `<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
+        actions.innerHTML = `<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-full border border-black px-6 py-3 text-sm font-medium text-black hover:bg-white">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
         actions.querySelector('[data-cancel-pending-order]')?.addEventListener('click', async e => {
-          const button=e.currentTarget; if(!confirm('Cancel this order?')) return; button.disabled=true; button.textContent='Cancelling…';
+          const button=e.currentTarget; if (!(await window.kpConfirm?.('Cancel this order?', { title: 'Cancel this order?' }))) return; button.disabled=true; button.textContent='Cancelling…';
           try { await api(`/orders/${encodeURIComponent(order.order_number)}/cancel`, {method:'POST'}); toast('Order cancelled'); location.reload(); }
           catch(err){button.disabled=false;button.textContent='Cancel order';toast(err.message);}
         });
@@ -2588,7 +2236,7 @@ const bootCatalog = async () => {
     const page = document.querySelector('[data-orders-page]');
     if (!page) return;
 
-    if (!token()) {
+    if (!signedIn()) {
       location.href = '/login';
       return;
     }
@@ -2600,54 +2248,54 @@ const bootCatalog = async () => {
 
       if (!data.length) {
         list.innerHTML = `
-          <div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-6 py-14 text-center">
-            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-100">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V4h12v5"/><path d="M4 9h16v11H4z"/><path d="M9 13h6"/></svg>
+          <div class="rounded-2xl border border-emerald-950/10 bg-emerald-50/40 px-6 py-14 text-center">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15">
+              ${icon('bag', 24)}
             </div>
-            <h2 class="mt-5 text-lg font-semibold text-gray-950">No orders yet</h2>
-            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">Your completed and pending purchases will appear here.</p>
+            <h2 class="mt-5 text-lg font-semibold text-black">No orders yet</h2>
+            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-black">Your completed and pending purchases will appear here.</p>
             <a href="/shop" class="button-dark mt-6">Start shopping</a>
           </div>`;
         return;
       }
 
       list.innerHTML = data.map(o => `
-        <article class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:border-gray-200 hover:shadow-md">
+        <article class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm transition hover:border-black hover:shadow-md">
           <div class="flex flex-col gap-5 p-5 sm:p-6">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Order</p>
-                <h2 class="mt-1 text-base font-bold text-gray-950">${escapeHtml(o.order_number)}</h2>
-                <p class="mt-1 text-sm text-gray-500">${o.created_at ? new Date(o.created_at).toLocaleString() : 'Date unavailable'}</p>
+                <p class="text-xs font-semibold uppercase tracking-wider text-black">Order</p>
+                <h2 class="mt-1 text-base font-bold text-black">${escapeHtml(o.order_number)}</h2>
+                <p class="mt-1 text-sm text-black">${o.created_at ? new Date(o.created_at).toLocaleString() : 'Date unavailable'}</p>
               </div>
               <span class="w-fit rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${orderStatusClass(o.status)}">${escapeHtml(formatOrderStatus(o.status))}</span>
             </div>
 
-            <div class="grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-3">
+            <div class="grid gap-3 border-t border-black pt-5 sm:grid-cols-3">
               <div>
-                <p class="text-xs text-gray-400">Items</p>
-                <p class="mt-1 text-sm font-semibold text-gray-900">${Array.isArray(o.items) ? o.items.reduce((n, i) => n + Number(i.quantity || 0), 0) : '—'}</p>
+                <p class="text-xs text-black">Items</p>
+                <p class="mt-1 text-sm font-semibold text-black">${Array.isArray(o.items) ? o.items.reduce((n, i) => n + Number(i.quantity || 0), 0) : '—'}</p>
               </div>
               <div>
-                <p class="text-xs text-gray-400">Payment</p>
-                <p class="mt-1 text-sm font-semibold capitalize text-gray-900">${escapeHtml(formatOrderStatus(o.payment_status))}</p>
+                <p class="text-xs text-black">Payment</p>
+                <p class="mt-1 text-sm font-semibold capitalize text-black">${escapeHtml(formatOrderStatus(o.payment_status))}</p>
               </div>
               <div>
-                <p class="text-xs text-gray-400">Total</p>
-                <p class="mt-1 text-sm font-bold text-gray-950">${Number(o.total || 0).toLocaleString()} TZS</p>
+                <p class="text-xs text-black">Total</p>
+                <p class="mt-1 text-sm font-bold text-black">${Number(o.total || 0).toLocaleString()} TZS</p>
               </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-5">
-              <a href="/account/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50">View details</a>
-              ${String(o.status || '').toLowerCase() === 'pending_payment' ? `<a href="/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800">Continue payment</a>` : ''}
+            <div class="flex flex-wrap items-center justify-end gap-3 border-t border-black pt-5">
+              <a href="/account/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl border border-black px-4 py-2.5 text-sm font-semibold text-black transition hover:border-black hover:bg-white">View details</a>
+              ${String(o.status || '').toLowerCase() === 'pending_payment' ? `<a href="/orders/${encodeURIComponent(o.order_number)}" class="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black">Continue payment</a>` : ''}
             </div>
           </div>
         </article>
       `).join('');
     } catch (e) {
       page.querySelector('[data-orders-list]').innerHTML = `
-        <div class="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">${escapeHtml(e.message || 'Unable to load your orders.')}</div>`;
+        <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-sm text-red-700" role="alert">${escapeHtml(e.message || 'Unable to load your orders.')}</div>`;
     }
   };
 
@@ -2655,7 +2303,7 @@ const bootCatalog = async () => {
     const page = document.querySelector('[data-order-detail]');
     if (!page) return;
 
-    if (!token()) {
+    if (!signedIn()) {
       location.href = '/login';
       return;
     }
@@ -2667,48 +2315,48 @@ const bootCatalog = async () => {
 
       page.querySelector('[data-order-detail-content]').innerHTML = `
         <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <section class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-            <div class="border-b border-gray-100 p-5 sm:p-6">
+          <section class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm">
+            <div class="border-b border-black p-5 sm:p-6">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Order summary</p>
-                  <p class="mt-1 text-sm text-gray-500">${o.created_at ? new Date(o.created_at).toLocaleString() : ''}</p>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-black">Order summary</p>
+                  <p class="mt-1 text-sm text-black">${o.created_at ? new Date(o.created_at).toLocaleString() : ''}</p>
                 </div>
                 <span class="rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${orderStatusClass(o.status)}">${escapeHtml(formatOrderStatus(o.status))}</span>
               </div>
             </div>
 
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-black">
               ${items.length ? items.map(i => `
                 <div class="flex items-start justify-between gap-5 p-5 sm:p-6">
                   <div class="min-w-0">
-                    <p class="font-semibold text-gray-950">${escapeHtml(i.name)}</p>
-                    <p class="mt-1 text-sm text-gray-500">${escapeHtml([i.size, i.color].filter(Boolean).join(' · ') || 'Standard')} · Qty ${Number(i.quantity || 0)}</p>
-                    ${i.sku ? `<p class="mt-1 text-xs text-gray-400">SKU ${escapeHtml(i.sku)}</p>` : ''}
+                    <p class="font-semibold text-black">${escapeHtml(i.name)}</p>
+                    <p class="mt-1 text-sm text-black">${escapeHtml([i.size, i.color].filter(Boolean).join(' · ') || 'Standard')} · Qty ${Number(i.quantity || 0)}</p>
+                    ${i.sku ? `<p class="mt-1 text-xs text-black">SKU ${escapeHtml(i.sku)}</p>` : ''}
                   </div>
-                  <p class="shrink-0 text-sm font-bold text-gray-950">${Number(i.line_total || 0).toLocaleString()} TZS</p>
-                </div>`).join('') : '<p class="p-6 text-sm text-gray-500">No order items available.</p>'}
+                  <p class="shrink-0 text-sm font-bold text-black">${Number(i.line_total || 0).toLocaleString()} TZS</p>
+                </div>`).join('') : '<div class="flex flex-col items-center px-6 py-12 text-center"><div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">' + icon('bag', 22) + '</div><p class="mt-4 text-sm font-semibold text-black">No order items available</p><p class="mt-1 max-w-sm text-sm text-black">This order does not currently contain any item details.</p></div>'}
             </div>
           </section>
 
           <aside class="space-y-4">
-            <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Payment</p>
-              <p class="mt-2 text-sm font-semibold capitalize text-gray-950">${escapeHtml(formatOrderStatus(o.payment_status))}</p>
-              <div class="mt-5 space-y-3 border-t border-gray-100 pt-5 text-sm">
-                <div class="flex justify-between gap-4"><span class="text-gray-500">Subtotal</span><strong>${Number(o.subtotal || 0).toLocaleString()} TZS</strong></div>
-                <div class="flex justify-between gap-4"><span class="text-gray-500">Delivery</span><strong>${Number(o.delivery_fee || 0).toLocaleString()} TZS</strong></div>
-                <div class="flex justify-between gap-4 border-t border-gray-100 pt-3 text-base"><span class="font-semibold">Total</span><strong>${Number(o.total || 0).toLocaleString()} TZS</strong></div>
+            <div class="rounded-2xl border border-black bg-white p-5 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wider text-black">Payment</p>
+              <p class="mt-2 text-sm font-semibold capitalize text-black">${escapeHtml(formatOrderStatus(o.payment_status))}</p>
+              <div class="mt-5 space-y-3 border-t border-black pt-5 text-sm">
+                <div class="flex justify-between gap-4"><span class="text-black">Subtotal</span><strong>${Number(o.subtotal || 0).toLocaleString()} TZS</strong></div>
+                <div class="flex justify-between gap-4"><span class="text-black">Delivery</span><strong>${Number(o.delivery_fee || 0).toLocaleString()} TZS</strong></div>
+                <div class="flex justify-between gap-4 border-t border-black pt-3 text-base"><span class="font-semibold">Total</span><strong>${Number(o.total || 0).toLocaleString()} TZS</strong></div>
               </div>
             </div>
 
-            <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Delivery</p>
-              <p class="mt-2 text-sm font-semibold text-gray-950">${escapeHtml(o.customer?.name || 'Customer')}</p>
-              <p class="mt-1 text-sm leading-6 text-gray-500">${escapeHtml([o.delivery?.address, o.delivery?.city].filter(Boolean).join(', ') || 'Delivery address unavailable')}</p>
-              ${o.customer?.phone ? `<p class="mt-3 text-sm text-gray-600">${escapeHtml(o.customer.phone)}</p>` : ''}
-              ${o.delivery?.provider || o.delivery?.tracking_number ? `<div class="mt-4 border-t border-gray-100 pt-4 text-sm">${o.delivery?.provider ? `<p><span class="text-gray-500">Provider:</span> <strong>${escapeHtml(o.delivery.provider)}</strong></p>` : ''}${o.delivery?.tracking_number ? `<p class="mt-1"><span class="text-gray-500">Tracking:</span> <strong>${escapeHtml(o.delivery.tracking_number)}</strong></p>` : ''}</div>` : ''}
-              ${o.delivery?.shipped_at || o.delivery?.delivered_at ? `<div class="mt-4 space-y-1 text-xs text-gray-500">${o.delivery?.shipped_at ? `<p>Shipped ${new Date(o.delivery.shipped_at).toLocaleString()}</p>` : ''}${o.delivery?.delivered_at ? `<p>Delivered ${new Date(o.delivery.delivered_at).toLocaleString()}</p>` : ''}</div>` : ''}
+            <div class="rounded-2xl border border-black bg-white p-5 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wider text-black">Delivery</p>
+              <p class="mt-2 text-sm font-semibold text-black">${escapeHtml(o.customer?.name || 'Customer')}</p>
+              <p class="mt-1 text-sm leading-6 text-black">${escapeHtml([o.delivery?.address, o.delivery?.city].filter(Boolean).join(', ') || 'Delivery address unavailable')}</p>
+              ${o.customer?.phone ? `<p class="mt-3 text-sm text-black">${escapeHtml(o.customer.phone)}</p>` : ''}
+              ${o.delivery?.provider || o.delivery?.tracking_number ? `<div class="mt-4 border-t border-black pt-4 text-sm">${o.delivery?.provider ? `<p><span class="text-black">Provider:</span> <strong>${escapeHtml(o.delivery.provider)}</strong></p>` : ''}${o.delivery?.tracking_number ? `<p class="mt-1"><span class="text-black">Tracking:</span> <strong>${escapeHtml(o.delivery.tracking_number)}</strong></p>` : ''}</div>` : ''}
+              ${o.delivery?.shipped_at || o.delivery?.delivered_at ? `<div class="mt-4 space-y-1 text-xs text-black">${o.delivery?.shipped_at ? `<p>Shipped ${new Date(o.delivery.shipped_at).toLocaleString()}</p>` : ''}${o.delivery?.delivered_at ? `<p>Delivered ${new Date(o.delivery.delivered_at).toLocaleString()}</p>` : ''}</div>` : ''}
             </div>
 
             ${canCancel ? `<button data-cancel-order type="button" class="w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Cancel order</button>` : ''}
@@ -2718,7 +2366,7 @@ const bootCatalog = async () => {
 
       page.querySelector('[data-cancel-order]')?.addEventListener('click', async event => {
         const button = event.currentTarget;
-        if (!window.confirm('Cancel this order?')) return;
+        if (!(await window.kpConfirm?.('Cancel this order?', { title: 'Cancel this order?' }))) return;
         button.disabled = true;
         button.textContent = 'Cancelling…';
         try {
@@ -2734,7 +2382,11 @@ const bootCatalog = async () => {
       });
     } catch (e) {
       page.querySelector('[data-order-detail-content]').innerHTML = `
-        <div class="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">${escapeHtml(e.message || 'Unable to load this order.')}</div>`;
+        <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-sm text-red-700" role="alert">
+          <p>${escapeHtml(e.message || 'Unable to load this order.')}</p>
+          <button type="button" data-order-detail-retry class="kp-button-secondary mt-4">Try again</button>
+        </div>`;
+      page.querySelector('[data-order-detail-retry]')?.addEventListener('click', () => bootOrderDetail());
     }
   };
 
@@ -2764,7 +2416,7 @@ const bootCatalog = async () => {
           (data.data || [])
             .map(
               a => `
-                <div class="rounded-2xl border border-gray-100 p-5">
+                <div class="rounded-2xl border border-black p-5">
                   <div class="flex items-center justify-between">
                     <strong>
                       ${
@@ -2784,7 +2436,7 @@ const bootCatalog = async () => {
                     }
                   </div>
 
-                  <p class="mt-3 text-sm leading-6 text-gray-600">
+                  <p class="mt-3 text-sm leading-6 text-black">
                     ${escapeHtml(a.recipient_name)}<br>
                     ${escapeHtml(a.phone)}<br>
                     ${escapeHtml(a.region)}, ${
@@ -2801,7 +2453,7 @@ const bootCatalog = async () => {
               `
             )
             .join('') ||
-          '<p class="text-sm text-gray-500">No addresses saved.</p>';
+          '<p class="text-sm text-black">No addresses saved.</p>';
       } catch (e) {
         toast(e.message);
       }
@@ -2847,7 +2499,6 @@ const bootCatalog = async () => {
   bootCart();
   bootAuth();
   bootWishlist();
-  bootCheckout();
   bootAccount();
   bootReturns();
   bootOrders();

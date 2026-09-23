@@ -1,6 +1,6 @@
 {{-- ── Editorial banner ───────────────────────────────────────── --}}
 <section class="w-full px-4 py-16 sm:px-6 lg:px-8">
-    <div class="relative mx-auto max-w-[190rem] overflow-hidden rounded-3xl">
+    <div class="relative mx-auto w-full kp-content-wide overflow-hidden rounded-3xl">
 
         <img
             src="{{ asset('assets/wear/editorial/everyday-edit.png') }}"
@@ -26,16 +26,16 @@
                 </p>
 
                 <a
-                    href="{{ url('/shop') }}"
-                    class="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-950 transition hover:bg-gray-100"
-                >
-                    Explore the Collection
+    href="{{ url('/shop') }}"
+    class="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold !text-black transition hover:bg-emerald-50/70"
+>
+    Explore the Collection
 
-                    <x-tabler-arrow-right
-                        class="h-4 w-4"
-                        stroke-width="1.8"
-                    />
-                </a>
+    <x-tabler-arrow-right
+        class="h-4 w-4 !text-black"
+        stroke-width="1.8"
+    />
+</a>
 
             </div>
         </div>

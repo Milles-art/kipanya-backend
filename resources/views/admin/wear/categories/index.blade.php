@@ -5,7 +5,7 @@
     <div>
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear</p>
         <h2 class="mt-1 text-2xl font-black tracking-tight">Categories</h2>
-        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+        <p class="mt-1 max-w-2xl text-sm text-black">
             The Wear catalog uses five approved product categories. They are kept fixed so storefront filters,
             product validation, and existing catalog data cannot drift apart.
         </p>
@@ -13,13 +13,13 @@
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         @foreach($categories as $category)
-            <article class="rounded-2xl border border-gray-200 bg-white p-5">
+            <article class="rounded-2xl border border-black bg-white p-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="text-base font-black">{{ $category['name'] }}</p>
-                        <p class="mt-1 text-xs text-gray-400">Approved Wear category</p>
+                        <p class="mt-1 text-xs text-black">Approved Wear category</p>
                     </div>
-                    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600">
+                    <span class="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-black">
                         {{ $category['total'] }} products
                     </span>
                 </div>
@@ -27,12 +27,12 @@
                 <div class="mt-6 flex items-end justify-between">
                     <div>
                         <p class="text-2xl font-black">{{ $category['active'] }}</p>
-                        <p class="text-xs text-gray-400">active</p>
+                        <p class="text-xs text-black">active</p>
                         <span class="sr-only">{{ $category['active'] }} active</span>
                     </div>
                     <a
                         href="{{ route('admin.wear.products.index', ['category' => $category['name']]) }}"
-                        class="text-sm font-bold text-gray-900 hover:text-emerald-700"
+                        class="text-sm font-bold text-black hover:text-emerald-700"
                     >
                         View products →
                     </a>

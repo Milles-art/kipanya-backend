@@ -1,6 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+@theme {
+    --color-kp-emerald: #087f5b;
+    --color-kp-emerald-dark: #056044;
+    --color-kp-emerald-soft: #eaf7f2;
+    --color-kp-ink: #000000;
+}
+
+:root {
+    --kp-emerald: #087f5b;
+    --kp-emerald-dark: #056044;
+    --kp-emerald-soft: #eaf7f2;
+    --kp-ink: #000000;
+    --kp-ink-muted: color-mix(in srgb, var(--kp-ink) 55%, transparent);
+    --kp-ink-secondary: color-mix(in srgb, var(--kp-ink) 72%, transparent);
+    --kp-border: color-mix(in srgb, var(--kp-emerald-dark) 12%, transparent);
+    --kp-border-soft: color-mix(in srgb, var(--kp-emerald-dark) 8%, transparent);
+    --kp-content: 1400px;
+    --kp-content-wide: 1600px;
+}
+
 @layer base {
     body {
         font-family: Inter, ui-sans-serif, system-ui, sans-serif;
@@ -8,12 +28,161 @@
 }
 
 @layer components {
-    .field {
-        @apply rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-gray-900 focus:ring-0;
+    .field,
+    .kp-input {
+        @apply rounded-xl bg-white px-4 py-3 text-sm outline-none transition;
+        border: 1px solid var(--kp-border);
     }
 
-    .button-dark {
-        @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50;
+
+    .kp-storefront a:focus-visible,
+    .kp-storefront button:focus-visible,
+    .kp-storefront input:focus-visible,
+    .kp-storefront select:focus-visible,
+    .kp-storefront textarea:focus-visible,
+    .kp-storefront summary:focus-visible {
+        outline: 2px solid var(--kp-emerald);
+        outline-offset: 2px;
+    }
+
+    .field:focus,
+    .kp-input:focus {
+        border-color: var(--kp-emerald);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--kp-emerald) 16%, transparent);
+    }
+
+    .field:focus-visible,
+    .kp-input:focus-visible {
+        outline: none;
+    }
+
+    .field[aria-invalid="true"],
+    .kp-input[aria-invalid="true"] {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px color-mix(in srgb, #dc2626 12%, transparent);
+    }
+
+    .kp-form-error {
+        @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700;
+    }
+
+    .kp-field-error {
+        @apply mt-1.5 text-xs font-medium text-red-700;
+    }
+
+    /* KP Wear storefront button system */
+    .button-dark,
+    .kp-button-primary {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition duration-200 ease-out;
+    }
+
+    .button-dark:hover,
+    .kp-button-primary:hover {
+        @apply bg-emerald-600;
+    }
+
+    .button-dark:active,
+    .kp-button-primary:active {
+        transform: translateY(1px);
+    }
+
+    .button-dark:disabled,
+    .kp-button-primary:disabled {
+        @apply cursor-not-allowed opacity-50;
+        transform: none;
+    }
+
+
+    /* Product quantity controls */
+    [data-product-page] [data-quantity-minus],
+    [data-product-page] [data-quantity-plus] {
+        @apply rounded-lg text-black transition-colors duration-150;
+    }
+
+    [data-product-page] [data-quantity-minus]:hover,
+    [data-product-page] [data-quantity-plus]:hover {
+        @apply bg-emerald-50 text-emerald-700;
+    }
+
+    [data-product-page] [data-quantity-minus]:focus-visible,
+    [data-product-page] [data-quantity-plus]:focus-visible {
+        @apply relative z-10 outline-none ring-2 ring-emerald-600 ring-offset-1;
+    }
+
+    .kp-button-secondary {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black bg-white px-5 py-3 text-sm font-semibold text-black transition duration-200 ease-out;
+    }
+
+    .kp-button-secondary:hover {
+        @apply border-emerald-600 bg-emerald-50 text-black;
+    }
+
+    .kp-button-secondary:active {
+        transform: translateY(1px);
+    }
+
+    .kp-button-ghost {
+        @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-black transition duration-200 ease-out;
+    }
+
+    .kp-button-ghost:hover {
+        @apply bg-emerald-50 text-emerald-700;
+    }
+
+    .kp-button-icon {
+        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-black transition duration-200 ease-out;
+    }
+
+    .kp-button-icon:hover {
+        @apply bg-emerald-50 text-emerald-700;
+    }
+
+    /* Collections/storefront legacy aliases — kept for compatibility. */
+    .kp-btn {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition duration-200 ease-out;
+    }
+
+    .kp-btn:hover {
+        @apply bg-emerald-600;
+    }
+
+    .kp-btn.secondary {
+        @apply border border-black bg-white text-black;
+    }
+
+    .kp-btn.secondary:hover {
+        @apply border-emerald-600 bg-emerald-50 text-black;
+    }
+
+    .kp-button-danger {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-600 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition duration-200 ease-out;
+    }
+
+    .kp-button-danger:hover {
+        @apply bg-red-50;
+    }
+
+    .kp-skeleton {
+        position: relative;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--kp-emerald-soft) 72%, white);
+    }
+
+    .kp-skeleton::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--kp-emerald) 10%, white), transparent);
+        animation: kp-skeleton-shimmer 1.5s ease-in-out infinite;
+    }
+
+    @keyframes kp-skeleton-shimmer {
+        100% { transform: translateX(100%); }
+    }
+
+@media (prefers-reduced-motion: reduce) {
+        .kp-skeleton::after { animation: none; transform: none; opacity: .35; }
     }
 
     .badge {
@@ -29,18 +198,75 @@
     }
 
     .kp-filter-option {
-        color: rgb(75 85 99);
+        color: var(--kp-ink-secondary);
         transition: background-color .2s ease, color .2s ease;
     }
 
     .kp-filter-option:hover {
-        background: rgb(249 250 251);
+        background: var(--kp-emerald-soft);
     }
 
     .kp-filter-active {
-        background: rgb(236 253 245);
-        color: rgb(4 120 87);
+        background: var(--kp-emerald-soft);
+        color: var(--kp-emerald-dark);
         font-weight: 500;
+    }
+
+    .kp-content {
+        max-width: var(--kp-content);
+        margin-inline: auto;
+    }
+
+    .kp-content-wide {
+        max-width: var(--kp-content-wide);
+        margin-inline: auto;
+    }
+
+    .kp-content-full {
+        width: 100%;
+    }
+
+    .kp-reveal {
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity .55s ease, transform .55s ease;
+    }
+
+    .kp-reveal.is-visible {
+        opacity: 1;
+        transform: none;
+    }
+
+    .kp-stagger > * {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 500ms cubic-bezier(0.4, 0, 0.2, 1), transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .kp-stagger.is-visible > * {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .kp-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
+    .kp-stagger.is-visible > *:nth-child(2) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 1); }
+    .kp-stagger.is-visible > *:nth-child(3) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 2); }
+    .kp-stagger.is-visible > *:nth-child(4) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 3); }
+    .kp-stagger.is-visible > *:nth-child(5) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 4); }
+    .kp-stagger.is-visible > *:nth-child(6) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 5); }
+
+    /* Checkout payment-card states — scoped so admin colors stay independent. */
+    .kp-checkout-payment-card {
+        transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    }
+
+    .kp-checkout-payment-card:hover {
+        border-color: color-mix(in srgb, var(--kp-emerald) 42%, transparent);
+    }
+
+    .kp-checkout-payment-card:focus-within {
+        outline: 2px solid var(--kp-emerald);
+        outline-offset: 2px;
     }
 
     .kp-admin-body {
@@ -238,5 +464,392 @@
     [data-product-card] [data-quick-add] {
         opacity: 1 !important;
         transform: translateY(0) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kp-reveal,
+    .kp-stagger > * {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+}
+
+/* Auth pages — full-screen KP Wear image-led treatment */
+@layer components {
+    .kp-auth-page {
+        position: relative;
+        isolation: isolate;
+        min-height: calc(100dvh - 5rem);
+        width: 100%;
+        overflow: hidden;
+        padding: 0 clamp(1rem, 3vw, 2.5rem) clamp(1.25rem, 3vw, 2.5rem);
+        background: #eaf6f1;
+    }
+
+    .kp-auth-backdrop {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background-image: var(--kp-auth-bg);
+        background-size: cover;
+        background-position: center center;
+        background-repeat: no-repeat;
+        animation: kp-auth-bg-drift 18s ease-in-out infinite alternate;
+        transform-origin: center;
+        pointer-events: none;
+    }
+
+    .kp-auth-backdrop::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(235,247,242,.04), rgba(235,247,242,0) 55%, rgba(235,247,242,.06));
+        pointer-events: none;
+    }
+
+    .kp-auth-nav {
+        position: relative;
+        z-index: 20;
+        min-height: 4.25rem;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 2rem;
+        padding: .75rem clamp(0rem, 1vw, 1rem);
+        border-bottom: 1px solid rgba(0,0,0,.07);
+        background: rgba(255,255,255,.86);
+        backdrop-filter: blur(14px) saturate(115%);
+        -webkit-backdrop-filter: blur(14px) saturate(115%);
+    }
+
+    .kp-auth-nav-brand {
+        color: #000;
+        font-size: 1.15rem;
+        line-height: 1;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-decoration: none;
+    }
+
+    .kp-auth-nav-links {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(1rem, 2.5vw, 2rem);
+    }
+
+    .kp-auth-nav-links a,
+    .kp-auth-nav-back {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        color: #000;
+        font-size: .8rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color .2s ease, transform .2s ease;
+    }
+
+    .kp-auth-nav-links a:hover,
+    .kp-auth-nav-back:hover {
+        color: var(--kp-emerald);
+    }
+
+    .kp-auth-nav-back:hover { transform: translateX(-2px); }
+
+    .kp-auth-content {
+        position: relative;
+        z-index: 10;
+        min-height: calc(100dvh - 5rem);
+        display: grid;
+        place-items: center;
+        padding: clamp(1rem, 3vw, 2.5rem) 0;
+    }
+
+    .kp-auth-card {
+        position: relative;
+        z-index: 11;
+        width: min(500px, 100%);
+        max-height: calc(100dvh - 6rem);
+        overflow-y: auto;
+        border: 1px solid rgba(255,255,255,.88);
+        border-radius: 1.5rem;
+        background: rgba(255,255,255,.93);
+        box-shadow: 0 24px 80px rgba(0,0,0,.14), 0 3px 18px rgba(0,0,0,.06);
+        backdrop-filter: blur(16px) saturate(115%);
+        -webkit-backdrop-filter: blur(16px) saturate(115%);
+    }
+
+    .kp-auth-card-main { padding: clamp(1.25rem, 2.6vw, 2rem); }
+    .kp-auth-topbar { display:flex; align-items:center; justify-content:flex-start; }
+    .kp-auth-back { display:inline-flex; align-items:center; gap:.45rem; color:#000; font-size:.82rem; font-weight:650; text-decoration:none; transition:color .2s ease, transform .2s ease; }
+    .kp-auth-back:hover { color:var(--kp-emerald); transform:translateX(-2px); }
+    .kp-auth-card-brand { display:flex; flex-direction:column; align-items:center; margin:1.25rem 0 .25rem; color:#000; }
+    .kp-auth-card-brand span { font-size:1.25rem; line-height:1; font-weight:900; letter-spacing:.16em; }
+    .kp-auth-card-brand small { margin-top:.38rem; color:var(--kp-emerald); font-size:.5rem; font-weight:800; letter-spacing:.34em; }
+    .kp-auth-heading { margin-top:1.5rem; text-align:center; }
+    .kp-auth-heading h1 { margin:0; color:#000; font-size:clamp(1.65rem,3.5vw,2.2rem); line-height:1.05; font-weight:900; letter-spacing:-.045em; }
+    .kp-auth-heading > p:last-child { margin:.55rem auto 0; max-width:31rem; color:var(--kp-ink-secondary); font-size:.82rem; line-height:1.5; }
+    .kp-auth-switch { display:grid; grid-template-columns:1fr 1fr; margin-top:1.25rem; padding:.2rem; border:1px solid rgba(8,127,91,.09); border-radius:999px; background:rgba(245,248,247,.82); }
+    .kp-auth-switch a, .kp-auth-switch span { display:flex; min-height:2.35rem; align-items:center; justify-content:center; border-radius:999px; color:var(--kp-ink-secondary); font-size:.8rem; font-weight:700; text-decoration:none; transition:background .2s ease, color .2s ease, box-shadow .2s ease; }
+    .kp-auth-switch .is-active { background:#fff; color:var(--kp-emerald); box-shadow:0 4px 16px rgba(0,0,0,.07); }
+    .kp-auth-switch a:hover { color:var(--kp-emerald); background:rgba(255,255,255,.75); }
+    .kp-auth-form { margin-top:1.15rem; display:grid; gap:1rem; }
+    .kp-auth-label { display:block; margin-bottom:.42rem; color:#000; font-size:.76rem; font-weight:700; }
+    .kp-auth-label span { color:var(--kp-ink-secondary); font-weight:500; }
+    .kp-auth-field { min-height:3rem; border-radius:.85rem; background:rgba(255,255,255,.92); }
+    .kp-auth-help { margin:.45rem 0 0; color:var(--kp-ink-secondary); font-size:.7rem; }
+    .kp-auth-otp { text-align:center; font-size:1.1rem; letter-spacing:.5em; }
+    .kp-auth-submit { width:100%; min-height:3.15rem; border-radius:.85rem; }
+    .kp-auth-switch-text { margin:0; text-align:center; color:var(--kp-ink-secondary); font-size:.76rem; }
+    .kp-auth-switch-text a { color:var(--kp-emerald); font-weight:700; text-underline-offset:3px; }
+    .kp-auth-register-fields { display:grid; gap:.85rem; }
+    .kp-auth-animate { animation:kp-auth-card-in .65s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes kp-auth-card-in { from { opacity:0; transform:translateY(18px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes kp-auth-bg-drift { from { transform:scale(1); } to { transform:scale(1.035); } }
+
+    @media (max-width: 900px) {
+        .kp-auth-nav { grid-template-columns:auto auto; justify-content:space-between; gap:1rem; }
+        .kp-auth-nav-links { display:none; }
+        .kp-auth-content { min-height:calc(100dvh - 4.25rem); padding:1rem 0; }
+        .kp-auth-backdrop { background-position:center center; }
+    }
+
+    @media (max-width: 640px) {
+        .kp-auth-page { padding:0 .75rem .75rem; }
+        .kp-auth-nav { margin:0 -.75rem; padding-inline:1rem; min-height:3.75rem; }
+        .kp-auth-nav-brand { font-size:1rem; }
+        .kp-auth-nav-back span { display:none; }
+        .kp-auth-content { min-height:calc(100dvh - 3.75rem); padding:1rem 0; align-items:center; }
+        .kp-auth-backdrop { inset:-8%; background-position:62% center; }
+        .kp-auth-card { max-height:calc(100dvh - 5rem); border-radius:1.15rem; }
+        .kp-auth-card-main { padding:1rem; }
+        .kp-auth-card-brand { margin-top:1rem; }
+        .kp-auth-heading { margin-top:1.2rem; }
+        .kp-auth-form { gap:.85rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kp-auth-backdrop, .kp-auth-animate { animation:none; }
+        .kp-auth-back, .kp-auth-nav-links a, .kp-auth-nav-back, .kp-auth-switch a { transition:none; }
+    }
+}
+
+/* KP Wear Phase 11 — focused mobile pass */
+html { overflow-x: hidden; }
+body.kp-storefront { overflow-x: hidden; }
+
+@media (max-width: 767px) {
+    /* Keep touch targets comfortable without making the UI oversized. */
+    .kp-storefront button,
+    .kp-storefront a[role="button"] { -webkit-tap-highlight-color: transparent; }
+
+    /* Navbar: keep the existing navigation and make the action row compact. */
+    .kp-storefront header.sticky > div:first-child { min-width: 0; }
+    .kp-storefront header.sticky .flex.items-center.gap-1.md\:gap-2 { min-width: 0; }
+    .kp-storefront header.sticky [data-search-toggle],
+    .kp-storefront header.sticky a[aria-label="Wishlist"],
+    .kp-storefront header.sticky a[aria-label="Cart"],
+    .kp-storefront header.sticky a[aria-label^="Account"],
+    .kp-storefront header.sticky [data-menu-toggle] { padding: .55rem; }
+
+    /* Product page: keep the purchase controls usable on narrow screens. */
+    [data-product-page] [data-product-name] { overflow-wrap: anywhere; }
+    [data-product-page] [data-product-gallery] { max-width: 100%; }
+    [data-product-page] [data-product-variants] { max-width: 100%; }
+    [data-product-page] [data-add-selected],
+    [data-product-page] [data-product-wishlist] { min-height: 3rem; }
+
+    /* Checkout: keep the enlarged summary readable without horizontal overflow. */
+    [data-checkout-page] { max-width: 100%; }
+    [data-checkout-page] aside { min-width: 0; }
+    [data-checkout-page] [data-checkout-summary] { min-width: 0; }
+    [data-checkout-page] [data-checkout-summary] img { max-width: 100%; }
+    [data-checkout-page] .kp-checkout-payment-card { min-height: 4.25rem; }
+
+    /* Account pages: make mobile content breathe while keeping the existing menu. */
+    [data-account-page] { padding-top: 1.5rem; }
+    [data-account-page] > .grid { gap: 1rem; }
+
+    /* Catalog: avoid oversized hero controls on small screens. */
+    .kp-shop-page .kp-catalog-hero input,
+    .kp-shop-page .kp-catalog-hero select { min-height: 3rem; }
+    .kp-shop-page .kp-catalog-hero { border-radius: 1.25rem; }
+}
+
+@media (max-width: 480px) {
+    [data-product-page] { padding-inline: .875rem; }
+    [data-product-page] [data-product-content] { gap: 1.5rem; }
+    [data-product-page] [data-product-image] { padding: 1rem; }
+    [data-product-page] [data-product-gallery] { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+
+    [data-checkout-page] { padding-inline: .875rem; }
+    [data-checkout-page] .rounded-xl { border-radius: .9rem; }
+    [data-checkout-page] .kp-checkout-payment-card { padding: .8rem; }
+    [data-checkout-page] .kp-checkout-payment-card > span { flex-shrink: 0; }
+
+    [data-account-page] { padding-inline: .875rem; }
+    [data-account-page] .grid.sm\:grid-cols-3 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+    .kp-auth-page { min-height: 100dvh; padding-inline: .75rem; }
+    /* Preserve the complete approved KP Wear composition on phones.
+       Cover was cropping the animal mark on the left and hoodie on the right. */
+    .kp-auth-backdrop {
+        inset: 0;
+        background-position: center center;
+        background-size: 100% 100%;
+    }
+}
+
+/* KP Wear approved mobile bottom navigation */
+.kp-mobile-bottom-nav {
+    position: fixed !important;
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 70;
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    min-height: 4.25rem;
+    padding: .45rem .35rem calc(.45rem + env(safe-area-inset-bottom));
+    border-top: 1px solid color-mix(in srgb, var(--kp-emerald-dark) 10%, transparent);
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 -8px 28px rgba(0,0,0,.06);
+    backdrop-filter: blur(18px) saturate(120%);
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+.kp-mobile-nav-item {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 3.35rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .2rem;
+    border-radius: .85rem;
+    color: var(--kp-ink-secondary);
+    text-decoration: none;
+    transition: color .18s ease, background-color .18s ease, transform .18s ease;
+}
+
+.kp-mobile-nav-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .62rem;
+    line-height: 1;
+    font-weight: 650;
+}
+
+.kp-mobile-nav-item.is-active {
+    color: var(--kp-emerald);
+}
+
+.kp-mobile-nav-item.is-active::after {
+    content: '';
+    position: absolute;
+    bottom: .15rem;
+    width: .28rem;
+    height: .28rem;
+    border-radius: 999px;
+    background: var(--kp-emerald);
+}
+
+.kp-mobile-nav-item:active { transform: scale(.96); }
+.kp-mobile-nav-item:focus-visible {
+    outline: 2px solid var(--kp-emerald);
+    outline-offset: -2px;
+}
+
+@media (min-width: 768px) {
+    .kp-mobile-bottom-nav { display: none !important; }
+}
+
+@media (max-width: 767px) {
+    .kp-mobile-bottom-nav { display: grid !important; }
+    body.kp-has-mobile-bottom-nav {
+        padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    }
+
+    body.kp-has-mobile-bottom-nav .kp-mobile-bottom-nav {
+        display: grid;
+    }
+
+    /* Mobile header: logo + cart only. Search, wishlist and account move out of the header. */
+    .kp-storefront header.sticky [data-search-toggle],
+    .kp-storefront header.sticky a[aria-label="Wishlist"],
+    .kp-storefront header.sticky a[aria-label^="Account"],
+    .kp-storefront header.sticky [data-menu-toggle] {
+        display: none;
+    }
+}
+
+
+/* KP Wear mobile navigation refinements — must follow the base nav rules. */
+@media (max-width: 767px) {
+    .kp-mobile-bottom-nav {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        min-height: 4.6rem;
+        padding-inline: .2rem;
+        gap: .05rem;
+    }
+
+    .kp-mobile-nav-item {
+        min-height: 3.55rem;
+        gap: .28rem;
+        border-radius: .7rem;
+    }
+
+    .kp-mobile-nav-item svg {
+        width: 19px;
+        height: 19px;
+        flex: 0 0 auto;
+    }
+
+    .kp-mobile-nav-item span {
+        display: block;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: nowrap;
+        font-size: .59rem;
+        letter-spacing: -.01em;
+        line-height: 1.05;
+    }
+
+    .kp-mobile-nav-item.is-active {
+        background: rgba(8,127,91,.055);
+    }
+
+    .kp-mobile-nav-item.is-active::after {
+        bottom: .12rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kp-mobile-nav-item { transition: none; }
+}
+
+/* KP Wear Phase 12 — accessibility refinements */
+.kp-storefront [aria-disabled="true"] { cursor: not-allowed; }
+
+@media (max-width: 767px) {
+    .kp-mobile-nav-item {
+        min-height: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kp-storefront *,
+    .kp-storefront *::before,
+    .kp-storefront *::after {
+        scroll-behavior: auto !important;
     }
 }

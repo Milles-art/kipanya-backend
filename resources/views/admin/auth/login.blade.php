@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login — Kipanya</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
-<body class="min-h-screen bg-gray-950 p-4 text-gray-950"><main class="mx-auto flex min-h-[calc(100vh-2rem)] max-w-md items-center"><section class="w-full rounded-3xl bg-white p-7 shadow-2xl sm:p-9"><p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Kipanya Control Panel</p><h1 class="mt-2 text-3xl font-black">Administrator sign in</h1>
+<body class="min-h-screen bg-black p-4 text-black"><main class="mx-auto flex min-h-[calc(100vh-2rem)] max-w-md items-center"><section class="w-full rounded-3xl bg-white p-7 shadow-2xl sm:p-9"><p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Kipanya Control Panel</p><h1 class="mt-2 text-3xl font-black">Administrator sign in</h1>
 @if(session('two_factor_required'))
-<p class="mt-2 text-sm text-gray-500">Your account is protected by a second factor. Enter the six-digit code from your authenticator app.</p>
+<p class="mt-2 text-sm text-black">Your account is protected by a second factor. Enter the six-digit code from your authenticator app.</p>
 @else
-<p class="mt-2 text-sm text-gray-500">Use your administrator phone number. A verification code will be sent if the account is authorized.</p>
+<p class="mt-2 text-sm text-black">Use your administrator phone number. A verification code will be sent if the account is authorized.</p>
 @endif
 @if($errors->any())<div class="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</div>@endif
 @if(session('otp_sent'))<div class="mt-5 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">Verification code sent. Enter it below.</div>@endif

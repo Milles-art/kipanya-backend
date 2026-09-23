@@ -13,7 +13,7 @@
     @csrf
     @if($method !== 'POST') @method($method) @endif
 
-    <section class="grid gap-5 rounded-2xl border border-gray-200 bg-white p-5 sm:grid-cols-2">
+    <section class="grid gap-5 rounded-2xl border border-black bg-white p-5 sm:grid-cols-2">
         <div class="sm:col-span-2">
             <label class="mb-2 block text-sm font-semibold">Product name</label>
             <input class="field w-full" name="name" value="{{ old('name', $product->name) }}" required maxlength="160">
@@ -22,7 +22,7 @@
         <div>
             <label class="mb-2 block text-sm font-semibold">Slug</label>
             <input class="field w-full" name="slug" value="{{ old('slug', $product->slug) }}" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*">
-            <p class="mt-1 text-xs text-gray-400">Lowercase letters, numbers and hyphens only.</p>
+            <p class="mt-1 text-xs text-black">Lowercase letters, numbers and hyphens only.</p>
         </div>
 
         <div>
@@ -47,10 +47,10 @@
         <div class="sm:col-span-2 space-y-3">
             <label class="mb-2 block text-sm font-semibold">Product image</label>
             @if($product->image_url)
-                <img src="{{ $product->image_url }}" alt="{{ $product->name ?: 'Product image' }}" class="h-32 w-32 rounded-2xl object-cover ring-1 ring-gray-200">
+                <img src="{{ $product->image_url }}" alt="{{ $product->name ?: 'Product image' }}" class="h-32 w-32 rounded-2xl object-cover ring-1 ring-black">
             @endif
             <input class="field w-full" type="file" name="image" accept="image/jpeg,image/png,image/webp,image/avif">
-            <p class="text-xs text-gray-400">Upload JPG, PNG, WebP or AVIF, up to 5 MB. You can still use a path or remote URL below.</p>
+            <p class="text-xs text-black">Upload JPG, PNG, WebP or AVIF, up to 5 MB. You can still use a path or remote URL below.</p>
             <input class="field w-full" name="image_path" value="{{ old('image_path', $product->image_path) }}" maxlength="500" placeholder="assets/wear/catalog/products/hoodies/kp-wear-redefined-graphic-red-front.webp">
         </div>
 
@@ -82,7 +82,7 @@
     </section>
 
     <div class="flex justify-end gap-3">
-        <a href="{{ route('admin.wear.products.index') }}" class="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold hover:bg-gray-50">Cancel</a>
+        <a href="{{ route('admin.wear.products.index') }}" class="rounded-xl border border-black px-5 py-3 text-sm font-semibold hover:bg-white">Cancel</a>
         <button class="button-dark">{{ $method === 'POST' ? 'Create product' : 'Save changes' }}</button>
     </div>
 </form>

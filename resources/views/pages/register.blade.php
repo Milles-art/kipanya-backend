@@ -1,56 +1,66 @@
 @extends('layouts.app')
 @section('content')
-<div class="mx-auto max-w-md px-4 pb-20 pt-20">
-    <div class="mb-8 text-center">
-        <p class="text-2xl font-black text-gray-900">KP<span class="text-emerald-600">.</span></p>
-        <h1 class="mt-5 text-2xl font-bold tracking-tight text-gray-900">Create your account</h1>
-        <p class="mt-2 text-sm text-gray-500">Use your phone number to register.</p>
+<div class="kp-auth-page" style="--kp-auth-bg: url('{{ asset('images/kp-wear-auth-bg.png') }}');">
+    <div class="kp-auth-backdrop" aria-hidden="true"></div>
+    <div class="kp-auth-content">
+        <section class="kp-auth-card kp-auth-card-main kp-auth-animate" aria-labelledby="register-title">
+        <div class="kp-auth-topbar">
+            <a href="{{ route('home') }}" class="kp-auth-back">
+                <x-tabler-arrow-left size="18" aria-hidden="true" />
+                <span>Back to store</span>
+            </a>
+        </div>
+
+        <div class="kp-auth-card-brand" aria-label="KP Wear">
+            <span>KP WEAR</span>
+            <small>STYLE MOVES YOU</small>
+        </div>
+
+        <div class="kp-auth-heading">
+            <h1 id="register-title">Create your account</h1>
+            <p>Use your phone number to register.</p>
+        </div>
+
+        <div class="kp-auth-switch" aria-label="Authentication">
+            <a href="{{ route('login', ['redirect' => request('redirect')]) }}">Login</a>
+            <span class="is-active">Register</span>
+        </div>
+
+        <form novalidate data-register-form class="kp-auth-form">
+            <input type="hidden" name="redirect" value="{{ request('redirect') }}">
+            <div data-auth-error class="kp-form-error hidden" role="alert" aria-live="polite"></div>
+
+            <div data-primary-step class="kp-auth-register-fields">
+                <div>
+                    <label class="kp-auth-label" for="register-name">Full name</label>
+                    <input id="register-name" name="name" class="field w-full kp-auth-field" required placeholder="Your full name" autocomplete="name">
+                </div>
+                <div>
+                    <label class="kp-auth-label" for="register-phone">Phone number</label>
+                    <input id="register-phone" name="phone" type="tel" class="field w-full kp-auth-field" required placeholder="07XXXXXXXX" autocomplete="tel">
+                </div>
+                <div>
+                    <label class="kp-auth-label" for="register-referral">Referral code <span>(optional)</span></label>
+                    <input id="register-referral" name="referral_code" class="field w-full kp-auth-field" placeholder="Enter a code if you have one" autocomplete="off">
+                </div>
+            </div>
+
+            <div data-otp-step class="hidden">
+                <label class="kp-auth-label" for="register-code">Verification code</label>
+                <input id="register-code" name="code" class="field w-full kp-auth-field kp-auth-otp" maxlength="6" inputmode="numeric" placeholder="000000" autocomplete="one-time-code">
+                <p class="kp-auth-help">We sent a 6-digit code to your phone.</p>
+            </div>
+
+            <button class="button-dark kp-auth-submit" type="submit">
+                Continue <span aria-hidden="true">→</span>
+            </button>
+
+            <p class="kp-auth-switch-text">
+                Already have an account?
+                <a href="{{ route('login', ['redirect' => request('redirect')]) }}">Sign in</a>
+            </p>
+        </form>
+        </section>
     </div>
-
-    <input type="hidden" name="redirect" value="{{ request('redirect') }}">
-
-    <form novalidate data-register-form class="space-y-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
-        <div data-primary-step class="space-y-4">
-            <div>
-                <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                    <x-tabler-user size="15" class="text-gray-400" />
-                    Full name
-                </label>
-                <input name="name" class="field w-full" required placeholder="Your full name">
-            </div>
-            <div>
-                <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                    <x-tabler-device-mobile size="15" class="text-gray-400" />
-                    Phone number
-                </label>
-                <input name="phone" type="tel" class="field w-full" required placeholder="07XXXXXXXX">
-            </div>
-            <div>
-                <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                    <x-tabler-gift size="15" class="text-gray-400" />
-                    Referral code <span class="font-normal text-gray-400">(optional)</span>
-                </label>
-                <input name="referral_code" class="field w-full" placeholder="Enter a code if you have one">
-            </div>
-        </div>
-
-        <div data-otp-step class="hidden">
-            <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                <x-tabler-shield-lock size="15" class="text-gray-400" />
-                Verification code
-            </label>
-            <input name="code" class="field w-full text-center text-lg tracking-[.5em]" maxlength="6" inputmode="numeric" placeholder="000000">
-            <p class="mt-2 text-xs text-gray-400">We sent a 6-digit code to your phone.</p>
-        </div>
-
-        <button class="button-dark flex w-full items-center justify-center gap-2 py-3">
-            Continue <span aria-hidden="true">→</span>
-        </button>
-
-        <p class="pt-1 text-center text-sm text-gray-500">
-            Already have an account?
-            <a class="font-medium text-emerald-600 underline-offset-2 hover:underline" href="{{ route('login') }}">Sign in</a>
-        </p>
-    </form>
 </div>
 @endsection

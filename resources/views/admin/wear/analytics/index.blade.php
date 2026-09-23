@@ -6,11 +6,11 @@
         <div>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear</p>
             <h2 class="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Store analytics</h2>
-            <p class="mt-2 text-sm leading-6 text-gray-500">Track paid sales, order volume and product performance.</p>
+            <p class="mt-2 text-sm leading-6 text-black">Track paid sales, order volume and product performance.</p>
         </div>
         <form method="GET" class="flex items-center gap-2">
             <label for="period" class="sr-only">Period</label>
-            <select id="period" name="period" data-submit-on-change class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400">
+            <select id="period" name="period" data-submit-on-change class="rounded-xl border border-black bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-black">
                 @foreach([7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 90 days'] as $value => $label)
                     <option value="{{ $value }}" @selected($period === $value)>{{ $label }}</option>
                 @endforeach
@@ -25,72 +25,72 @@
             ['Units sold', number_format($metrics['items_sold'])],
             ['Average order', 'TZS '.number_format($metrics['average_order_value'], 0)],
         ] as [$label, $value])
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p class="text-sm text-gray-500">{{ $label }}</p>
+            <div class="rounded-2xl border border-black bg-white p-5 shadow-sm">
+                <p class="text-sm text-black">{{ $label }}</p>
                 <p class="mt-2 text-2xl font-black tracking-tight">{{ $value }}</p>
             </div>
         @endforeach
     </section>
 
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+    <section class="rounded-2xl border border-black bg-white p-5 shadow-sm sm:p-6">
         <div class="flex items-center justify-between gap-4">
             <div>
-                <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Sales trend</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-black">Sales trend</p>
                 <h3 class="mt-1 text-lg font-bold">Paid revenue</h3>
             </div>
-            <span class="text-xs font-semibold text-gray-400">{{ $start->format('d M Y') }} — {{ $end->format('d M Y') }}</span>
+            <span class="text-xs font-semibold text-black">{{ $start->format('d M Y') }} — {{ $end->format('d M Y') }}</span>
         </div>
         <div class="mt-6 overflow-hidden">
             <div class="relative h-72">
                 <svg id="analytics-chart" viewBox="0 0 1000 320" class="h-full w-full" role="img" aria-label="Paid revenue chart">
-                    <g id="analytics-grid" class="text-gray-950"></g>
+                    <g id="analytics-grid" class="text-black"></g>
                     <path id="analytics-area" fill="currentColor" fill-opacity="0.05"></path>
                     <path id="analytics-line" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
                     <g id="analytics-points" class="text-emerald-600"></g>
                 </svg>
-                <div id="analytics-empty" class="pointer-events-none absolute inset-0 hidden items-center justify-center text-sm font-medium text-gray-400">No paid sales in this period.</div>
+                <div id="analytics-empty" class="pointer-events-none absolute inset-0 hidden items-center justify-center text-sm font-medium text-black">No paid sales in this period.</div>
             </div>
-            <div id="analytics-labels" class="mt-2 grid grid-cols-7 gap-1 text-[10px] text-gray-400"></div>
+            <div id="analytics-labels" class="mt-2 grid grid-cols-7 gap-1 text-[10px] text-black"></div>
         </div>
     </section>
 
     <section class="grid gap-6 xl:grid-cols-2">
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div class="border-b border-gray-100 px-5 py-4">
-                <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Product performance</p>
+        <div class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm">
+            <div class="border-b border-black px-5 py-4">
+                <p class="text-xs font-bold uppercase tracking-widest text-black">Product performance</p>
                 <h3 class="mt-1 text-lg font-bold">Top products</h3>
             </div>
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-black">
                 @forelse($topProducts as $product)
                     <div class="flex items-center justify-between gap-4 px-5 py-4">
                         <div class="min-w-0">
                             <p class="truncate font-semibold">{{ $product->product_name }}</p>
-                            <p class="mt-1 text-xs text-gray-400">{{ number_format((int) $product->units_sold) }} unit(s)</p>
+                            <p class="mt-1 text-xs text-black">{{ number_format((int) $product->units_sold) }} unit(s)</p>
                         </div>
                         <p class="shrink-0 font-bold">TZS {{ number_format((float) $product->revenue, 0) }}</p>
                     </div>
                 @empty
-                    <div class="px-5 py-12 text-center text-sm text-gray-500">No paid product sales in this period.</div>
+                    <div class="px-5 py-12 text-center text-sm text-black">No paid product sales in this period.</div>
                 @endforelse
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div class="border-b border-gray-100 px-5 py-4">
-                <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Merchandising</p>
+        <div class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm">
+            <div class="border-b border-black px-5 py-4">
+                <p class="text-xs font-bold uppercase tracking-widest text-black">Merchandising</p>
                 <h3 class="mt-1 text-lg font-bold">Sales by category</h3>
             </div>
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-black">
                 @forelse($categorySales as $category)
                     <div class="flex items-center justify-between gap-4 px-5 py-4">
                         <div>
                             <p class="font-semibold">{{ $category->category ?: 'Uncategorised' }}</p>
-                            <p class="mt-1 text-xs text-gray-400">{{ number_format((int) $category->units_sold) }} unit(s)</p>
+                            <p class="mt-1 text-xs text-black">{{ number_format((int) $category->units_sold) }} unit(s)</p>
                         </div>
                         <p class="font-bold">TZS {{ number_format((float) $category->revenue, 0) }}</p>
                     </div>
                 @empty
-                    <div class="px-5 py-12 text-center text-sm text-gray-500">No category sales in this period.</div>
+                    <div class="px-5 py-12 text-center text-sm text-black">No category sales in this period.</div>
                 @endforelse
             </div>
         </div>

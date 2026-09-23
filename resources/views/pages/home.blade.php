@@ -69,27 +69,7 @@
     .kp-dots-positioned { position: absolute; bottom: .9rem; left: 50%; transform: translateX(-50%); margin-top: 0; justify-content: center; }
   }
 
-  /* ── Scroll-reveal, site-wide ───────────────────────────────── */
-  .kp-reveal {
-    opacity: 0;
-    transform: translateY(32px);
-    transition: opacity 650ms cubic-bezier(0.4,0,0.2,1), transform 650ms cubic-bezier(0.4,0,0.2,1);
-  }
-  .kp-reveal.is-visible { opacity: 1; transform: none; }
-  .kp-stagger > * {
-    opacity: 0;
-    transform: translateY(28px);
-    transition: opacity 550ms cubic-bezier(0.4,0,0.2,1), transform 550ms cubic-bezier(0.4,0,0.2,1);
-  }
-  .kp-stagger.is-visible > * { opacity: 1; transform: none; }
-  .kp-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
-  .kp-stagger.is-visible > *:nth-child(2) { transition-delay: 80ms; }
-  .kp-stagger.is-visible > *:nth-child(3) { transition-delay: 160ms; }
-  .kp-stagger.is-visible > *:nth-child(4) { transition-delay: 240ms; }
-  .kp-stagger.is-visible > *:nth-child(5) { transition-delay: 320ms; }
-  .kp-stagger.is-visible > *:nth-child(6) { transition-delay: 400ms; }
-
-  /* ── Marquee ticker ───────────────────────────────────────────── */
+  /* ── Scroll-reveal, site-wide ───────────────────────────────── *//* ── Marquee ticker ───────────────────────────────────────────── */
   .kp-marquee { overflow: hidden; }
   .kp-marquee-track {
     display: flex;
@@ -108,12 +88,6 @@
 
   /* ── Magnetic buttons ─────────────────────────────────────────── */
   .kp-magnetic { transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1); }
-
-  @media (prefers-reduced-motion: reduce) {
-    .kp-reveal, .kp-stagger > * { opacity: 1 !important; transform: none !important; transition: none !important; }
-    .kp-marquee-track { animation: none !important; }
-    .kp-tilt, .kp-magnetic { transition: none !important; transform: none !important; }
-  }
 </style>
 @endpush
 
@@ -168,7 +142,7 @@ $slides = [
 
 {{-- ── Hero carousel ──────────────────────────────────────────── --}}
 <section class="kp-hero-section bg-white px-4 py-6 sm:px-6 lg:px-8">
-  <div class="mx-auto grid w-full max-w-[1900px] overflow-hidden rounded-3xl bg-white shadow-[0_28px_80px_rgba(15,23,42,0.10)] lg:grid-cols-[0.95fr_1.05fr]">
+  <div class="mx-auto grid w-full kp-content-wide overflow-hidden rounded-3xl bg-white shadow-[0_28px_80px_rgba(15,23,42,0.10)] lg:grid-cols-[0.95fr_1.05fr]">
 
     <div class="flex min-h-[540px] items-center bg-white px-4 py-10 sm:px-8 lg:px-10 xl:px-12">
       <div class="max-w-[520px]">
@@ -294,7 +268,7 @@ $slides = [
 </section>
 
 {{-- ── Marquee ticker ────────────────────────────────────────────── --}}
-<section class="border-y border-gray-100 bg-slate-950 py-3">
+<section class="border-y border-emerald-950/10 bg-slate-950 py-3">
   <div class="kp-marquee">
     <div class="kp-marquee-track">
       @for($r = 0; $r < 2; $r++)
@@ -310,7 +284,7 @@ $slides = [
 </section>
 
 {{-- ── Categories ─────────────────────────────────────────────── --}}
-<section class="mx-auto max-w-[1600px] px-6 py-14 sm:px-8 lg:px-10">
+<section class="mx-auto kp-content-wide px-6 py-14 sm:px-8 lg:px-10">
   <div class="kp-reveal mb-8 flex items-end justify-between">
     <div>
       <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
@@ -333,9 +307,9 @@ $slides = [
   <div data-home-categories class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5" aria-live="polite">
     {{-- Skeleton shown until JS replaces this content --}}
     @for($i = 0; $i < 5; $i++)
-      <div class="animate-pulse">
-        <div class="aspect-square rounded-2xl bg-gray-100"></div>
-        <div class="mt-2 h-3 w-2/3 rounded bg-gray-100"></div>
+      <div class="kp-skeleton animate-pulse">
+        <div class="aspect-square rounded-2xl bg-emerald-50/70"></div>
+        <div class="mt-2 h-3 w-2/3 rounded bg-emerald-50/70"></div>
       </div>
     @endfor
   </div>
@@ -343,8 +317,8 @@ $slides = [
 
 
 {{-- ── Featured pieces ────────────────────────────────────────── --}}
-<section class="bg-gray-50 py-14">
-  <div class="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-10">
+<section class="bg-emerald-50/50 py-14">
+  <div class="mx-auto kp-content-wide px-6 sm:px-8 lg:px-10">
     <div class="kp-reveal mb-8 flex items-end justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
@@ -372,10 +346,10 @@ $slides = [
     >
       {{-- Skeleton shown until JS replaces this content --}}
       @for($i = 0; $i < 8; $i++)
-        <div class="animate-pulse">
-          <div class="aspect-[3/4] rounded-2xl bg-gray-100"></div>
-          <div class="mt-3 h-3 w-3/4 rounded bg-gray-100"></div>
-          <div class="mt-2 h-3 w-1/3 rounded bg-gray-100"></div>
+        <div class="kp-skeleton animate-pulse">
+          <div class="aspect-[3/4] rounded-2xl bg-emerald-50/70"></div>
+          <div class="mt-3 h-3 w-3/4 rounded bg-emerald-50/70"></div>
+          <div class="mt-2 h-3 w-1/3 rounded bg-emerald-50/70"></div>
         </div>
       @endfor
     </div>
@@ -383,8 +357,8 @@ $slides = [
 </section>
 
 {{-- ── Styling / Inspiration ──────────────────────────────────── --}}
-<section class="bg-gray-50 py-14">
-  <div class="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-10">
+<section class="bg-emerald-50/50 py-14">
+  <div class="mx-auto kp-content-wide px-6 sm:px-8 lg:px-10">
     <div class="kp-reveal mb-10">
       <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">Style guide</p>
       <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-950">How to wear it</h2>

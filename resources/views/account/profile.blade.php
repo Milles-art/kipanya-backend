@@ -1,23 +1,23 @@
 @extends('layouts.app')
 @section('content')
-<div data-account-profile class="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+<div data-account-profile class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
     <div class="grid gap-8 lg:grid-cols-[256px_minmax(0,1fr)]">
         @include('components.account-sidebar')
         <section class="min-w-0">
-            <div class="border-b border-gray-100 pb-6">
+            <div class="border-b border-emerald-950/10 pb-6">
                 <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Your account</p>
-                <h1 class="mt-2 text-3xl font-bold tracking-tight text-gray-950">Profile</h1>
-                <p class="mt-2 text-sm text-gray-500">Keep your basic account information up to date.</p>
+                <h1 class="mt-2 text-3xl font-bold tracking-tight text-black">Profile</h1>
+                <p class="mt-2 text-sm text-black">Keep your basic account information up to date.</p>
             </div>
-            <form data-profile-form class="mt-7 max-w-2xl space-y-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
+            <form data-profile-form class="mt-7 max-w-2xl space-y-5 rounded-2xl border border-emerald-950/12 bg-white p-6 shadow-sm sm:p-7">
                 <label class="block">
-                    <span class="text-sm font-medium text-gray-700">Full name</span>
+                    <span class="text-sm font-medium text-black">Full name</span>
                     <input data-profile-name-input name="name" class="field mt-2 w-full" required minlength="2" maxlength="120" autocomplete="name">
                 </label>
                 <div>
-                    <p class="text-sm font-medium text-gray-700">Phone number</p>
-                    <p data-profile-phone class="mt-2 rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600">—</p>
-                    <p class="mt-2 text-xs text-gray-400">Phone changes require a verified OTP security flow and are not available from this page yet.</p>
+                    <p class="text-sm font-medium text-black">Phone number</p>
+                    <p data-profile-phone class="mt-2 rounded-xl bg-emerald-50/50 px-4 py-3 text-sm text-black">—</p>
+                    <p class="mt-2 text-xs text-black">Phone changes require a verified OTP security flow and are not available from this page yet.</p>
                 </div>
                 <p data-profile-error class="hidden rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert"></p>
                 <button type="submit" class="button-dark inline-flex items-center justify-center px-6">Save changes</button>
