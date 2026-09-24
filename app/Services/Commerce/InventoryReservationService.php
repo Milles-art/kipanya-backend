@@ -8,7 +8,6 @@ use App\Models\Commerce\StockReservation;
 use App\Models\Commerce\StockReservationItem;
 use App\Models\Wear\WearOrder;
 use App\Models\Wear\WearProductVariant;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class InventoryReservationService

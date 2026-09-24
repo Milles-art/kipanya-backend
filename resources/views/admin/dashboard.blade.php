@@ -87,9 +87,12 @@
                     </div>
                 </div>
                 <div class="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="Sales chart period">
-                    <button type="button" data-chart-period="7" class="rounded-md bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm">7 days</button>
-                    <button type="button" data-chart-period="30" class="rounded-md px-3 py-1.5 text-[11px] font-bold text-slate-500">30 days</button>
-                    <button type="button" data-chart-period="365" class="rounded-md px-3 py-1.5 text-[11px] font-bold text-slate-500">All time</button>
+                    @foreach([7, 30, 365] as $period)
+                        <a href="{{ route('admin.dashboard', ['days' => $period]) }}"
+                           class="rounded-md px-3 py-1.5 text-[11px] font-bold {{ isset($chartDays) && $chartDays === $period ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
+                            {{ $period === 365 ? 'All time' : $period.' days' }}
+                        </a>
+                    @endforeach
                 </div>
             </div>
             <div class="mt-4 overflow-hidden rounded-xl bg-slate-50/70">
@@ -192,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const labels = document.getElementById('sales-labels');
     const empty = document.getElementById('sales-empty');
     const total = document.getElementById('sales-chart-total');
-    const periodButtons = document.querySelectorAll('[data-chart-period]');
 
     const renderSalesChart = (days) => {
         const source = days >= salesData.length ? salesData : salesData.slice(-days);
@@ -215,8 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         empty.classList.toggle('hidden', revenue > 0); empty.classList.toggle('flex', revenue <= 0);
         chart.setAttribute('aria-label', `Sales revenue for the selected period. Total TZS ${Math.round(revenue).toLocaleString()}.`);
     };
-    periodButtons.forEach(button => button.addEventListener('click', () => { periodButtons.forEach(item => item.classList.remove('bg-slate-900','text-white','shadow-sm')); periodButtons.forEach(item => item.classList.add('text-slate-500')); button.classList.add('bg-slate-900','text-white','shadow-sm'); button.classList.remove('text-slate-500'); renderSalesChart(Number(button.dataset.chartPeriod)); }));
-    renderSalesChart(7);
+    renderSalesChart({{ $chartDays ?? 7 }});
 });
 </script>
 @endsection

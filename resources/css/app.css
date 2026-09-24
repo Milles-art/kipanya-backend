@@ -66,10 +66,6 @@
         @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700;
     }
 
-    .kp-field-error {
-        @apply mt-1.5 text-xs font-medium text-red-700;
-    }
-
     /* KP Wear storefront button system */
     .button-dark,
     .kp-button-primary {
@@ -121,22 +117,6 @@
         transform: translateY(1px);
     }
 
-    .kp-button-ghost {
-        @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-black transition duration-200 ease-out;
-    }
-
-    .kp-button-ghost:hover {
-        @apply bg-emerald-50 text-emerald-700;
-    }
-
-    .kp-button-icon {
-        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-black transition duration-200 ease-out;
-    }
-
-    .kp-button-icon:hover {
-        @apply bg-emerald-50 text-emerald-700;
-    }
-
     /* Collections/storefront legacy aliases — kept for compatibility. */
     .kp-btn {
         @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition duration-200 ease-out;
@@ -152,14 +132,6 @@
 
     .kp-btn.secondary:hover {
         @apply border-emerald-600 bg-emerald-50 text-black;
-    }
-
-    .kp-button-danger {
-        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-600 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition duration-200 ease-out;
-    }
-
-    .kp-button-danger:hover {
-        @apply bg-red-50;
     }
 
     .kp-skeleton {
@@ -222,10 +194,6 @@
         margin-inline: auto;
     }
 
-    .kp-content-full {
-        width: 100%;
-    }
-
     .kp-reveal {
         opacity: 0;
         transform: translateY(22px);
@@ -235,38 +203,6 @@
     .kp-reveal.is-visible {
         opacity: 1;
         transform: none;
-    }
-
-    .kp-stagger > * {
-        opacity: 0;
-        transform: translateY(24px);
-        transition: opacity 500ms cubic-bezier(0.4, 0, 0.2, 1), transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .kp-stagger.is-visible > * {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    .kp-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
-    .kp-stagger.is-visible > *:nth-child(2) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 1); }
-    .kp-stagger.is-visible > *:nth-child(3) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 2); }
-    .kp-stagger.is-visible > *:nth-child(4) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 3); }
-    .kp-stagger.is-visible > *:nth-child(5) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 4); }
-    .kp-stagger.is-visible > *:nth-child(6) { transition-delay: calc(var(--kp-stagger-step, 80ms) * 5); }
-
-    /* Checkout payment-card states — scoped so admin colors stay independent. */
-    .kp-checkout-payment-card {
-        transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
-    }
-
-    .kp-checkout-payment-card:hover {
-        border-color: color-mix(in srgb, var(--kp-emerald) 42%, transparent);
-    }
-
-    .kp-checkout-payment-card:focus-within {
-        outline: 2px solid var(--kp-emerald);
-        outline-offset: 2px;
     }
 
     .kp-admin-body {
@@ -468,8 +404,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .kp-reveal,
-    .kp-stagger > * {
+    .kp-reveal {
         opacity: 1 !important;
         transform: none !important;
         transition: none !important;
@@ -652,8 +587,7 @@ body.kp-storefront { overflow-x: hidden; }
     .kp-storefront header.sticky [data-search-toggle],
     .kp-storefront header.sticky a[aria-label="Wishlist"],
     .kp-storefront header.sticky a[aria-label="Cart"],
-    .kp-storefront header.sticky a[aria-label^="Account"],
-    .kp-storefront header.sticky [data-menu-toggle] { padding: .55rem; }
+    .kp-storefront header.sticky a[aria-label^="Account"] { padding: .55rem; }
 
     /* Product page: keep the purchase controls usable on narrow screens. */
     [data-product-page] [data-product-name] { overflow-wrap: anywhere; }
@@ -667,7 +601,6 @@ body.kp-storefront { overflow-x: hidden; }
     [data-checkout-page] aside { min-width: 0; }
     [data-checkout-page] [data-checkout-summary] { min-width: 0; }
     [data-checkout-page] [data-checkout-summary] img { max-width: 100%; }
-    [data-checkout-page] .kp-checkout-payment-card { min-height: 4.25rem; }
 
     /* Account pages: make mobile content breathe while keeping the existing menu. */
     [data-account-page] { padding-top: 1.5rem; }
@@ -687,8 +620,6 @@ body.kp-storefront { overflow-x: hidden; }
 
     [data-checkout-page] { padding-inline: .875rem; }
     [data-checkout-page] .rounded-xl { border-radius: .9rem; }
-    [data-checkout-page] .kp-checkout-payment-card { padding: .8rem; }
-    [data-checkout-page] .kp-checkout-payment-card > span { flex-shrink: 0; }
 
     [data-account-page] { padding-inline: .875rem; }
     [data-account-page] .grid.sm\:grid-cols-3 { grid-template-columns: 1fr; }
@@ -786,8 +717,7 @@ body.kp-storefront { overflow-x: hidden; }
     /* Mobile header: logo + cart only. Search, wishlist and account move out of the header. */
     .kp-storefront header.sticky [data-search-toggle],
     .kp-storefront header.sticky a[aria-label="Wishlist"],
-    .kp-storefront header.sticky a[aria-label^="Account"],
-    .kp-storefront header.sticky [data-menu-toggle] {
+    .kp-storefront header.sticky a[aria-label^="Account"] {
         display: none;
     }
 }

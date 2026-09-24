@@ -45,7 +45,7 @@ class CheckoutWebFlowTest extends TestCase
         $this->assertStringContainsString('data-payment-card', $html);
         $this->assertStringContainsString('data-place-order', $html);
         $this->assertMatchesRegularExpression('/<script nonce="[^"]+">window\.KP_USER/', $html, 'KP_USER script must be nonced for CSP');
-        $this->assertMatchesRegularExpression('/<script nonce="[^"]+">[\s\S]*?bindPaymentMethods/', $html, 'checkout inline script must be nonced for CSP');
+        $this->assertMatchesRegularExpression('/<script nonce="[^"]+">[\s\S]*?data-checkout-page/', $html, 'checkout inline script must be nonced for CSP');
 
         $json = $this->withUnencryptedCookies(['kp_web_session' => $token])
             ->getJson('/api/v1/cart/checkout/preview')
@@ -59,13 +59,15 @@ class CheckoutWebFlowTest extends TestCase
         $this->assertSame(50000.0, (float) $json['data']['total']);
 
         $checkmarks = [
-            "fetch('/api/v1/cart/checkout/preview'",
-            "/api/v1/checkout'",
-            'bindPaymentMethods',
-            'loadDefaultAddress',
+            "api('/auth/me'",
+            "api('/addresses'",
+            "api('/cart/checkout/preview'",
+            "api('/checkout',{",
+            "location.href = '/login'",
             'data-use-current-location',
-            '/api/v1/addresses',
+            '/api/v1',
             'window.KP_USER',
+            'data-google-maps-key',
         ];
         foreach ($checkmarks as $mark) {
             $this->assertStringContainsString($mark, $html, "Missing marker: {$mark}");

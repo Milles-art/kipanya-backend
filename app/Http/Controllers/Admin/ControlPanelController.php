@@ -45,7 +45,9 @@ final class ControlPanelController extends Controller
             ->limit(8)
             ->get();
 
-        $salesChart = collect(range(29, 0))->map(function (int $daysAgo) use ($paidOrders): array {
+        $chartDays = collect([7, 30, 365])->contains($request->integer('days', 7)) ? $request->integer('days', 7) : 7;
+
+        $salesChart = collect(range($chartDays - 1, 0))->map(function (int $daysAgo) use ($paidOrders): array {
             $date = today()->subDays($daysAgo);
 
             return [
@@ -88,6 +90,7 @@ final class ControlPanelController extends Controller
             'recentOrders' => $recentOrders,
             'lowStockVariants' => $lowStockVariants,
             'salesChart' => $salesChart,
+            'chartDays' => $chartDays,
         ]);
     }
 }

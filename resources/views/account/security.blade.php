@@ -13,9 +13,32 @@
             <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50/70"><x-tabler-device-mobile size="18" class="text-black" /></div>
-                    <div><p class="text-sm font-medium text-black">Verified phone number</p><p data-security-phone class="text-sm text-black">Loading…</p></div>
+                    <div><p class="text-sm font-medium text-black">Verified phone number</p><p data-security-phone class="text-sm text-black">{{ $user->phone }}</p></div>
                 </div>
                 <div class="mt-5 rounded-xl bg-emerald-50/50 p-4 text-sm leading-6 text-black">Sign-in is protected by a one-time code sent to this number. Phone-number changes require a separate verified OTP workflow and are not exposed as a fake action here.</div>
+            </section>
+
+            <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50/70"><x-tabler-lock size="18" class="text-black" /></div>
+                    <div><p class="text-sm font-medium text-black">Active sessions</p><p class="text-sm text-black">Devices currently signed in to your account.</p></div>
+                </div>
+                <ul class="mt-4 space-y-3">
+                    @forelse($sessions as $session)
+                    <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-950/10 p-4">
+                        <div>
+                            <p class="text-sm font-medium text-black">{{ $session['device'] }}</p>
+                            <p class="mt-0.5 text-xs text-black">Last active {{ $session['last_active'] instanceof \DateTimeInterface ? $session['last_active']->format('j M Y, H:i') : $session['last_active'] }}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            @if($session['is_current'])<span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">This device</span>@endif
+                            <button type="button" data-revoke-session data-session-id="{{ $session['id'] }}" class="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Revoke</button>
+                        </div>
+                    </li>
+                    @empty
+                    <li class="rounded-xl border border-dashed border-emerald-950/12 p-4 text-sm text-black">No active sessions found.</li>
+                    @endforelse
+                </ul>
             </section>
 
             <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">

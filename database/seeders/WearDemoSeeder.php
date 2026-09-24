@@ -89,8 +89,8 @@ class WearDemoSeeder extends Seeder
             'white-graffiti' => [
                 ['role' => 'front', 'file' => 'assets/wear/catalog/products/polos/kp-wear-white-graffiti-front.webp'],
                 ['role' => 'back', 'file' => 'assets/wear/catalog/products/polos/kp-wear-white-graffiti-back.webp'],
-                ['role' => 'front-detail', 'file' => 'assets/wear/catalog/products/polos/kp-wear-white-graffiti-front-detail.webp'],
-                ['role' => 'back-detail', 'file' => 'assets/wear/catalog/products/polos/kp-wear-white-graffiti-back-detail.webp'],
+                ['role' => 'lifestyle', 'file' => 'assets/wear/catalog/products/polos/kp-wear-white-graffiti-lifestyle.webp'],
+                ['role' => 'lifestyle-2', 'file' => 'assets/wear/catalog/products/polos/kp-wear-white-graffiti-lifestyle-2.webp'],
             ],
             'sand-minimal-icon' => [['role' => 'front', 'file' => 'assets/wear/catalog/products/polos/kp-wear-sand-minimal-icon-front.webp']],
             'kp-icon-black' => [['role' => 'front', 'file' => 'assets/wear/catalog/products/t-shirts/kp-wear-kp-icon-black-front.webp']],
@@ -118,7 +118,7 @@ class WearDemoSeeder extends Seeder
             ],
             'know-your-worth-peach' => [
                 ['role' => 'front', 'file' => 'assets/wear/catalog/products/t-shirts/kp-wear-know-your-worth-peach-front.webp'],
-                ['role' => 'lifestyle', 'file' => 'assets/wear/catalog/products/t-shirts/kp-wear-know-your-worth-peach-lifestyle.webp'],
+                ['role' => 'back', 'file' => 'assets/wear/catalog/products/t-shirts/kp-wear-know-your-worth-peach-back.webp'],
             ],
             'real-men-build-better-navy' => [
                 ['role' => 'front', 'file' => 'assets/wear/catalog/products/t-shirts/kp-wear-real-men-build-better-navy-front.webp'],
@@ -190,8 +190,6 @@ class WearDemoSeeder extends Seeder
 
         WearProduct::query()->update(['is_featured' => false]);
         WearProduct::query()->whereIn('slug', $featuredSlugs)->update(['is_featured' => true]);
-
-        $this->call(WearCollectionSeeder::class);
 
         $featuredIds = WearProduct::query()
             ->where('is_active', true)

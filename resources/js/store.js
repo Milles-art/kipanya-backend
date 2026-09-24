@@ -4,16 +4,6 @@
   const USER_KEY = 'kp_user';
   const GUEST_KEY = 'kp_guest_cart_token';
 
-  const getJson = (key, fallback = null) => {
-    try {
-      return JSON.parse(
-        localStorage.getItem(key) ?? JSON.stringify(fallback)
-      );
-    } catch {
-      return fallback;
-    }
-  };
-
   const setJson = (key, value) =>
     localStorage.setItem(key, JSON.stringify(value));
 
@@ -43,6 +33,10 @@
     .replaceAll("'", '&#039;');
 
   const token = () => localStorage.getItem(TOKEN_KEY);
+  const signedIn = () =>
+    document
+      .querySelector('meta[name="kp-signed-in"]')
+      ?.getAttribute('content') === '1' || !!token();
   const guestToken = () => localStorage.getItem(GUEST_KEY);
 
   const ensureGuestToken = () => {
@@ -74,14 +68,14 @@
       headers.set('Content-Type', 'application/json');
     }
 
-    // Browser auth uses the HttpOnly kp_web_session cookie. Fetch sends
-    // same-origin cookies automatically, so never require a JS-readable token.
     if (token()) {
       headers.set(
         'Authorization',
         `Bearer ${token()}`
       );
-    } else if (!signedIn()) {
+    }
+
+    if (!signedIn()) {
       headers.set(
         'X-Guest-Cart-Token',
         ensureGuestToken()
@@ -145,17 +139,6 @@
       setJson(USER_KEY, payload.user);
     }
   };
-
-  const currentUser = () =>
-    getJson(USER_KEY, null);
-
-  // Browser authentication is carried by the HttpOnly kp_web_session cookie.
-  // The cookie is intentionally unreadable from JavaScript, so the server-rendered
-  // signed-in state is the source of truth for frontend guards.
-  const signedIn = () =>
-    document
-      .querySelector('meta[name="kp-signed-in"]')
-      ?.getAttribute('content') === '1';
 
   const counts = async () => {
     try {
@@ -623,9 +606,6 @@
   const fetchCollections = async () =>
     (await api('/wear/collections'))?.data || [];
 
-  const fetchCollection = async slug =>
-    (await api(`/wear/collections/${encodeURIComponent(slug)}`))?.data || null;
-
   const findFirstVariant = product =>
     (product.variants || []).find(
       v => v.in_stock
@@ -868,52 +848,7 @@ const bootHome = async () => {
     }
   };
 
-  const bootCollections = async () => {
-  const page = document.querySelector('[data-collections-page]');
-  const grid = document.querySelector('[data-collections-grid]');
-  if (!page || !grid) return;
-
-  const fallbackImages = {
-    'new-arrivals': 'product-15.jpg',
-    'everyday-essentials': 'product-10.jpg',
-    'streetwear': 'product-07.jpg',
-    'polos-and-shirts': 'product-13.jpg',
-    't-shirts': 'product-03.jpg',
-    'hoodies-and-sweatshirts': 'product-11.jpg',
-    'premium-edit': 'product-16.jpg'
-  };
-
-  try {
-    const collections = await fetchCollections();
-    grid.innerHTML = collections.map((collection, index) => {
-      const image = collection.cover || `/assets/wear/catalog/generated/${fallbackImages[collection.slug] || 'product-01.jpg'}`;
-      const wide = index === 0 || index === 2;
-      return `
-        <a href="/collections/${encodeURIComponent(collection.slug)}" class="group relative overflow-hidden rounded-[1.5rem] bg-white ${wide ? 'lg:col-span-8' : 'lg:col-span-4'} aspect-[4/3]">
-          <img src="${escapeHtml(image)}" alt="${escapeHtml(collection.name)}" class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]">
-          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"></div>
-          <div class="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
-            <div class="flex items-end justify-between gap-5">
-              <div>
-                <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-white/65">${Number(collection.product_count || 0)} products</p>
-                <h3 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">${escapeHtml(collection.name)}</h3>
-                <p class="mt-2 max-w-md text-sm leading-6 text-white/70">${escapeHtml(collection.description || '')}</p>
-              </div>
-              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-lg text-black transition group-hover:-rotate-45">↗</span>
-            </div>
-          </div>
-        </a>`;
-    }).join('');
-
-    if (!collections.length) {
-      grid.innerHTML = '<div class="col-span-full rounded-2xl border border-dashed border-black py-20 text-center text-sm text-black">No collections are available yet.</div>';
-    }
-  } catch (error) {
-    grid.innerHTML = '<div class="col-span-full rounded-2xl border border-red-100 bg-red-50 py-16 text-center text-sm text-red-700">Unable to load collections right now.</div>';
-  }
-};
-
-const bootCatalog = async () => {
+  const bootCatalog = async () => {
     const page =
       document.querySelector(
         '[data-catalog-grid]'
@@ -1314,14 +1249,16 @@ const bootCatalog = async () => {
     const catalogClickHandler = event => {
       const category = event.target.closest('[data-category]');
       const price = event.target.closest('[data-price]');
-      const clear = event.target.closest('[data-catalog-clear],[data-catalog-clear-mobile],[data-catalog-empty-clear]');
+      const clear = event.target.closest('[data-catalog-clear],[data-catalog-clear-mobile],[data-catalog-empty-clear],[data-catalog-mobile-clear]');
       const mobileSale = event.target.closest('[data-catalog-sale-toggle-mobile]');
       const pageButton = event.target.closest('[data-catalog-page]');
+      const mobileApply = event.target.closest('[data-catalog-mobile-apply]');
 
       if (category) { state.category = category.dataset.category || ''; apply(); mobilePanel?.classList.add('hidden'); }
       if (price) { state.price = price.dataset.price || 'all'; apply(); }
       if (clear) { state.category=''; state.search=''; state.price='all'; state.saleOnly=false; if(searchInput) searchInput.value=''; apply(); }
       if (mobileSale) { state.saleOnly=!state.saleOnly; apply(); }
+      if (mobileApply) { apply(); mobilePanel?.classList.add('hidden'); }
       if (pageButton && !pageButton.disabled) { state.page = Number(pageButton.dataset.catalogPage); loadProducts(); window.scrollTo({top:0,behavior:'smooth'}); }
     };
 
@@ -1787,7 +1724,7 @@ const bootCatalog = async () => {
       const count =
         page.querySelector('[data-wishlist-page-count]');
 
-      if (!token()) {
+      if (!signedIn()) {
         loading?.classList.add('hidden');
         auth?.classList.remove('hidden');
         grid?.classList.add('hidden');
@@ -1845,24 +1782,6 @@ const bootCatalog = async () => {
             document
               .querySelector(
                 '[data-search-panel]'
-              )
-              ?.classList.toggle(
-                'hidden'
-              )
-        )
-      );
-
-    document
-      .querySelectorAll(
-        '[data-menu-toggle]'
-      )
-      .forEach(b =>
-        b.addEventListener(
-          'click',
-          () =>
-            document
-              .querySelector(
-                '[data-mobile-menu]'
               )
               ?.classList.toggle(
                 'hidden'
@@ -2137,7 +2056,7 @@ const bootCatalog = async () => {
         itemsNode.innerHTML = 'Select an order to see items';
       };
 
-      page.querySelector('[data-new-request]')?.addEventListener('click', openModal);
+      page.querySelectorAll('[data-new-request]').forEach(b => b.addEventListener('click', openModal));
       document.querySelector('[data-close-return-modal]')?.addEventListener('click', closeModal);
       modal?.addEventListener('click', e => { if (e.target === modal) closeModal(); });
       page.querySelector('[data-contact-support]')?.addEventListener('click', () => { location.href = '/contact'; });
@@ -2215,7 +2134,10 @@ const bootCatalog = async () => {
         iconBox.innerHTML = cancelled ? icon('x',30) : paid ? icon('check',30) : icon('clock',30);
       }
       if (actions) {
-        actions.innerHTML = `<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-full border border-black px-6 py-3 text-sm font-medium text-black hover:bg-white">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
+        const payment = Array.isArray(order.payment) ? order.payment : [];
+        const gatewayUrl = payment.find(p => p && typeof p.payment_gateway_url === 'string' && p.payment_gateway_url)?.payment_gateway_url;
+        const payNow = pending && gatewayUrl ? `<a href="${escapeHtml(gatewayUrl)}" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Pay now</a>` : '';
+        actions.innerHTML = `${payNow}<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-full border border-black px-6 py-3 text-sm font-medium text-black hover:bg-white">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
         actions.querySelector('[data-cancel-pending-order]')?.addEventListener('click', async e => {
           const button=e.currentTarget; if (!(await window.kpConfirm?.('Cancel this order?', { title: 'Cancel this order?' }))) return; button.disabled=true; button.textContent='Cancelling…';
           try { await api(`/orders/${encodeURIComponent(order.order_number)}/cancel`, {method:'POST'}); toast('Order cancelled'); location.reload(); }
@@ -2312,6 +2234,8 @@ const bootCatalog = async () => {
       const o = (await api(`/orders/${encodeURIComponent(page.dataset.orderNumber)}`)).data;
       const items = Array.isArray(o.items) ? o.items : [];
       const canCancel = String(o.status || '').toLowerCase() === 'pending_payment';
+      const paymentPending = String(o.payment_status || '').toLowerCase() !== 'paid';
+      const gatewayUrl = (Array.isArray(o.payment) ? o.payment : []).find(p => p && typeof p.payment_gateway_url === 'string' && p.payment_gateway_url)?.payment_gateway_url;
 
       page.querySelector('[data-order-detail-content]').innerHTML = `
         <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -2348,6 +2272,7 @@ const bootCatalog = async () => {
                 <div class="flex justify-between gap-4"><span class="text-black">Delivery</span><strong>${Number(o.delivery_fee || 0).toLocaleString()} TZS</strong></div>
                 <div class="flex justify-between gap-4 border-t border-black pt-3 text-base"><span class="font-semibold">Total</span><strong>${Number(o.total || 0).toLocaleString()} TZS</strong></div>
               </div>
+              ${paymentPending && gatewayUrl ? `<a href="${escapeHtml(gatewayUrl)}" rel="noopener noreferrer" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Pay now</a>` : ''}
             </div>
 
             <div class="rounded-2xl border border-black bg-white p-5 shadow-sm">
@@ -2399,7 +2324,7 @@ const bootCatalog = async () => {
 
       if (!page) return;
 
-      if (!token()) {
+      if (!signedIn()) {
         location.href =
           '/login';
 
@@ -2493,7 +2418,6 @@ const bootCatalog = async () => {
   bindGlobal();
 
   bootHome();
-  bootCollections();
   bootCatalog();
   bootProduct();
   bootCart();

@@ -25,6 +25,8 @@ class CreateOrderRequest extends FormRequest
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
             'payment_method' => ['nullable', 'string', Rule::in(['mobile_money', 'card'])],
+            'payment_provider' => ['nullable', 'string', 'max:50', Rule::in(['mpesa', 'tigopesa', 'halopesa', 'airtelmoney'])],
+            'payment_phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9\s-]{7,20}$/'],
         ];
     }
 }

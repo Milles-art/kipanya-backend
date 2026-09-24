@@ -15,6 +15,35 @@
             </div>
 
             <section class="mt-6 overflow-hidden rounded-3xl bg-black p-6 text-white shadow-sm sm:p-8">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Your points balance</p>
+                        <p class="mt-2 text-4xl font-bold">{{ $loyalty->points ?? 0 }}</p>
+                    </div>
+                    <p class="text-sm text-white/60">KP Rewards</p>
+                </div>
+            </section>
+
+            <section class="mt-6 rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
+                <h2 class="text-sm font-semibold text-black">Points history</h2>
+                @if($loyalty->transactions->isNotEmpty())
+                <ul class="mt-3 divide-y divide-emerald-950/10">
+                    @foreach($loyalty->transactions as $transaction)
+                    <li class="flex items-center justify-between gap-3 py-3">
+                        <div>
+                            <p class="text-sm font-medium text-black">{{ $transaction->description }}</p>
+                            <p class="mt-0.5 text-xs text-black">{{ $transaction->created_at?->format('j M Y') }} · {{ ucfirst($transaction->type) }}</p>
+                        </div>
+                        <span class="font-semibold text-emerald-700">{{ $transaction->points > 0 ? '+' : '' }}{{ $transaction->points }}</span>
+                    </li>
+                    @endforeach
+                </ul>
+                @else
+                <p class="mt-3 text-sm leading-6 text-black">No points activity yet. Your points balance and history will appear here.</p>
+                @endif
+            </section>
+
+            <section class="mt-6 overflow-hidden rounded-3xl bg-black p-6 text-white shadow-sm sm:p-8">
                 <div class="max-w-2xl">
                     <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
                         <x-tabler-sparkles size="21" />

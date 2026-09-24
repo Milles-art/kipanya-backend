@@ -18,8 +18,6 @@ final class OtpService
 
     public const TTL_MINUTES = 5;
 
-    public const MAX_ATTEMPTS = 5;
-
     public const RESEND_COOLDOWN_SECONDS = 60;
 
     public const MAX_VERIFY_FAILURES = 10;

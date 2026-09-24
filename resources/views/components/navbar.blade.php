@@ -71,9 +71,10 @@
             {{-- Wishlist --}}
             <a
                 href="{{ route('wishlist') }}"
-                class="hidden rounded-xl p-2.5 text-black transition-all duration-200 hover:bg-emerald-50/70 hover:text-black md:inline-flex"
+                class="relative hidden rounded-xl p-2.5 text-black transition-all duration-200 hover:bg-emerald-50/70 hover:text-black md:inline-flex"
                 aria-label="Wishlist">
                 <x-tabler-heart size="20" stroke-width="1.8" />
+                <span data-wishlist-count class="badge hidden">0</span>
             </a>
 
             {{-- Cart --}}

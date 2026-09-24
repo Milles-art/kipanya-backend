@@ -60,7 +60,7 @@
     </nav>
 
     <div class="mt-auto border-t border-white/10 px-4 py-5">
-        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 rounded-xl px-2 py-2.5 text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white">
+        <a href="{{ route('home') }}" class="flex items-center gap-3 rounded-xl px-2 py-2.5 text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white" target="_blank" rel="noopener">
             <x-tabler-building-store size="18" stroke-width="1.8" />
             <span>View Store</span>
             <x-tabler-external-link size="14" class="ml-auto" />

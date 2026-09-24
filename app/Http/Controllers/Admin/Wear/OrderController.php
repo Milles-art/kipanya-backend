@@ -60,6 +60,7 @@ final class OrderController extends Controller
         return view('admin.wear.orders.show', [
             'order' => $order,
             'statuses' => OrderStatus::cases(),
+            'allowedStatuses' => app(OrderStateService::class)->allowedTransitions($order->status),
         ]);
     }
 

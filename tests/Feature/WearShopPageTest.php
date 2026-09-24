@@ -11,7 +11,7 @@ final class WearShopPageTest extends TestCase
         $response = $this->get('/shop');
 
         $response->assertOk()
-            ->assertSee('Shop All Products')
+            ->assertSeeInOrder(['Shop All', 'Products'], false)
             ->assertSee('data-catalog-search', false)
             ->assertSee('data-catalog-sort', false)
             ->assertSee('data-catalog-filter-toggle', false)

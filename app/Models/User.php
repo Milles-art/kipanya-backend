@@ -91,6 +91,16 @@ class User extends Authenticatable
         return $this->hasMany(WishlistItem::class);
     }
 
+    public function paymentMethods(): HasMany
+    {
+        return $this->hasMany(\App\Models\Commerce\PaymentMethod::class);
+    }
+
+    public function loyaltyAccount(): HasOne
+    {
+        return $this->hasOne(\App\Models\Commerce\LoyaltyAccount::class);
+    }
+
     /**
      * Roles that grant access to the admin surface. Using an explicit
      * allow-list (instead of "any role other than `user`") means a future

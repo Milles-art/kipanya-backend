@@ -28,7 +28,7 @@
                     <div class="mt-4 flex flex-wrap gap-2">
                         @foreach(['XS','S','M','L','XL','XXL'] as $size)
                             <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-emerald-950/12 text-sm font-medium text-black has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white">
-                                <input type="radio" name="size_top" value="{{ $size }}" class="hidden">
+                                <input type="radio" name="size_top" value="{{ $size }}" class="hidden" {{ (($sizeProfile['top'] ?? null) === $size) ? 'checked' : '' }}>
                                 {{ $size }}
                             </label>
                         @endforeach
@@ -46,7 +46,7 @@
                     <div class="mt-4 flex flex-wrap gap-2">
                         @foreach(['28','30','32','34','36','38'] as $size)
                             <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-emerald-950/12 text-sm font-medium text-black has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white">
-                                <input type="radio" name="size_bottom" value="{{ $size }}" class="hidden">
+                                <input type="radio" name="size_bottom" value="{{ $size }}" class="hidden" {{ (($sizeProfile['bottom'] ?? null) === $size) ? 'checked' : '' }}>
                                 {{ $size }}
                             </label>
                         @endforeach
@@ -64,10 +64,34 @@
                     <div class="mt-4 flex flex-wrap gap-2">
                         @foreach(['39','40','41','42','43','44','45'] as $size)
                             <label class="flex h-10 w-14 cursor-pointer items-center justify-center rounded-lg border border-emerald-950/12 text-sm font-medium text-black has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white">
-                                <input type="radio" name="size_shoe" value="{{ $size }}" class="hidden">
+                                <input type="radio" name="size_shoe" value="{{ $size }}" class="hidden" {{ (($sizeProfile['shoe'] ?? null) === $size) ? 'checked' : '' }}>
                                 {{ $size }}
                             </label>
                         @endforeach
+                    </div>
+                </section>
+
+                {{-- Fit & measurements --}}
+                <section class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50/70">
+                            <x-tabler-ruler-2 size="17" class="text-black" />
+                        </div>
+                        <p class="text-sm font-medium text-black">Fit &amp; measurements</p>
+                    </div>
+                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-black" for="size-fit">Preferred fit</label>
+                            <select id="size-fit" name="size_fit" class="field w-full">
+                                @foreach(['Slim','Regular','Relaxed'] as $fit)
+                                <option value="{{ $fit }}" @selected(($sizeProfile['fit'] ?? null) === $fit)>{{ $fit }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-black" for="size-height">Height (cm)</label>
+                            <input id="size-height" type="number" name="height_cm" min="100" max="230" value="{{ $sizeProfile['height_cm'] ?? '' }}" class="field w-full" placeholder="e.g. 178">
+                        </div>
                     </div>
                 </section>
 
@@ -109,7 +133,7 @@
     form?.addEventListener('submit', async e => {
         e.preventDefault(); button.disabled = true; const old = button.textContent; button.textContent = 'Saving…';
         try {
-            await api('/account/preferences/size-profile', { method: 'PUT', body: JSON.stringify({ top: form.querySelector('[name="size_top"]:checked')?.value || null, bottom: form.querySelector('[name="size_bottom"]:checked')?.value || null, shoe: form.querySelector('[name="size_shoe"]:checked')?.value || null }) });
+            await api('/account/preferences/size-profile', { method: 'PUT', body: JSON.stringify({ top: form.querySelector('[name="size_top"]:checked')?.value || null, bottom: form.querySelector('[name="size_bottom"]:checked')?.value || null, shoe: form.querySelector('[name="size_shoe"]:checked')?.value || null, fit: form.querySelector('[name="size_fit"]')?.value || null, height_cm: form.querySelector('[name="height_cm"]')?.value || null }) });
             button.textContent = 'Saved';
             setTimeout(() => { button.textContent = old; }, 1400);
         } catch (e) { button.textContent = old; window.dispatchEvent(new CustomEvent('kp:toast', { detail: e.message || 'Unable to save your size profile.' })); }

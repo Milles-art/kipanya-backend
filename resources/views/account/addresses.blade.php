@@ -10,7 +10,27 @@
                 <p class="mt-2 text-sm text-black">Save delivery addresses for faster checkout.</p>
             </div>
             <div data-address-error class="mt-6 hidden rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert"></div>
-            <div data-addresses-list class="mt-7 grid gap-4 md:grid-cols-2"><p class="text-sm text-black">Loading…</p></div>
+            <div data-addresses-list class="mt-7 grid gap-4 md:grid-cols-2">
+                @forelse($addresses as $address)
+                <article class="rounded-2xl border {{ $address->is_default ? 'border-emerald-200' : 'border-emerald-950/12' }} bg-white p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-black">{{ $address->label ?: 'Shipping address' }}</p>
+                            <h2 class="mt-1 font-bold text-black">{{ $address->recipient_name }}</h2>
+                        </div>
+                        @if($address->is_default)<span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Default</span>@endif
+                    </div>
+                    <p class="mt-4 text-sm leading-6 text-black">{{ $address->phone }}<br>{{ $address->street }}<br>{{ collect([$address->ward, $address->district, $address->region])->filter()->implode(', ') }}</p>
+                    @if($address->notes)<p class="mt-3 text-xs text-black">{{ $address->notes }}</p>@endif
+                    <div class="mt-5 flex gap-4 border-t border-emerald-950/10 pt-4">
+                        <button type="button" data-edit-address="{{ $address->id }}" class="text-sm font-semibold text-black hover:text-emerald-700">Edit</button>
+                        <button type="button" data-delete-address="{{ $address->id }}" class="text-sm font-semibold text-rose-600 hover:text-rose-700">Delete</button>
+                    </div>
+                </article>
+                @empty
+                <div class="md:col-span-2 rounded-2xl border border-dashed border-emerald-950/12 bg-emerald-50/50/60 px-6 py-14 text-center text-sm text-black">No saved addresses yet.</div>
+                @endforelse
+            </div>
             <form data-address-form class="mt-8 hidden max-w-3xl rounded-2xl border border-emerald-950/12 bg-white p-6 shadow-sm sm:p-7">
                 <div class="flex items-start justify-between gap-4"><div><h2 data-address-form-title class="text-lg font-bold">Add address</h2><p class="mt-1 text-sm text-black">Use this address for delivery.</p></div><button type="button" data-address-cancel class="text-sm font-medium text-black hover:text-black">Cancel</button></div>
                 <input type="hidden" name="id">

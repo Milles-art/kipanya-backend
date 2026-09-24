@@ -125,9 +125,12 @@
                 <form method="POST" action="{{ route('admin.wear.orders.status', $order) }}" class="mt-5 space-y-4">
                     @csrf
                     <select name="status" class="w-full rounded-xl border border-black px-3 py-3 text-sm font-semibold outline-none focus:border-emerald-500">
-                        @foreach($statuses as $option)
-                            <option value="{{ $option->value }}" @selected($status === $option->value)>{{ str_replace('_', ' ', ucfirst($option->value)) }}</option>
-                        @endforeach
+                        <option value="{{ $status }}" selected>{{ $statusLabel }}</option>
+                        @forelse($allowedStatuses as $option)
+                            <option value="{{ $option->value }}">{{ str_replace('_', ' ', ucfirst($option->value)) }}</option>
+                        @empty
+                            <option value="" disabled>No further status changes allowed</option>
+                        @endforelse
                     </select>
                     <textarea name="reason" rows="3" placeholder="Optional reason or internal note" class="w-full rounded-xl border border-black px-3 py-3 text-sm outline-none focus:border-emerald-500">{{ old('reason') }}</textarea>
                     <button class="w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white hover:bg-black">Update status</button>

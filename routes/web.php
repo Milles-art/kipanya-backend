@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\AccountController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home', ['title' => 'KP Wear — Everyday, made better'])->name('home');
@@ -16,17 +17,23 @@ Route::view('/cart', 'pages.cart', ['title' => 'Your Bag — KP Wear'])->name('c
 Route::view('/checkout', 'pages.checkout', ['title' => 'Checkout — KP Wear'])->name('checkout');
 Route::view('/login', 'pages.login', ['title' => 'Sign in — KP Wear'])->name('login');
 Route::view('/register', 'pages.register', ['title' => 'Create account — KP Wear'])->name('register');
-Route::view('/account', 'account.dashboard', ['title' => 'My Account — KP Wear'])->name('account');
-Route::view('/account/orders', 'account.orders', ['title' => 'My Orders — KP Wear'])->name('account.orders');
-Route::view('/account/orders/{orderId}', 'account.order-detail')->name('account.order-detail');
-Route::view('/account/profile', 'account.profile', ['title' => 'Profile — KP Wear'])->name('account.profile');
-Route::view('/account/security', 'account.security', ['title' => 'Security — KP Wear'])->name('account.security');
-Route::view('/account/payment-methods', 'account.payment-methods', ['title' => 'Payment Methods — KP Wear'])->name('account.payment-methods');
-Route::view('/account/notifications', 'account.notifications', ['title' => 'Notifications — KP Wear'])->name('account.notifications');
-Route::view('/account/returns', 'account.returns', ['title' => 'Returns & Support — KP Wear'])->name('account.returns');
-Route::view('/account/loyalty', 'account.loyalty', ['title' => 'Loyalty & Referrals — KP Wear'])->name('account.loyalty');
-Route::view('/account/size-profile', 'account.size-profile', ['title' => 'Size Profile — KP Wear'])->name('account.size-profile');
-Route::view('/account/addresses', 'account.addresses', ['title' => 'Addresses — KP Wear'])->name('account.addresses');
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
+    // Account pages are server-protected and server-rendered from real data.
+    // The HttpOnly kp_web_session cookie is converted to a Sanctum bearer before
+    // route middleware runs, so navigation between account pages uses the same
+    // authentication contract as the API.
+    Route::get('/account', [AccountController::class, 'dashboard'])->name('account');
+    Route::get('/account/orders', [AccountController::class, 'orders'])->name('account.orders');
+    Route::get('/account/orders/{orderId}', [AccountController::class, 'orderDetail'])->name('account.order-detail');
+    Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile');
+    Route::get('/account/security', [AccountController::class, 'security'])->name('account.security');
+    Route::get('/account/payment-methods', [AccountController::class, 'paymentMethods'])->name('account.payment-methods');
+    Route::get('/account/notifications', [AccountController::class, 'notifications'])->name('account.notifications');
+    Route::get('/account/returns', [AccountController::class, 'returns'])->name('account.returns');
+    Route::get('/account/loyalty', [AccountController::class, 'loyalty'])->name('account.loyalty');
+    Route::get('/account/size-profile', [AccountController::class, 'sizeProfile'])->name('account.size-profile');
+    Route::get('/account/addresses', [AccountController::class, 'addresses'])->name('account.addresses');
+});
 Route::view('/orders/{orderNumber}', 'pages.order-status')->name('order-status');
 
 require __DIR__.'/admin.php';

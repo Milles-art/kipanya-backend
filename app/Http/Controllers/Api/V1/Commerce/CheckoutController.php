@@ -28,6 +28,8 @@ final class CheckoutController extends Controller
                 notes: $request->input('notes'),
                 idempotencyKey: $idempotencyKey,
                 paymentMethod: $request->input('payment_method'),
+                paymentProvider: $request->input('payment_provider'),
+                paymentPhone: $request->input('payment_phone'),
             ),
         );
 

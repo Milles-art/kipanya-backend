@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Account;
 
 use App\Http\Controllers\Controller;
-use App\Models\Auth\NotificationPreference;
-use App\Models\Auth\UserProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -78,6 +76,8 @@ final class AccountPreferencesController extends Controller
             'top' => ['nullable', 'string', Rule::in(['XS', 'S', 'M', 'L', 'XL', 'XXL'])],
             'bottom' => ['nullable', 'string', Rule::in(['28', '30', '32', '34', '36', '38'])],
             'shoe' => ['nullable', 'string', Rule::in(['39', '40', '41', '42', '43', '44', '45'])],
+            'fit' => ['nullable', 'string', Rule::in(['Slim', 'Regular', 'Relaxed'])],
+            'height_cm' => ['nullable', 'integer', 'min:100', 'max:230'],
         ]);
 
         $profile = $request->user()->profile()->updateOrCreate([], [

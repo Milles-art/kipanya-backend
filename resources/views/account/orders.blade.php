@@ -19,15 +19,21 @@
             </div>
 
             <div data-orders-list class="mt-7 space-y-4">
-                <div class="kp-skeleton animate-pulse rounded-2xl border border-emerald-950/10 bg-white p-5">
-                    <div class="h-4 w-32 rounded bg-emerald-50/70"></div>
-                    <div class="mt-3 h-3 w-48 rounded bg-emerald-50/70"></div>
-                    <div class="mt-5 h-10 rounded-xl bg-emerald-50/70"></div>
-                </div>
-                <div class="kp-skeleton animate-pulse rounded-2xl border border-emerald-950/10 bg-white p-5">
-                    <div class="h-4 w-40 rounded bg-emerald-50/70"></div>
-                    <div class="mt-3 h-3 w-44 rounded bg-emerald-50/70"></div>
-                </div>
+                @forelse($orders as $order)
+                <article class="rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm sm:p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <a href="{{ route('account.order-detail', $order->order_number) }}" class="font-bold text-black">{{ $order->order_number }}</a>
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{{ str_replace('_', ' ', $order->status->value) }}</span>
+                    </div>
+                    <p class="mt-2 text-sm text-black">{{ $order->items->pluck('product_name')->unique()->implode(', ') }}</p>
+                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-emerald-950/10 pt-3 text-sm">
+                        <span class="text-black">Placed {{ $order->placed_at?->format('j M Y') }}</span>
+                        <span class="font-semibold text-black">TZS {{ number_format($order->total) }}</span>
+                    </div>
+                </article>
+                @empty
+                <p class="rounded-2xl border border-dashed border-emerald-950/12 bg-white p-10 text-center text-sm text-black">You have no orders yet. Once you place an order it will appear here.</p>
+                @endforelse
             </div>
         </section>
     </div>

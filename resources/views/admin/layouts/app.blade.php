@@ -13,24 +13,28 @@
         <header class="kp-admin-topbar sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
             <div class="flex min-h-16 items-center gap-4 px-4 sm:px-6 lg:px-8">
                 <div class="hidden min-w-0 flex-1 md:block">
-                    <div class="kp-admin-search flex h-11 max-w-xl items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-400">
-                        <x-tabler-search size="19" stroke-width="1.8" />
-                        <span>Search products, orders, customers...</span>
-                    </div>
+                    @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.orders.index'))
+                        <form action="{{ route('admin.wear.orders.index') }}" method="get" class="kp-admin-search flex h-11 max-w-xl items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-400 focus-within:border-emerald-500 focus-within:bg-white">
+                            <x-tabler-search size="19" stroke-width="1.8" />
+                            <input type="text" name="q" value="{{ request('q') }}" placeholder="Search orders, customers..." class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-400" aria-label="Search orders and customers">
+                        </form>
+                    @endif
                 </div>
                 <div class="ml-auto flex items-center gap-3">
-                    <button type="button" class="kp-admin-icon-button relative" aria-label="Notifications">
-                        <x-tabler-bell size="20" stroke-width="1.8" />
-                        @if(($metrics['orders_pending_payment'] ?? 0) > 0)
+                    @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.orders.index') && ($metrics['orders_pending_payment'] ?? 0) > 0)
+                        <a href="{{ route('admin.wear.orders.index', ['status' => 'pending_payment']) }}" class="kp-admin-icon-button relative" aria-label="View orders awaiting payment">
+                            <x-tabler-bell size="20" stroke-width="1.8" />
                             <span class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{{ min(9, (int) $metrics['orders_pending_payment']) }}</span>
-                        @endif
-                    </button>
+                        </a>
+                    @else
+                        <div class="kp-admin-icon-button relative" aria-hidden="true"><x-tabler-bell size="20" stroke-width="1.8" /></div>
+                    @endif
                     <div class="h-8 w-px bg-slate-200"></div>
                     <div class="flex items-center gap-2.5">
                         <div class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}</div>
                         <div class="hidden leading-tight sm:block">
                             <p class="text-sm font-bold text-slate-900">{{ auth()->user()->name }}</p>
-                            <p class="text-[11px] font-medium text-slate-400">Super Admin</p>
+                            <p class="text-[11px] font-medium text-slate-400">{{ auth()->user()->roles?->pluck('name')->implode(', ') ?: 'Administrator' }}</p>
                         </div>
                         <form method="POST" action="{{ route('admin.logout') }}" class="hidden sm:block">@csrf<button aria-label="Sign out" class="text-slate-400 hover:text-slate-900"><x-tabler-chevron-down size="17" /></button></form>
                     </div>

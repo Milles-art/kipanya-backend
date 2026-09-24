@@ -18,6 +18,27 @@
                 </div>
             </div>
 
+            @if($paymentMethods->isNotEmpty())
+            <section class="mt-7" aria-labelledby="saved-cards-title">
+                <h2 id="saved-cards-title" class="text-sm font-semibold uppercase tracking-wider text-black">Your saved cards</h2>
+                <div class="mt-3 grid gap-5 md:grid-cols-2">
+                    @foreach($paymentMethods as $card)
+                    <article class="rounded-3xl border border-emerald-950/12 bg-white p-6 shadow-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50/70 text-black">
+                                <x-tabler-credit-card size="23" />
+                            </div>
+                            @if($card->is_default)<span class="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">Default</span>@endif
+                        </div>
+                        <h3 class="mt-5 text-lg font-semibold text-black">{{ $card->brand }}</h3>
+                        <p class="mt-1 text-sm text-black">•••• •••• •••• {{ $card->last4 }}</p>
+                        <p class="mt-2 text-xs text-black">Expires {{ $card->exp_month }}/{{ $card->exp_year }}</p>
+                    </article>
+                    @endforeach
+                </div>
+            </section>
+            @endif
+
             <div class="mt-7 grid gap-5 md:grid-cols-2">
                 <article class="rounded-3xl border border-emerald-950/12 bg-white p-6 shadow-sm">
                     <div class="flex items-start justify-between gap-4">

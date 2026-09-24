@@ -16,27 +16,90 @@ final class SecurityHeaders
         Vite::useCspNonce($nonce);
 
         $response = $next($request);
+
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-        // Isolate this site's browsing context group from cross-origin windows (Spectre-class
-        // and window.opener attacks). The payment redirect is a top-level navigation, not a popup.
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
-        // Inline <script>/<style> blocks carry a per-request nonce and inline
-        // event-handler attributes were removed, so `script-src` no longer
-        // needs 'unsafe-inline'. Inline style attributes (style="...") cannot
-        // be nonced, so they remain allowed through the scoped `style-src-attr`.
-        // `img-src ... https:` stays broad on purpose: product and campaign
-        // imagery is currently served from arbitrary third-party HTTPS hosts;
-        // replace the scheme with an explicit host allowlist once image
-        // origins are pinned. `worker-src`/`manifest-src`/`frame-src` are
-        // locked down because the storefront uses none of them.
-        // Mapbox GL JS (checkout's delivery-location picker) loads its script/CSS
-        // from api.mapbox.com, calls the Mapbox geocoding + tile APIs over fetch,
-        // sends anonymous usage pings to events.mapbox.com, and parses vector
-        // tiles in a blob: web worker — each is added narrowly below rather than
-        // relaxing these directives generally.
+
+        /*
+         * Production remains strict:
+         * - inline scripts/styles must carry the per-request nonce
+         * - no arbitrary Vite dev origins are allowed
+         *
+         * Local Vite development is different: Vite's HMR client injects
+         * stylesheet <style> tags and opens a WebSocket on port 5173.
+         * Those tags cannot receive Laravel's per-response nonce, so allowing
+         * the dev HMR channel is necessary while APP_ENV=local.
+         */
+        $isLocal = app()->environment('local');
+
+        // Google Maps (checkout's delivery-location picker) injects scripts and
+        // styles from maps.googleapis.com/maps.gstatic.com, geocodes over fetch,
+        // and paints tiles from maps.gstatic.com — each origin is added narrowly
+        // below rather than relaxing these directives generally.
+        $scriptSrc = [
+            "'self'",
+            "'nonce-{$nonce}'",
+            'https://api.mapbox.com',
+            'https://maps.googleapis.com',
+            'https://maps.gstatic.com',
+        ];
+
+        $styleSrc = [
+            "'self'",
+            'https://fonts.googleapis.com',
+            'https://api.mapbox.com',
+            'https://maps.gstatic.com',
+        ];
+
+        $styleSrcElem = [
+            "'self'",
+            "'nonce-{$nonce}'",
+            'https://fonts.googleapis.com',
+            'https://api.mapbox.com',
+            'https://maps.gstatic.com',
+        ];
+
+        $connectSrc = [
+            "'self'",
+            'https://api.mapbox.com',
+            'https://events.mapbox.com',
+            'https://maps.googleapis.com',
+            'https://maps.gstatic.com',
+        ];
+
+        if ($isLocal) {
+            // Vite is pinned to IPv4 loopback in vite.config.js so the
+            // browser sees a CSP source that matches the actual dev origin.
+            $scriptSrc[] = 'http://127.0.0.1:5173';
+            $scriptSrc[] = 'http://localhost:5173';
+
+            // Vite HMR creates <style> elements at runtime. CSP nonce sources
+            // suppress 'unsafe-inline' when they are present in the same directive,
+            // so local development must use a separate style-src-elem policy
+            // without the nonce. This is intentionally local-only.
+            $styleSrc[] = "'unsafe-inline'";
+            $styleSrc[] = 'http://127.0.0.1:5173';
+            $styleSrc[] = 'http://localhost:5173';
+
+            $styleSrcElem = [
+                "'self'",
+                "'unsafe-inline'",
+                'http://127.0.0.1:5173',
+                'http://localhost:5173',
+                'https://fonts.googleapis.com',
+                'https://api.mapbox.com',
+                'https://maps.gstatic.com',
+            ];
+
+            $connectSrc[] = 'http://127.0.0.1:5173';
+            $connectSrc[] = 'http://localhost:5173';
+            $connectSrc[] = 'ws://127.0.0.1:5173';
+            $connectSrc[] = 'ws://localhost:5173';
+        }
+
         $policy = implode('; ', [
             "default-src 'self'",
             "base-uri 'self'",
@@ -44,16 +107,17 @@ final class SecurityHeaders
             "frame-ancestors 'self'",
             "frame-src 'none'",
             "form-action 'self'",
-            "script-src 'self' 'nonce-{$nonce}' https://api.mapbox.com",
-            "style-src 'self' https://fonts.googleapis.com https://api.mapbox.com",
-            "style-src-elem 'self' 'nonce-{$nonce}' https://fonts.googleapis.com https://api.mapbox.com",
+            'script-src '.implode(' ', $scriptSrc),
+            'style-src '.implode(' ', $styleSrc),
+            'style-src-elem '.implode(' ', $styleSrcElem),
             "style-src-attr 'unsafe-inline'",
             "font-src 'self' data: https://fonts.gstatic.com",
             'img-src '.config('security.csp_img_src', "'self' data: blob: https:"),
-            "connect-src 'self' https://api.mapbox.com https://events.mapbox.com",
+            'connect-src '.implode(' ', $connectSrc),
             "worker-src 'self' blob:",
             "manifest-src 'self'",
         ]);
+
         $response->headers->set('Content-Security-Policy', $policy);
 
         if ($request->isSecure() || (bool) config('app.force_https', false)) {

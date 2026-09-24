@@ -40,4 +40,21 @@ final class AccountPreferencesFlowTest extends TestCase
         $this->assertDatabaseHas('user_profiles', ['user_id' => $user->id]);
         $this->assertSame(['top' => 'L', 'bottom' => '34', 'shoe' => '42'], UserProfile::where('user_id', $user->id)->first()->size_profile);
     }
+
+    public function test_profile_name_update_requires_a_value_and_persists(): void
+    {
+        $user = $this->user();
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/v1/account/profile', ['name' => ''])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/v1/account/profile', ['name' => 'Neema Thomas'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Neema Thomas');
+
+        $this->assertSame('Neema Thomas', $user->fresh()->name);
+    }
 }

@@ -17,7 +17,7 @@ final class WearStorefrontFlowTest extends TestCase
     {
         $product = WearProduct::factory()->create([
             'is_active' => true,
-            'image_path' => 'product-04.jpg',
+            'image_path' => 'assets/wear/catalog/generated/product-04.jpg',
         ]);
         WearProductVariant::factory()->create([
             'wear_product_id' => $product->id,
@@ -51,13 +51,13 @@ final class WearStorefrontFlowTest extends TestCase
         $hoodie = WearProduct::factory()->create([
             'category' => 'Hoodies',
             'is_active' => true,
-            'image_path' => 'product-11.jpg',
+            'image_path' => 'assets/wear/catalog/generated/product-11.jpg',
         ]);
 
         WearProduct::factory()->create([
             'category' => 'T-Shirts',
             'is_active' => true,
-            'image_path' => 'product-03.jpg',
+            'image_path' => 'assets/wear/catalog/generated/product-03.jpg',
         ]);
 
         $this->getJson('/api/v1/wear/storefront')

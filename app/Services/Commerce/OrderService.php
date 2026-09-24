@@ -36,9 +36,9 @@ final class OrderService
 
         // Identifies WHAT was requested, so replaying an idempotency key with a different
         // request is an error instead of silently returning the earlier order.
-        $fingerprint = hash('sha256', $data->addressId.'|'.($data->notes ?? '').'|'.$paymentMethod);
+        $fingerprint = hash('sha256', $data->addressId.'|'.($data->notes ?? '').'|'.$paymentMethod.'|'.($data->paymentProvider ?? '').'|'.($data->paymentPhone ?? ''));
 
-        return DB::transaction(function () use ($user, $data, $fingerprint): WearOrder {
+        return DB::transaction(function () use ($user, $data, $fingerprint, $paymentMethod): WearOrder {
             $existing = WearOrder::query()
                 ->where('checkout_idempotency_key', $data->idempotencyKey)
                 ->first();
@@ -125,7 +125,10 @@ final class OrderService
             }
 
             $this->inventoryReservationService->reserve($order, $cart);
-            $this->paymentService->createPending($order, $data->idempotencyKey);
+            $this->paymentService->createPending($order, $data->idempotencyKey, [
+                'mobile_money_provider' => $data->paymentProvider,
+                'customer_mobile' => $data->paymentPhone,
+            ]);
 
             $order->statusHistory()->create([
                 'from_status' => null,

@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Account\AccountPreferencesController;
+use App\Http\Controllers\Api\V1\Account\AccountSecurityController;
+use App\Http\Controllers\Api\V1\Account\LoyaltyController;
+use App\Http\Controllers\Api\V1\Account\PaymentMethodController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticationController;
 use App\Http\Controllers\Api\V1\Cart\CartController;
 use App\Http\Controllers\Api\V1\Commerce\AddressController;
@@ -67,6 +70,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         Route::middleware('scoped.token:account')->group(function () {
             Route::apiResource('addresses', AddressController::class)->except(['show']);
+            Route::get('/loyalty', [LoyaltyController::class, 'show']);
+            Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
+            Route::put('/payment-methods/{paymentMethod}/set-default', [PaymentMethodController::class, 'setDefault']);
+            Route::delete('/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'destroy']);
+            Route::put('/password', [AccountSecurityController::class, 'updatePassword']);
+            Route::get('/sessions', [AccountSecurityController::class, 'sessions']);
+            Route::delete('/sessions/{session}', [AccountSecurityController::class, 'revokeSession'])->whereNumber('session');
             Route::get('/account/preferences', [AccountPreferencesController::class, 'show']);
             Route::put('/account/profile', [AccountPreferencesController::class, 'updateProfile']);
             Route::put('/account/preferences/notifications', [AccountPreferencesController::class, 'updateNotifications']);

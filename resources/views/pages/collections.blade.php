@@ -2,10 +2,10 @@
 
 @push('head')
 <style nonce="{{ Vite::cspNonce() }}">
-    .kp-store-page{background:#fff;color:#000000}
-    .kp-store-wrap{max-width:var(--kp-content-wide);margin:0 auto;padding:0 28px}
+    .kp-store-page{background:#fff;color:#111}
+    .kp-store-wrap{max-width:1500px;margin:0 auto;padding:0 28px}
     .kp-store-hero{display:grid;grid-template-columns:1fr 2fr;gap:4px;margin-top:18px}
-    .kp-store-hero-main,.kp-store-hero-side article{position:relative;overflow:hidden;background:var(--kp-emerald-soft)}
+    .kp-store-hero-main,.kp-store-hero-side article{position:relative;overflow:hidden;background:#f3f3f3}
     .kp-store-hero-main{min-height:258px}
     .kp-store-hero-side{display:grid;grid-template-columns:1fr 1fr;gap:4px}
     .kp-store-hero-side article{min-height:258px}
@@ -22,33 +22,38 @@
     .kp-store-heading h2{font-size:clamp(36px,5vw,58px);line-height:.95;letter-spacing:-.05em;font-weight:800;margin:0}
     .kp-store-heading a{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
     .kp-store-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .kp-product-card{min-width:0;color:#000000;text-decoration:none}
-    .kp-product-media{position:relative;aspect-ratio:4/5;background:var(--kp-emerald-soft);overflow:hidden}
+    .kp-product-card{min-width:0;color:#111;text-decoration:none}
+    .kp-product-media{position:relative;aspect-ratio:4/5;background:#f4f4f4;overflow:hidden}
     .kp-product-media img{width:100%;height:100%;object-fit:contain;display:block;transition:transform .45s ease}
     .kp-product-card:hover .kp-product-media img{transform:scale(1.025)}
     .kp-product-meta{padding:10px 2px 0}
-    .kp-product-brand{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--kp-ink-muted)}
+    .kp-product-brand{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#777}
     .kp-product-name{font-size:12px;font-weight:600;margin-top:4px;line-height:1.35}
     .kp-product-price{font-size:11px;margin-top:5px;font-weight:700}
     .kp-feature{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
-    .kp-feature-image{min-height:660px;background:var(--kp-emerald-soft);overflow:hidden}
+    .kp-feature-image{min-height:660px;background:#f3f3f3;overflow:hidden}
     .kp-feature-image img{width:100%;height:100%;object-fit:contain;display:block}
     .kp-feature-products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .kp-feature-copy{padding:0 0 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;grid-column:1/-1}
     .kp-feature-copy h2{font-size:clamp(34px,4vw,52px);font-weight:800;line-height:.95;letter-spacing:-.05em;margin:0}
-    .kp-feature-copy p{max-width:520px;margin:12px 0 0;font-size:14px;line-height:1.7;color:var(--kp-ink-secondary)}
+    .kp-feature-copy p{max-width:520px;margin:12px 0 0;font-size:14px;line-height:1.7;color:#666}
     .kp-feature-products .kp-product-media{aspect-ratio:1/1}
-    .kp-full-image{margin-top:10px;min-height:560px;background:var(--kp-emerald-soft);overflow:hidden}
+    .kp-full-image{margin-top:10px;min-height:560px;background:#f3f3f3;overflow:hidden}
     .kp-full-image img{width:100%;height:100%;min-height:560px;display:block;object-fit:contain}
     .kp-story{padding:84px 0 0;display:grid;grid-template-columns:.8fr 1.2fr;gap:40px;align-items:start}
-    .kp-story-kicker{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--kp-ink-muted)}
+    .kp-story-kicker{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:#777}
     .kp-story h2{font-size:clamp(38px,5vw,64px);line-height:.94;letter-spacing:-.055em;margin:10px 0 0;font-weight:800}
-    .kp-story p{font-size:15px;line-height:1.8;color:var(--kp-ink-secondary);max-width:650px;margin:0}
+    .kp-story p{font-size:15px;line-height:1.8;color:#666;max-width:650px;margin:0}
     .kp-story-actions{margin-top:22px;display:flex;gap:12px;flex-wrap:wrap}
+    .kp-btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;background:#111;color:#fff;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+    .kp-btn.secondary{background:#fff;color:#111;border:1px solid #111}
+    .kp-reveal{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s ease}
+    .kp-reveal.is-visible{opacity:1;transform:none}
     @media(max-width:900px){
         .kp-store-wrap{padding:0 16px}.kp-store-hero{grid-template-columns:1fr}.kp-store-hero-main{min-height:208px}.kp-store-hero-side{grid-template-columns:1fr 1fr;grid-template-rows:none}.kp-store-hero-side article{min-height:208px}.kp-store-products{grid-template-columns:repeat(2,minmax(0,1fr))}.kp-feature{grid-template-columns:1fr}.kp-feature-image{min-height:520px}.kp-feature-copy{grid-column:auto}.kp-feature-products{grid-template-columns:repeat(2,minmax(0,1fr))}.kp-story{grid-template-columns:1fr;gap:18px}}
     @media(max-width:560px){
         .kp-store-hero{gap:3px}.kp-store-hero-main{min-height:178px}.kp-store-hero-side{gap:3px}.kp-store-hero-side article{min-height:178px}.kp-store-overlay{padding:22px 18px}.kp-store-section{padding-top:54px}.kp-store-heading{align-items:center}.kp-store-heading h2{font-size:35px}.kp-store-heading a{font-size:9px}.kp-store-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.kp-product-name{font-size:11px}.kp-feature-image{min-height:390px}.kp-feature-products{gap:8px}.kp-full-image,.kp-full-image img{min-height:360px}.kp-story{padding-top:62px;padding-bottom:45px}}
+    @media(prefers-reduced-motion:reduce){.kp-reveal,.kp-product-media img{transition:none!important}.kp-reveal{opacity:1;transform:none}}
 </style>
 @endpush
 
@@ -109,7 +114,7 @@
         <section class="kp-store-section kp-reveal">
             <div class="kp-feature-copy">
                 <div>
-                    <div class="kp-store-label" style="color:var(--kp-ink-muted)">Chapter 01 / Everyday</div>
+                    <div class="kp-store-label" style="color:#777">Chapter 01 / Everyday</div>
                     <h2>Style for real life.</h2>
                     <p>Clean silhouettes, easy layers and pieces designed to work together without trying too hard.</p>
                 </div>

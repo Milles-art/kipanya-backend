@@ -6,7 +6,6 @@ use App\Enums\Commerce\PaymentStatus;
 use App\Integrations\Payments\PaymentGateway;
 use App\Models\Commerce\PaymentTransaction;
 use App\Models\Wear\WearOrder;
-use App\Services\Commerce\InventoryReservationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 
@@ -14,11 +13,10 @@ final class PaymentService
 {
     public function __construct(
         private readonly PaymentGateway $gateway,
-        private readonly InventoryReservationService $inventoryReservationService,
         private readonly PaymentStateMachine $stateMachine,
     ) {}
 
-    public function createPending(WearOrder $order, string $idempotencyKey): PaymentTransaction
+    public function createPending(WearOrder $order, string $idempotencyKey, array $meta = []): PaymentTransaction
     {
         $existing = PaymentTransaction::query()
             ->with('order')
@@ -47,7 +45,7 @@ final class PaymentService
                 'amount' => $order->total,
                 'currency' => 'TZS',
                 'status' => PaymentStatus::Pending,
-                'payload' => $gatewayResponse['payload'],
+                'payload' => array_merge($gatewayResponse['payload'], $meta),
                 'initiated_at' => now(),
             ]);
         } catch (QueryException $e) {
@@ -176,15 +174,6 @@ final class PaymentService
         }
 
         return $this->applyProviderStatus($payment, $providerState);
-    }
-
-    /**
-     * Transition a payment to a specific state using the state machine.
-     * This is the single entry point for all state transitions.
-     */
-    public function transitionTo(PaymentTransaction $payment, PaymentStatus $toStatus, array $providerPayload = []): PaymentTransaction
-    {
-        return $this->stateMachine->transition($payment, $toStatus, $providerPayload);
     }
 
     private function normalizeProviderStatus(string $status): string

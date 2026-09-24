@@ -21,6 +21,28 @@
                 </button>
             </div>
 
+            @if($eligibleOrders->isNotEmpty())
+            <section class="mt-6">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-black">Eligible for return</h2>
+                <div class="mt-3 space-y-3">
+                    @foreach($eligibleOrders as $order)
+                    <article class="rounded-2xl border border-emerald-950/12 bg-white p-5 shadow-sm sm:p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-medium text-black">Order #{{ $order->order_number }}</p>
+                                <p class="mt-0.5 text-xs text-black">Delivered {{ $order->delivered_at?->format('j M Y') }} · {{ $order->items->count() }} item(s)</p>
+                            </div>
+                            <button type="button" data-new-request class="button-dark px-5 py-2.5">
+                                <x-tabler-plus size="16" />
+                                Request return
+                            </button>
+                        </div>
+                    </article>
+                    @endforeach
+                </div>
+            </section>
+            @endif
+
             {{-- Empty state --}}
             <div data-returns-empty class="hidden flex-col items-center py-20 text-center">
                 <div class="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50/70 ring-8 ring-black">

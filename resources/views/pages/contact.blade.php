@@ -188,32 +188,15 @@
                     </div>
                 </div>
 
-                <div class="relative mt-6 overflow-hidden rounded-3xl border border-emerald-950/10 bg-white shadow-sm">
-                    <div class="relative aspect-[16/10] min-h-[280px] overflow-hidden bg-black sm:min-h-[320px]">
-                        <iframe
-                            title="KP Wear location — Msasani TIRDO Complex, Dar es Salaam"
-                            src="https://www.google.com/maps?q=-6.757616,39.276828&z=16&output=embed"
-                            class="absolute inset-0 h-full w-full border-0"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            allowfullscreen
-                        ></iframe>
-                    </div>
-                    <div class="flex items-center justify-between gap-4 border-t border-emerald-950/10 px-5 py-4 sm:px-6">
+                <div class="relative mt-6 min-h-[280px] overflow-hidden rounded-3xl bg-black">
+                    <img src="{{ asset('assets/wear/contact/kp-wear-contact-story.webp') }}" alt="KP Wear creative brand artwork and clothing" class="absolute inset-0 h-full w-full object-cover object-center" loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent"></div>
+                    <div class="relative z-10 flex min-h-[280px] items-end p-7 text-white">
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700">Visit us</p>
-                            <p class="mt-1 text-sm font-semibold text-black">Msasani TIRDO Complex, Kimweri Avenue</p>
-                            <p class="mt-0.5 text-xs text-black/55">Dar es Salaam, Tanzania</p>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-400">More than clothing</p>
+                            <h3 class="mt-3 max-w-[310px] text-3xl font-black leading-tight tracking-[-.035em]">Art. People. Clothing. A bigger story.</h3>
+                            <span class="mt-6 block h-1.5 w-16 rounded-full bg-emerald-400"></span>
                         </div>
-                        <a
-                            href="https://www.google.com/maps/search/?api=1&query=-6.757616,39.276828"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
-                        >
-                            <x-tabler-map-pin size="16" stroke-width="1.8" />
-                            Open map
-                        </a>
                     </div>
                 </div>
             </aside>

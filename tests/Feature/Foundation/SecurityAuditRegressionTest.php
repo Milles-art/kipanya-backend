@@ -426,9 +426,9 @@ class SecurityAuditRegressionTest extends TestCase
         $user = User::factory()->create(['status' => 'active']);
         $token = (new IssueSanctumToken)->execute($user);
 
+        // Account pages are server-protected, so signed-out visitors are sent to login.
         $this->get('/account')
-            ->assertOk()
-            ->assertSee('name="kp-signed-in" content="0"', false);
+            ->assertRedirect(route('login'));
 
         $this->withUnencryptedCookies(['kp_web_session' => $token])
             ->get('/account')
@@ -531,6 +531,16 @@ class SecurityAuditRegressionTest extends TestCase
                 'item_ids' => [$freshItem->id],
             ])
             ->assertCreated();
+
+        // ...but omitting the request_type is a validation error (regression for the account Returns form).
+        $this->withToken($token)
+            ->postJson('/api/v1/returns', [
+                'order_id' => $fresh->id,
+                'reason' => 'wrong_size',
+                'item_ids' => [$freshItem->id],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('request_type');
 
         // ...and a rejected request is terminal: the same items cannot be re-requested.
         WearReturnRequest::query()->where('wear_order_id', $fresh->id)->update(['status' => 'rejected']);

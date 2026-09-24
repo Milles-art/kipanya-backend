@@ -9,5 +9,7 @@ final readonly class CreateWearOrderData
         public ?string $notes,
         public string $idempotencyKey,
         public ?string $paymentMethod = null,
+        public ?string $paymentProvider = null,
+        public ?string $paymentPhone = null,
     ) {}
 }
