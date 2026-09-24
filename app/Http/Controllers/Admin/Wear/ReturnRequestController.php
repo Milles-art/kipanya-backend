@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Wear;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\Wear\WearReturnRequest;
 use App\Services\Commerce\WearReturnService;
 use App\Support\AdminStepUp;
@@ -28,7 +29,9 @@ final class ReturnRequestController extends Controller
                 $q->where(function ($q) use ($term): void {
                     $q->where('id', $term)
                         ->orWhereHas('order', fn ($o) => $o->where('order_number', 'like', "%{$term}%"))
-                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%"));
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$term}%")
+            ->orWhere('email_hash', User::emailHash($term))
+            ->orWhere('phone_hash', User::phoneHash($term)));
                 });
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))

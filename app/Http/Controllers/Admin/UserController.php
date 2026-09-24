@@ -30,9 +30,11 @@ final class UserController extends Controller
             ->with(['roles' => fn ($query) => $query->orderBy('name')])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
+                    // phone/email are ciphertext; only exact blind-index
+                    // matches are possible. Name remains substring-searchable.
                     $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
+                        ->orWhere('email_hash', User::emailHash($search))
+                        ->orWhere('phone_hash', User::phoneHash($search));
                 });
             })
             ->when(in_array($status, ['active', 'inactive'], true), fn ($query) => $query->where('status', $status))

@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Enums\Commerce\PaymentStatus;
+use App\Exceptions\SelcomGatewayException;
 use App\Integrations\Payments\PaymentGateway;
 use App\Models\Commerce\PaymentTransaction;
 use App\Models\Wear\WearOrder;
@@ -33,7 +34,11 @@ final class PaymentService
             return $existing;
         }
 
-        $gatewayResponse = $this->gateway->initiate($order, $idempotencyKey);
+        try {
+            $gatewayResponse = $this->gateway->initiate($order, $idempotencyKey);
+        } catch (SelcomGatewayException $e) {
+            throw $this->translateGatewayFailure($e);
+        }
 
         try {
             return PaymentTransaction::create([
@@ -187,6 +192,35 @@ final class PaymentService
             'PENDING' => 'pending',
             default => 'pending',
         };
+    }
+
+    /**
+     * Turn a gateway transport failure into a customer-safe validation error.
+     *
+     * The provider's raw message and code are never surfaced to the customer or
+     * echoed into logs here — only the classification is used, so a gateway
+     * outage returns a retryable 422 instead of an opaque 500 while the actual
+     * detail stays available to support through the gateway's own logs.
+     */
+    private function translateGatewayFailure(SelcomGatewayException $e): ValidationException
+    {
+        if ($e->isTimeout) {
+            return ValidationException::withMessages([
+                'payment' => 'The payment provider is not responding. Please try again in a moment.',
+            ]);
+        }
+
+        $status = $e->httpStatus;
+
+        if ($status === null || $status >= 500) {
+            return ValidationException::withMessages([
+                'payment' => 'The payment provider is temporarily unavailable. Please try again shortly.',
+            ]);
+        }
+
+        return ValidationException::withMessages([
+            'payment' => 'The payment provider could not start this payment. Please try another payment method.',
+        ]);
     }
 
     public function markFailed(PaymentTransaction $transaction, array $providerPayload = []): PaymentTransaction

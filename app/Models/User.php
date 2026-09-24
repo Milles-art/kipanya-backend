@@ -11,6 +11,7 @@ use App\Models\Cart\Cart;
 use App\Models\Cart\WishlistItem;
 use App\Models\Commerce\Address;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -58,7 +59,67 @@ class User extends Authenticatable
             'two_factor_secret' => 'encrypted',
             'password' => 'hashed',
             'role' => UserRole::class,
+            // Customer PII is ciphertext at rest. Lookups go through the
+            // deterministic phone_hash / email_hash blind index instead, since
+            // `encrypted` is non-deterministic and cannot be queried.
+            'phone' => 'encrypted',
+            'email' => 'encrypted',
         ];
+    }
+
+    /**
+     * Keep the blind indexes in step with the encrypted columns on every write.
+     *
+     * `phone_hash` / `email_hash` are HMAC-SHA256 over the plaintext keyed with
+     * APP_KEY, which keeps `wherePhone()` / `whereEmail()` and uniqueness checks
+     * working without ever storing the plaintext in an indexable column.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $user): void {
+            $key = (string) config('app.key');
+
+            if ($user->isDirty('phone')) {
+                $plain = $user->getRawOriginal('phone') === null && $user->phone === null
+                    ? null
+                    : $user->phone;
+
+                $user->phone_hash = $plain === null ? null : hash_hmac('sha256', (string) $plain, $key);
+            }
+
+            if ($user->isDirty('email')) {
+                $plain = $user->email === null ? null : $user->email;
+
+                $user->email_hash = $plain === null ? null : hash_hmac('sha256', strtolower((string) $plain), $key);
+            }
+        });
+    }
+
+    /**
+     * Deterministic lookup key for a phone number.
+     *
+     * Exposed as a static helper so relation closures (whereHas/orWhereHas)
+     * can match PII without relying on dynamic scope resolution, which is not
+     * available on every builder a relation hands out.
+     */
+    public static function phoneHash(string $phone): string
+    {
+        return hash_hmac('sha256', $phone, (string) config('app.key'));
+    }
+
+    public static function emailHash(string $email): string
+    {
+        return hash_hmac('sha256', strtolower($email), (string) config('app.key'));
+    }
+
+    public function scopeWherePhone(Builder $query, string $phone): Builder
+    {
+        return $query->where('phone_hash', self::phoneHash($phone));
+    }
+
+    public function scopeWhereEmail(Builder $query, string $email): Builder
+    {
+        return $query->where('email_hash', self::emailHash($email));
     }
 
     public function roles(): BelongsToMany

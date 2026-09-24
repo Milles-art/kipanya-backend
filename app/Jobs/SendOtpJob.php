@@ -39,9 +39,9 @@ final class SendOtpJob
     private function eligible(): bool
     {
         return match ($this->purpose) {
-            OtpPurpose::Registration => ! User::query()->where('phone', $this->phone)->exists(),
-            OtpPurpose::Login => User::query()->where('phone', $this->phone)->where('status', 'active')->exists(),
-            OtpPurpose::AdminLogin => User::query()->where('phone', $this->phone)->where('status', 'active')->get()
+            OtpPurpose::Registration => ! User::query()->wherePhone($this->phone)->exists(),
+            OtpPurpose::Login => User::query()->wherePhone($this->phone)->where('status', 'active')->exists(),
+            OtpPurpose::AdminLogin => User::query()->wherePhone($this->phone)->where('status', 'active')->get()
                 ->contains(fn (User $user): bool => $user->isAdmin()),
             default => false,
         };

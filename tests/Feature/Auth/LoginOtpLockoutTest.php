@@ -133,7 +133,7 @@ class LoginOtpLockoutTest extends TestCase
     public function test_an_inactive_user_is_refused_even_with_a_valid_code(): void
     {
         $code = $this->requestCode();
-        User::query()->where('phone', self::PHONE)->update(['status' => 'inactive']);
+        User::query()->wherePhone(self::PHONE)->update(['status' => 'inactive']);
 
         $this->postJson('/api/v1/auth/login', ['phone' => self::PHONE, 'code' => $code])->assertStatus(422);
     }

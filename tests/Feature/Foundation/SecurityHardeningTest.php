@@ -60,7 +60,7 @@ class SecurityHardeningTest extends TestCase
             ])
             ->assertRedirect(route('admin.users.index'));
 
-        $created = User::query()->where('email', 'second-super@example.test')->firstOrFail();
+        $created = User::query()->whereEmail('second-super@example.test')->firstOrFail();
         $this->assertTrue($created->hasRole('super_admin'));
     }
 

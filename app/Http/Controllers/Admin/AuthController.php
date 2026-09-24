@@ -64,7 +64,7 @@ final class AuthController extends Controller
         $phone = PhoneNumber::normalize($data['phone'])->value();
         $otpService->verify($phone, OtpPurpose::AdminLogin, $data['code']);
 
-        $user = User::query()->where('phone', $phone)->where('status', 'active')->first();
+        $user = User::query()->wherePhone($phone)->where('status', 'active')->first();
 
         if (! $user || ! $user->isAdmin()) {
             throw ValidationException::withMessages(['phone' => ['Administrator access required.']]);

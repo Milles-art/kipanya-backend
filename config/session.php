@@ -169,7 +169,12 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE', (bool) env('APP_FORCE_HTTPS', false)),
+    // Secure cookies default ON. Previously this fell back to APP_FORCE_HTTPS,
+    // which itself defaults to false — so a deployment that set neither value
+    // silently issued the session cookie without the Secure flag. The only
+    // safe automatic opt-out is a local environment, where the app is served
+    // over plain http and a Secure cookie would simply never be sent back.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV', 'production') !== 'local'),
 
     /*
     |--------------------------------------------------------------------------

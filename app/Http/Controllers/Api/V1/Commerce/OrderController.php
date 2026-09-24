@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Commerce;
 
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesUserOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 final class OrderController extends Controller
 {
+    use AuthorizesUserOwnership;
     public function __construct(private readonly OrderService $service) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -27,7 +29,7 @@ final class OrderController extends Controller
 
     public function show(Request $request, WearOrder $order): OrderResource
     {
-        abort_unless($order->user_id === $request->user()->id || $request->user()->hasPermission('commerce.manage'), 403);
+        $this->assertOwnedByOrCan($order, 'commerce.manage');
         return new OrderResource($order->load(['items', 'payments', 'statusHistory', 'stockReservation.items.variant.product']));
     }
 

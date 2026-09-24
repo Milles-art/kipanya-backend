@@ -31,7 +31,7 @@ final class AdminUserManagementTest extends TestCase
             'status' => 'active',
         ])->assertRedirect(route('admin.users.index'));
 
-        $user = User::query()->where('phone', '+255710000111')->firstOrFail();
+        $user = User::query()->wherePhone('+255710000111')->firstOrFail();
         $this->assertTrue($user->hasRole('commerce_manager'));
         $this->assertDatabaseHas('audit_logs', ['actor_id' => $admin->id, 'action' => 'admin.users.created', 'auditable_id' => $user->id]);
 

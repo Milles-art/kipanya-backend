@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Administration\AuditLog;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -28,9 +29,12 @@ final class AuditLogController extends Controller
                         ->orWhere('request_id', 'like', "%{$search}%")
                         ->orWhere('ip_address', 'like', "%{$search}%")
                         ->orWhereHas('actor', function ($actorQuery) use ($search): void {
+                            // phone/email are ciphertext, so they can only be
+                            // matched exactly through the blind index. Name
+                            // stays plaintext and keeps substring search.
                             $actorQuery->where('name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%")
-                                ->orWhere('phone', 'like', "%{$search}%");
+                                ->orWhere('email_hash', User::emailHash($search))
+                                ->orWhere('phone_hash', User::phoneHash($search));
                         });
                 });
             })
@@ -38,7 +42,7 @@ final class AuditLogController extends Controller
             ->when($actor !== '', function ($query) use ($actor): void {
                 $query->whereHas('actor', function ($actorQuery) use ($actor): void {
                     $actorQuery->where('name', 'like', "%{$actor}%")
-                        ->orWhere('email', 'like', "%{$actor}%");
+                        ->orWhere('email_hash', User::emailHash($actor));
                 });
             })
             ->when($from !== '', fn ($query) => $query->whereDate('created_at', '>=', $from))

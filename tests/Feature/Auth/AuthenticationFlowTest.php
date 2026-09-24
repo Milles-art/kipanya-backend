@@ -49,8 +49,10 @@ class AuthenticationFlowTest extends TestCase
             ->assertJsonStructure(['user'])
             ->assertJsonMissing(['token', 'token_type']);
 
+        // phone is ciphertext at rest, so the raw column cannot be compared to
+        // a literal. The blind index is the queryable representation.
+        $this->assertTrue(User::query()->wherePhone('+255712345678')->exists());
         $this->assertDatabaseHas('users', [
-            'phone' => '+255712345678',
             'name' => 'Kipanya User',
         ]);
 

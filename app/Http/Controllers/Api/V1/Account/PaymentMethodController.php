@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Account;
 
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesUserOwnership;
 use App\Http\Controllers\Controller;
 use App\Models\Commerce\PaymentMethod;
 use Illuminate\Http\JsonResponse;
@@ -9,6 +10,7 @@ use Illuminate\Http\Request;
 
 final class PaymentMethodController extends Controller
 {
+    use AuthorizesUserOwnership;
     public function index(Request $request): JsonResponse
     {
         $methods = $request->user()
@@ -31,7 +33,7 @@ final class PaymentMethodController extends Controller
 
     public function destroy(Request $request, PaymentMethod $paymentMethod): JsonResponse
     {
-        abort_unless($paymentMethod->user_id === $request->user()->id, 403);
+        $this->assertOwnedBy($paymentMethod);
         $paymentMethod->delete();
 
         return response()->json(['data' => ['deleted' => true]]);
@@ -39,7 +41,7 @@ final class PaymentMethodController extends Controller
 
     public function setDefault(Request $request, PaymentMethod $paymentMethod): JsonResponse
     {
-        abort_unless($paymentMethod->user_id === $request->user()->id, 403);
+        $this->assertOwnedBy($paymentMethod);
 
         $request->user()->paymentMethods()->where('is_default', true)->update(['is_default' => false]);
 

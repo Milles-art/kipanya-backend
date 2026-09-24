@@ -114,12 +114,12 @@ class SecurityAuditRegressionTest extends TestCase
             ])
             ->assertRedirect(route('admin.users.index'));
 
-        $this->assertDatabaseHas('users', [
-            'id' => $target->id,
-            'phone' => '+255700000001',
-            'email' => 'credentials-changed@example.com',
-        ]);
-        $this->assertSame(0, $target->refresh()->tokens()->count());
+        // phone/email are ciphertext at rest; assert through the model, which
+        // decrypts transparently, rather than comparing raw columns.
+        $target->refresh();
+        $this->assertSame('+255700000001', $target->phone);
+        $this->assertSame('credentials-changed@example.com', $target->email);
+        $this->assertSame(0, $target->tokens()->count());
     }
 
     public function test_product_image_path_traversal_is_rejected(): void

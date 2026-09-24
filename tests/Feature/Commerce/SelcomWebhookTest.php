@@ -560,7 +560,10 @@ class SelcomWebhookTest extends TestCase
             ->withHeader('Idempotency-Key', 'webhook-gateway-timeout-0001')
             ->postJson('/api/v1/checkout', ['address_id' => $address->id]);
 
-        $response->assertStatus(500);
+        // A gateway timeout is translated into a customer-safe validation error
+        // rather than bubbling out as an unhandled 500.
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('payment');
 
         // No payment should have been created since the gateway threw before creation
         $this->assertDatabaseCount('payment_transactions', 0);

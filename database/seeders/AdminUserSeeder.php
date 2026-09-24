@@ -30,17 +30,14 @@ class AdminUserSeeder extends Seeder
             return;
         }
 
-        $user = User::query()->updateOrCreate(
-            ['phone' => $phone],
-            [
-                'name' => $name,
-                'email' => $email,
-                'phone_verified_at' => now(),
-                'onboarding_completed_at' => now(),
-            ],
-        );
+        $user = User::query()->wherePhone($phone)->first() ?? new User();
 
         $user->forceFill([
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'phone_verified_at' => now(),
+            'onboarding_completed_at' => now(),
             'status' => 'active',
             'role' => UserRole::Admin,
         ])->save();

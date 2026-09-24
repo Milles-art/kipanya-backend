@@ -24,7 +24,10 @@ class PaymentTransaction extends Model
             'status' => PaymentStatus::class,
             'amount' => 'decimal:2',
             'refunded_amount' => 'decimal:2',
-            'payload' => 'array',
+            // Encrypted at rest: the provider payload carries gateway references
+            // and customer mobile-money numbers. Nothing queries into this
+            // column, so it needs no blind-index side table.
+            'payload' => 'encrypted:array',
             'initiated_at' => 'datetime',
             'completed_at' => 'datetime',
             'failed_at' => 'datetime',

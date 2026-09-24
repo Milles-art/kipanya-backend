@@ -47,7 +47,7 @@ final class AuthenticationController extends Controller
             ]);
         }
 
-        if (User::query()->where('phone', $phone)->exists()) {
+        if (User::query()->wherePhone($phone)->exists()) {
             return response()->json([
                 'message' => 'If the request is valid, a verification code has been sent.',
             ]);
@@ -81,7 +81,7 @@ final class AuthenticationController extends Controller
             $request->string('code')->toString(),
         );
 
-        if (User::query()->where('phone', $phone)->exists()) {
+        if (User::query()->wherePhone($phone)->exists()) {
             throw ValidationException::withMessages([
                 'phone' => ['This phone number is already registered.'],
             ]);
@@ -119,7 +119,7 @@ final class AuthenticationController extends Controller
             ]);
         }
 
-        if (! User::query()->where('phone', $phone)->where('status', UserStatus::Active->value)->exists()) {
+        if (! User::query()->wherePhone($phone)->where('status', UserStatus::Active->value)->exists()) {
             return response()->json([
                 'message' => 'If the request is valid, a verification code has been sent.',
             ]);
@@ -157,7 +157,7 @@ final class AuthenticationController extends Controller
         );
 
         $user = DB::transaction(function () use ($phone): User {
-            $user = User::query()->where('phone', $phone)->lockForUpdate()->first();
+            $user = User::query()->wherePhone($phone)->lockForUpdate()->first();
 
             if (! $user || ! $user->isActive()) {
                 throw ValidationException::withMessages([
