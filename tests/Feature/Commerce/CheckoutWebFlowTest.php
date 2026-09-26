@@ -42,8 +42,10 @@ class CheckoutWebFlowTest extends TestCase
         $this->assertStringContainsString('Grace M', $html);
         $this->assertStringContainsString('grace@example.com', $html);
         $this->assertStringContainsString('data-checkout-page', $html);
-        $this->assertStringContainsString('data-payment-card', $html);
+        $this->assertStringContainsString('data-pay-option', $html);
         $this->assertStringContainsString('data-place-order', $html);
+        $this->assertStringContainsString('data-step="1"', $html);
+        $this->assertStringContainsString('data-step="3"', $html);
         $this->assertMatchesRegularExpression('/<script nonce="[^"]+">window\.KP_USER/', $html, 'KP_USER script must be nonced for CSP');
         $this->assertMatchesRegularExpression('/<script nonce="[^"]+">[\s\S]*?data-checkout-page/', $html, 'checkout inline script must be nonced for CSP');
 
@@ -59,12 +61,10 @@ class CheckoutWebFlowTest extends TestCase
         $this->assertSame(50000.0, (float) $json['data']['total']);
 
         $checkmarks = [
-            "api('/auth/me'",
             "api('/addresses'",
-            "api('/cart/checkout/preview'",
-            "api('/checkout',{",
-            "location.href = '/login'",
-            'data-use-current-location',
+            "api('/checkout/place'",
+            "'/orders/' + encodeURIComponent",
+            'data-open-addr-modal',
             '/api/v1',
             'window.KP_USER',
             'data-google-maps-key',

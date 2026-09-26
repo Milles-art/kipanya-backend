@@ -49,10 +49,12 @@ final class OrderService
                 return $existing->load(['items', 'payments', 'stockReservation.items.variant.product']);
             }
 
-            $address = Address::query()
-                ->where('user_id', $user->id)
-                ->where('type', 'shipping')
-                ->findOrFail($data->addressId);
+            $address = $data->addressId !== null
+                ? Address::query()
+                    ->where('user_id', $user->id)
+                    ->where('type', 'shipping')
+                    ->findOrFail($data->addressId)
+                : null;
 
             $cart = $this->cartService->current($user, null);
             $cart = Cart::query()->lockForUpdate()->findOrFail($cart->id);
@@ -74,16 +76,19 @@ final class OrderService
                     'checkout_idempotency_key' => $data->idempotencyKey,
                     'checkout_fingerprint' => $fingerprint,
                     'user_id' => $user->id,
-                    'customer_name' => $address->recipient_name,
-                    'customer_phone' => $address->phone,
+                    'customer_name' => $address?->recipient_name ?? $user->name,
+                    'customer_phone' => $address?->phone ?? $user->phone,
                     'customer_email' => $user->email,
-                    'delivery_address' => implode(', ', array_filter([
+                    // The delivery_address column is NOT NULL (no doctrine/dbal
+                    // available for a nullable alter), so address-less orders
+                    // store an empty string rather than null.
+                    'delivery_address' => $address ? implode(', ', array_filter([
                         $address->street,
                         $address->ward,
                         $address->district,
                         $address->region,
-                    ])),
-                    'delivery_city' => $address->district,
+                    ])) : '',
+                    'delivery_city' => $address?->district,
                     'notes' => $data->notes,
                     'subtotal' => $preview['subtotal'],
                     'delivery_fee' => $preview['delivery_fee'],

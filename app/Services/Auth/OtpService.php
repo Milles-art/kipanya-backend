@@ -44,7 +44,7 @@ final class OtpService
         }
 
         $latest = OtpCode::query()
-            ->where('phone', $normalized)
+            ->wherePhone($normalized)
             ->where('purpose', $purpose->value)
             ->latest('id')
             ->first();
@@ -60,7 +60,7 @@ final class OtpService
 
         $otp = DB::transaction(function () use ($normalized, $purpose, $plainCode) {
             OtpCode::query()
-                ->where('phone', $normalized)
+                ->wherePhone($normalized)
                 ->where('purpose', $purpose->value)
                 ->whereNull('verified_at')
                 ->update(['verified_at' => now()]);
@@ -123,7 +123,7 @@ final class OtpService
 
         $result = DB::transaction(function () use ($normalized, $purpose, $code): array {
             $otp = OtpCode::query()
-                ->where('phone', $normalized)
+                ->wherePhone($normalized)
                 ->where('purpose', $purpose->value)
                 ->whereNull('verified_at')
                 ->latest('id')

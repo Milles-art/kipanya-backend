@@ -24,6 +24,11 @@ final class FakePaymentGateway implements PaymentGateway
                 'environment' => app()->environment(),
                 'order_number' => $order->order_number,
                 'idempotency_key' => $idempotencyKey,
+                // Local stand-in for Selcom's hosted payment page: the simulator
+                // below lets developers complete or fail the payment end to
+                // end. Never present in production (this gateway refuses to
+                // boot there).
+                'payment_gateway_url' => url('/pay/simulate/'.$order->order_number),
             ],
         ];
     }

@@ -90,13 +90,13 @@
                 </form>
 
                 @if($needsRefund)
-                    <form method="POST" action="{{ route('admin.wear.payments.refund', $payment) }}" class="flex flex-1 flex-col gap-2 sm:flex-row">
+                    <form method="POST" action="{{ route('admin.wear.payments.refund', $payment) }}" data-confirm="Record this refund? This closes the reconciliation item." class="flex flex-1 flex-col gap-2 sm:flex-row">
                         @csrf
                         <input name="refund_reference" value="{{ old('refund_reference') }}" required minlength="4" maxlength="100" placeholder="Provider refund reference" class="w-full rounded-xl border border-black px-4 py-2.5 text-sm outline-none focus:border-black">
                         @if(\App\Support\AdminStepUp::enabled())
                             <input name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" placeholder="Authenticator code" class="w-full rounded-xl border border-black px-4 py-2.5 text-sm outline-none focus:border-black sm:w-44">
                         @endif
-                        <button class="rounded-xl bg-black px-4 py-2.5 text-sm font-bold text-white hover:bg-black" onclick="return confirm('Record this refund? This closes the reconciliation item.')">Record refund</button>
+                        <button class="rounded-xl bg-black px-4 py-2.5 text-sm font-bold text-white hover:bg-black">Record refund</button>
                     </form>
                 @endif
             </div>

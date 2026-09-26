@@ -6,9 +6,11 @@ use App\DTOs\Commerce\CreateWearOrderData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Commerce\CreateOrderRequest;
 use App\Http\Resources\Api\V1\OrderResource;
+use App\Rules\ValidTanzanianPhoneNumber;
 use App\Services\Cart\CartService;
 use App\Services\Checkout\CheckoutPreviewService;
 use App\Services\Commerce\OrderService;
+use App\Support\PhoneNumber;
 use Illuminate\Http\Request;
 
 final class CheckoutController extends Controller
@@ -21,15 +23,19 @@ final class CheckoutController extends Controller
             abort(400, 'A valid Idempotency-Key header is required.');
         }
 
+        $paymentPhone = $request->filled('payment_phone')
+            ? PhoneNumber::normalize($request->string('payment_phone')->toString())->value()
+            : null;
+
         $order = $orders->create(
             $request->user(),
             new CreateWearOrderData(
-                addressId: $request->integer('address_id'),
+                addressId: $request->filled('address_id') ? $request->integer('address_id') : null,
                 notes: $request->input('notes'),
                 idempotencyKey: $idempotencyKey,
                 paymentMethod: $request->input('payment_method'),
                 paymentProvider: $request->input('payment_provider'),
-                paymentPhone: $request->input('payment_phone'),
+                paymentPhone: $paymentPhone,
             ),
         );
 

@@ -8,14 +8,19 @@
             <p class="mt-5 text-sm font-semibold uppercase tracking-wider text-black">Order details</p>
             <h1 class="mt-1 text-3xl font-bold tracking-tight text-black">Order {{ request()->route('orderId') }}</h1>
         </div>
-        <a href="{{ route('shop') }}" class="inline-flex items-center gap-2 rounded-xl border border-emerald-950/12 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-50/50">
-            Continue shopping <span aria-hidden="true">→</span>
-        </a>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ route('order-status', $order->order_number) }}" class="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                Track order <span aria-hidden="true">→</span>
+            </a>
+            <a href="{{ route('shop') }}" class="inline-flex items-center gap-2 rounded-xl border border-emerald-950/12 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-50/50">
+                Continue shopping <span aria-hidden="true">→</span>
+            </a>
+        </div>
     </div>
 
     <div data-order-detail-content class="mt-7">
         @if($order)
-        <div class="rounded-2xl border border-emerald-950/10 bg-white p-6 shadow-sm sm:p-7">
+        <div data-server-detail class="rounded-2xl border border-emerald-950/10 bg-white p-6 shadow-sm sm:p-7">
             <div class="grid gap-5 sm:grid-cols-3">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wider text-black">Order number</p>
@@ -51,8 +56,62 @@
                 <div class="flex justify-between gap-3"><span class="text-black">Delivery fee</span><span class="text-black">{{ number_format($order->delivery_fee) }}</span></div>
                 <div class="flex justify-between gap-3 border-t border-emerald-950/10 pt-3 text-base font-bold"><span class="text-black">Total</span><span class="text-black">TZS {{ number_format($order->total) }}</span></div>
             </div>
+
+            @if($order->delivery_provider || $order->tracking_number || $order->shipped_at || $order->delivered_at)
+            <div class="mt-6 space-y-1 rounded-xl bg-emerald-50/50 p-5 text-sm">
+                <p class="text-xs font-semibold uppercase tracking-wider text-black">Delivery</p>
+                @if($order->delivery_provider)<p class="mt-2 text-black">Provider: <strong>{{ $order->delivery_provider }}</strong></p>@endif
+                @if($order->tracking_number)<p class="mt-1 text-black">Tracking: <strong>{{ $order->tracking_number }}</strong></p>@endif
+                @if($order->shipped_at)<p class="mt-1 text-black">Shipped {{ $order->shipped_at->format('j M Y, H:i') }}</p>@endif
+                @if($order->delivered_at)<p class="mt-1 text-black">Delivered {{ $order->delivered_at->format('j M Y, H:i') }}</p>@endif
+            </div>
+            @endif
+
+            @if($order->status->value === 'pending_payment')
+            <div class="mt-6 flex flex-wrap gap-3">
+                <a href="{{ route('order-status', $order->order_number) }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">Continue payment <span aria-hidden="true">→</span></a>
+                <button type="button" data-cancel-order-detail data-order-number="{{ $order->order_number }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Cancel order</button>
+            </div>
+            @endif
         </div>
         @endif
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script nonce="{{ Vite::cspNonce() }}">
+(() => {
+  const btn = document.querySelector('[data-cancel-order-detail]');
+  if (!btn) return;
+  const getCookie = name => {
+    const m = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  };
+  btn.addEventListener('click', async () => {
+    if (!(await window.kpConfirm?.('Cancel this order?', { title: 'Cancel this order?' }))) return;
+    btn.disabled = true;
+    btn.textContent = 'Cancelling…';
+    try {
+      const orderNumber = btn.dataset.orderNumber || window.location.pathname.split('/').pop();
+      const headers = new Headers({ Accept: 'application/json' });
+      const xsrf = getCookie('XSRF-TOKEN');
+      if (xsrf) headers.set('X-XSRF-TOKEN', xsrf);
+      const res = await fetch(`/api/v1/orders/${encodeURIComponent(orderNumber)}/cancel`, {
+        method: 'POST', credentials: 'include', headers,
+      });
+      if (!res.ok) {
+        let msg = `Request failed (${res.status})`;
+        try { const d = await res.json(); msg = d?.message || msg; } catch {}
+        throw new Error(msg);
+      }
+      window.location.reload();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Cancel order';
+      window.dispatchEvent(new CustomEvent('kp:toast', { detail: e.message || 'Unable to cancel order.' }));
+    }
+  });
+})();
+</script>
+@endpush

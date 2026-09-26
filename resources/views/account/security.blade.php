@@ -1,8 +1,8 @@
 @extends('layouts.app')
 @section('content')
-<div class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
-    <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-        @include('components.account-sidebar')
+<div class="w-full px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+    <div class="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+        @include('components.account.sidebar')
         <section data-security-page class="space-y-6">
             <div class="border-b border-emerald-950/12 pb-6">
                 <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black"><x-tabler-shield-lock size="14" /> Account</p>
@@ -59,6 +59,19 @@
 (() => {
     const page=document.querySelector('[data-security-page]'); if(!page)return; if(document.querySelector('meta[name="kp-signed-in"]')?.getAttribute('content')!=='1'){location.href='/login';return;}
     fetch('/api/v1/auth/me',{headers:{Accept:'application/json'}}).then(async r=>{const d=await r.json().catch(()=>null);if(!r.ok){if(r.status===401){location.href='/login';return;}throw new Error(d?.message||'Session expired.');}page.querySelector('[data-security-phone]').textContent=d.data?.phone||'—';}).catch(e=>{page.querySelector('[data-security-phone]').textContent=e.message;});
+    const getCookie=name=>{const m=document.cookie.match(new RegExp('(?:^|;\\s*)'+name+'=([^;]*)'));return m?decodeURIComponent(m[1]):null;};
+    page.addEventListener('click',async e=>{
+        const btn=e.target.closest('[data-revoke-session]'); if(!btn||btn.disabled)return;
+        const id=btn.dataset.sessionId; if(!id)return;
+        btn.disabled=true;
+        try{
+            const headers=new Headers({Accept:'application/json'});
+            const xsrf=getCookie('XSRF-TOKEN'); if(xsrf)headers.set('X-XSRF-TOKEN',xsrf);
+            const r=await fetch(`/api/v1/sessions/${encodeURIComponent(id)}`,{method:'DELETE',credentials:'include',headers});
+            if(!r.ok){let m=`Request failed (${r.status})`; try{const d=await r.json(); m=d?.message||m;}catch{} throw new Error(m);}
+            window.location.reload();
+        }catch(err){btn.disabled=false;window.dispatchEvent(new CustomEvent('kp:toast',{detail:err.message||'Unable to revoke session.'}));}
+    });
 })();
 </script>
 @endpush

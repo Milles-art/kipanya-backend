@@ -1,8 +1,8 @@
 @extends('layouts.app')
 @section('content')
-<div data-account-addresses class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
-    <div class="grid gap-8 lg:grid-cols-[256px_minmax(0,1fr)]">
-        @include('components.account-sidebar')
+<div data-account-addresses class="w-full px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+    <div class="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+        @include('components.account.sidebar')
         <section class="min-w-0">
             <div class="border-b border-emerald-950/10 pb-6">
                 <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Your account</p>

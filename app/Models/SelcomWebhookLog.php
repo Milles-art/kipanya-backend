@@ -19,7 +19,9 @@ class SelcomWebhookLog extends Model
 
     protected $casts = [
         'processed_successfully' => 'boolean',
-        'raw_payload' => 'array',
+        // Raw gateway payloads carry customer mobile-money numbers: ciphertext
+        // at rest. Nothing queries into this column, so no blind index needed.
+        'raw_payload' => 'encrypted:array',
     ];
 
     public function paymentTransaction(): BelongsTo

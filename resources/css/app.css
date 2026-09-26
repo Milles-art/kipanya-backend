@@ -573,8 +573,13 @@
 }
 
 /* KP Wear Phase 11 — focused mobile pass */
-html { overflow-x: hidden; }
-body.kp-storefront { overflow-x: hidden; }
+/* overflow-x:hidden alone turns html/body into scroll containers (the spec forces
+   the other axis to compute as `auto`), which breaks `position: sticky` on the
+   header — it stops pinning and scrolls away with the page. `clip` prevents the
+   same horizontal bleed without that side effect; the `hidden` line stays first
+   as a fallback for browsers that don't understand `clip` yet. */
+html { overflow-x: hidden; overflow-x: clip; }
+body.kp-storefront { overflow-x: hidden; overflow-x: clip; }
 
 @media (max-width: 767px) {
     /* Keep touch targets comfortable without making the UI oversized. */

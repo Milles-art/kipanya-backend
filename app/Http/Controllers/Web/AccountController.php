@@ -33,6 +33,7 @@ final class AccountController extends Controller
             ])->count(),
             'deliveredOrders' => WearOrder::query()->where('user_id', $user->id)->where('status', OrderStatus::Delivered->value)->count(),
             'wishlistCount' => $user->wearWishlist()->count(),
+            'addressCount' => $user->addresses()->count(),
             'recentOrders' => $orders,
             'defaultAddress' => $user->addresses()->where('is_default', true)->first() ?? $user->addresses()->latest('id')->first(),
             'defaultPayment' => $user->paymentMethods()->orderByDesc('is_default')->latest('id')->first(),

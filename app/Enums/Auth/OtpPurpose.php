@@ -12,4 +12,8 @@ enum OtpPurpose: string
     case AdminLogin = 'admin_login';
     case PasswordReset = 'password_reset';
     case PhoneChange = 'phone_change';
+    // Email changes are confirmed with a code sent to the account's verified
+    // phone number, because this deployment has no mail transport that could
+    // deliver a verification link (MAIL_MAILER=log).
+    case EmailChange = 'email_change';
 }

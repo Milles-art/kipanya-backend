@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Account\AccountPreferencesController;
 use App\Http\Controllers\Api\V1\Account\AccountSecurityController;
 use App\Http\Controllers\Api\V1\Account\LoyaltyController;
 use App\Http\Controllers\Api\V1\Account\PaymentMethodController;
+use App\Http\Controllers\Api\V1\Account\ProfileContactController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticationController;
 use App\Http\Controllers\Api\V1\Cart\CartController;
 use App\Http\Controllers\Api\V1\Commerce\AddressController;
@@ -61,6 +62,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('scoped.token:commerce');
+        Route::post('/checkout/place', [CheckoutController::class, 'store'])->middleware('scoped.token:commerce');
         Route::get('/orders', [OrderController::class, 'index'])->middleware('scoped.token:commerce');
         Route::get('/orders/{order:order_number}', [OrderController::class, 'show'])->middleware('scoped.token:commerce');
         Route::post('/orders/{order:order_number}/cancel', [OrderController::class, 'cancel'])->middleware('scoped.token:commerce');
@@ -75,6 +77,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::put('/payment-methods/{paymentMethod}/set-default', [PaymentMethodController::class, 'setDefault']);
             Route::delete('/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'destroy']);
             Route::put('/password', [AccountSecurityController::class, 'updatePassword']);
+            Route::post('/account/profile/phone/request', [ProfileContactController::class, 'requestPhoneChange']);
+            Route::post('/account/profile/phone/verify', [ProfileContactController::class, 'verifyPhoneChange']);
+            Route::post('/account/profile/email/request', [ProfileContactController::class, 'requestEmailChange']);
+            Route::post('/account/profile/email/verify', [ProfileContactController::class, 'verifyEmailChange']);
             Route::get('/sessions', [AccountSecurityController::class, 'sessions']);
             Route::delete('/sessions/{session}', [AccountSecurityController::class, 'revokeSession'])->whereNumber('session');
             Route::get('/account/preferences', [AccountPreferencesController::class, 'show']);

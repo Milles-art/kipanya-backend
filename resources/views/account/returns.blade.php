@@ -1,9 +1,9 @@
 @extends('layouts.app')
 @section('content')
-<div class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
-    <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+<div class="w-full px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+    <div class="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
 
-        @include('components.account-sidebar')
+        @include('components.account.sidebar')
 
         <div data-returns-page>
             <div class="flex flex-col gap-3 border-b border-emerald-950/12 pb-6 sm:flex-row sm:items-end sm:justify-between">

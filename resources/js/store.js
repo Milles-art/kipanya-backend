@@ -722,12 +722,12 @@ const bootHome = async () => {
         return `
           <a
             href="/collections/${encodeURIComponent(collection.slug)}"
-            class="group relative overflow-hidden rounded-2xl bg-white aspect-[4/3]"
+            class="group relative overflow-hidden rounded-2xl bg-white aspect-[4/5]"
           >
             <img
               src="${escapeHtml(image)}"
               alt="${escapeHtml(collection.name || 'Collection')}"
-              class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+              class="absolute inset-0 h-full w-full object-cover object-top transition duration-700 group-hover:scale-[1.035]"
               loading="lazy"
               onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'"
             >
@@ -824,19 +824,30 @@ const bootHome = async () => {
           slug: c.slug || slugify(c.name)
         }));
 
-        catGrid.innerHTML = categorySource.map(category => `
-          <a
-            href="/category/${encodeURIComponent(category.slug)}"
-            class="group rounded-xl border border-black bg-white p-3.5 transition hover:-translate-y-0.5 hover:border-black"
-          >
-            <p class="text-xs font-semibold text-slate-900 sm:text-sm">
-              ${escapeHtml(category.name)}
-            </p>
-            <p class="mt-0.5 text-[11px] text-black sm:text-xs">
-              Shop collection
-            </p>
-          </a>
-        `).join('');
+        const CATEGORY_COLORS = [
+          { bg: 'bg-orange-50',  border: 'border-orange-200 hover:border-orange-400',   title: 'text-orange-900',  sub: 'text-orange-600' },
+          { bg: 'bg-blue-50',    border: 'border-blue-200 hover:border-blue-400',       title: 'text-blue-900',    sub: 'text-blue-600' },
+          { bg: 'bg-emerald-50', border: 'border-emerald-200 hover:border-emerald-400', title: 'text-emerald-900', sub: 'text-emerald-600' },
+          { bg: 'bg-rose-50',    border: 'border-rose-200 hover:border-rose-400',       title: 'text-rose-900',    sub: 'text-rose-600' },
+          { bg: 'bg-violet-50',  border: 'border-violet-200 hover:border-violet-400',   title: 'text-violet-900',  sub: 'text-violet-600' },
+        ];
+
+        catGrid.innerHTML = categorySource.map((category, i) => {
+          const c = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+          return `
+            <a
+              href="/category/${encodeURIComponent(category.slug)}"
+              class="group rounded-xl border ${c.border} ${c.bg} p-3.5 transition hover:-translate-y-0.5"
+            >
+              <p class="text-xs font-semibold ${c.title} sm:text-sm">
+                ${escapeHtml(category.name)}
+              </p>
+              <p class="mt-0.5 text-[11px] ${c.sub} sm:text-xs">
+                Shop collection
+              </p>
+            </a>
+          `;
+        }).join('');
       }
     } catch (e) {
       grid.innerHTML = '';
@@ -1281,7 +1292,8 @@ const bootHome = async () => {
 
     const loading = page.querySelector('[data-product-loading]');
     const content = page.querySelector('[data-product-content]');
-    const errorBox = page.querySelector('[data-product-error]');
+    const loadError = page.querySelector('[data-product-load-error]');
+    const loadErrorMessage = page.querySelector('[data-product-load-error-message]');
     const slug = page.dataset.slug;
 
     try {
@@ -1417,16 +1429,21 @@ const bootHome = async () => {
     } catch (e) {
       loading?.classList.add('hidden');
       content?.classList.add('hidden');
-      if (errorBox) {
-        errorBox.textContent = e.message || 'Unable to load this product.';
-        errorBox.classList.remove('hidden');
-      }
+      if (loadErrorMessage) loadErrorMessage.textContent = e.message || 'Unable to load this product.';
+      if (loadError) loadError.classList.remove('hidden');
+      page.querySelector('[data-product-retry]')?.addEventListener('click', () => location.reload());
     }
   };
 
   const bootCart = async () => {
     const page = document.querySelector('[data-cart-page]');
     if (!page) return;
+
+    // The redesigned server-rendered cart (v2) owns its own markup and its
+    // own inline controls. The legacy renderer below would overwrite it with
+    // the old design a moment after load, so stand down here — but still
+    // refresh the navbar badges.
+    if (page.dataset.cartVersion === '2') { counts(); return; }
 
     const render = async (showLoading = false) => {
       const loading = page.querySelector('[data-cart-loading]');
@@ -2133,11 +2150,16 @@ const bootHome = async () => {
         iconBox.className = `mx-auto flex h-16 w-16 items-center justify-center rounded-full ${cancelled ? 'bg-rose-100 text-rose-700' : paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} ring-8 ${cancelled ? 'ring-rose-50' : paid ? 'ring-emerald-50' : 'ring-amber-50'}`;
         iconBox.innerHTML = cancelled ? icon('x',30) : paid ? icon('check',30) : icon('clock',30);
       }
+      const trackStep3 = page.querySelector('[data-track-step="3"]');
+      if (trackStep3) {
+        trackStep3.classList.toggle('done', paid);
+        trackStep3.classList.toggle('active', !paid && !cancelled);
+      }
       if (actions) {
         const payment = Array.isArray(order.payment) ? order.payment : [];
         const gatewayUrl = payment.find(p => p && typeof p.payment_gateway_url === 'string' && p.payment_gateway_url)?.payment_gateway_url;
-        const payNow = pending && gatewayUrl ? `<a href="${escapeHtml(gatewayUrl)}" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Pay now</a>` : '';
-        actions.innerHTML = `${payNow}<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-full border border-black px-6 py-3 text-sm font-medium text-black hover:bg-white">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
+        const payNow = pending && gatewayUrl ? `<a href="${escapeHtml(gatewayUrl)}" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Pay now</a>` : '';
+        actions.innerHTML = `${payNow}<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-black px-6 py-3 text-sm font-medium text-black hover:bg-white">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
         actions.querySelector('[data-cancel-pending-order]')?.addEventListener('click', async e => {
           const button=e.currentTarget; if (!(await window.kpConfirm?.('Cancel this order?', { title: 'Cancel this order?' }))) return; button.disabled=true; button.textContent='Cancelling…';
           try { await api(`/orders/${encodeURIComponent(order.order_number)}/cancel`, {method:'POST'}); toast('Order cancelled'); location.reload(); }
@@ -2146,9 +2168,31 @@ const bootHome = async () => {
       }
     };
 
+    let pollTimer = null;
+    const isTerminal = order => {
+      const s = String(order?.status || '').toLowerCase();
+      const p = String(order?.payment_status || '').toLowerCase();
+      return p === 'paid' || s === 'cancelled';
+    };
+    // Keep watching while the order is unsettled so a payment completed on
+    // the provider page (or simulator) reflects here without a reload.
+    // Skips ticks while the tab is hidden; stops on terminal states.
+    const watchPending = order => {
+      if (isTerminal(order) || pollTimer) return;
+      pollTimer = setInterval(async () => {
+        if (document.hidden) return;
+        try {
+          const res = await api(`/orders/${encodeURIComponent(orderNumber)}`);
+          render(res.data);
+          if (isTerminal(res.data)) { clearInterval(pollTimer); pollTimer = null; }
+        } catch {}
+      }, 8000);
+    };
+
     try {
       const response = await api(`/orders/${encodeURIComponent(orderNumber)}`);
       render(response.data);
+      watchPending(response.data);
     } catch (e) {
       if (text) text.textContent = e.message || 'Unable to load this order.';
     }
@@ -2162,6 +2206,11 @@ const bootHome = async () => {
       location.href = '/login';
       return;
     }
+
+    // Server-rendered rows own this page (same single-renderer rule as the
+    // cart): the legacy renderer below would swap in the old card design.
+    const list = page.querySelector('[data-orders-list]');
+    if (list?.querySelector('[data-server-order]')) return;
 
     try {
       const orders = await api('/orders');
@@ -2229,6 +2278,10 @@ const bootHome = async () => {
       location.href = '/login';
       return;
     }
+
+    // Server-rendered receipt (delivery block, pay/cancel actions) owns this
+    // page; the legacy renderer below would replace it with the old design.
+    if (page.querySelector('[data-server-detail]')) return;
 
     try {
       const o = (await api(`/orders/${encodeURIComponent(page.dataset.orderNumber)}`)).data;

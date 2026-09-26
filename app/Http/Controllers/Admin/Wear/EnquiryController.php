@@ -15,7 +15,7 @@ final class EnquiryController extends Controller
     {
         $this->authorize($request);
         $messages=ContactMessage::query()
-            ->when($request->filled('q'),function($q)use($request){$term=trim((string)$request->string('q'));$q->where(fn($q)=>$q->where('name','like',"%{$term}%")->orWhere('email','like',"%{$term}%")->orWhere('message','like',"%{$term}%"));})
+            ->when($request->filled('q'),function($q)use($request){$term=trim((string)$request->string('q'));$q->where(fn($q)=>$q->where('name','like',"%{$term}%")->orWhere('email_hash',ContactMessage::emailHash($term))->orWhere('message','like',"%{$term}%"));})
             ->when($request->filled('status'),fn($q)=>$q->where('status',$request->string('status')))
             ->when($request->filled('type'),fn($q)=>$q->where('type',$request->string('type')))
             ->latest()->paginate(25)->withQueryString();

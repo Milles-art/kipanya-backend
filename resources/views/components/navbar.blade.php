@@ -58,16 +58,6 @@
         {{-- Right Actions --}}
         <div class="flex items-center gap-1 md:gap-2">
 
-            {{-- Search --}}
-            <button
-                data-search-toggle
-                type="button"
-                aria-expanded="false"
-                class="hidden rounded-xl p-2.5 text-black transition-all duration-200 hover:bg-emerald-50/70 hover:text-black md:inline-flex"
-                aria-label="Search">
-                <x-tabler-search size="20" stroke-width="1.8" />
-            </button>
-
             {{-- Wishlist --}}
             <a
                 href="{{ route('wishlist') }}"
@@ -101,24 +91,6 @@
 
 
         </div>
-    </div>
-
-    {{-- Search Panel --}}
-    <div data-search-panel class="hidden border-t border-emerald-950/10 bg-white px-4 py-4">
-        <form action="{{ route('search') }}" class="mx-auto flex max-w-xl gap-2">
-            <label for="site-search" class="sr-only">Search products</label>
-            <input
-                id="site-search"
-                name="q"
-                class="field flex-1"
-                placeholder="Search products..."
-                autocomplete="off">
-
-            <button type="submit" class="button-dark">
-                <x-tabler-search size="18" />
-                Search
-            </button>
-        </form>
     </div>
 
 </header>

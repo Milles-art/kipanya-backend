@@ -75,7 +75,7 @@ class LoginOtpLockoutTest extends TestCase
 
         $this->assertSame(
             1,
-            (int) OtpCode::query()->where('phone', self::PHONE)->latest('id')->value('attempts'),
+            (int) OtpCode::query()->wherePhone(self::PHONE)->latest('id')->value('attempts'),
             'The failed attempt must persist; it was rolled back with the login transaction.',
         );
     }

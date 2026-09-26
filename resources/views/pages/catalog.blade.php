@@ -29,7 +29,7 @@
     min-height: 330px;
     background-color: #eaf7f2;
     background-image: linear-gradient(90deg, rgba(255,255,255,.90) 0%, rgba(255,255,255,.72) 34%, rgba(255,255,255,.20) 64%, rgba(255,255,255,.04) 100%), url("/assets/wear/catalog/kp-catalog-hero-background.webp");
-    background-position: center center;
+    background-position: right center;
     background-size: cover;
     background-repeat: no-repeat;
     border: 1px solid color-mix(in srgb, var(--kp-emerald) 10%, transparent);
@@ -44,25 +44,18 @@
   }
   @media (max-width: 1023px) {
     .kp-catalog-hero {
-      min-height: 360px;
+      min-height: 320px;
       background-position: 64% center;
       background-image: linear-gradient(90deg, rgba(255,255,255,.94) 0%, rgba(255,255,255,.78) 46%, rgba(255,255,255,.18) 100%), url("/assets/wear/catalog/kp-catalog-hero-background.webp");
-    }
-  }
-  @media (max-width: 640px) {
-    .kp-catalog-hero {
-      min-height: 430px;
-      background-position: 70% center;
-      background-image: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.86) 42%, rgba(255,255,255,.20) 100%), url("/assets/wear/catalog/kp-catalog-hero-background.webp");
     }
   }
   @media (max-width: 640px) {
     /* Keep the approved artwork visible on small screens instead of hiding it behind the white wash. */
     .kp-catalog-hero {
       min-height: 390px;
-      background-position: center center;
+      background-position: 70% center;
       background-size: cover;
-      background-image: linear-gradient(180deg, rgba(255,255,255,.74) 0%, rgba(255,255,255,.42) 48%, rgba(255,255,255,.10) 100%), url("/assets/wear/catalog/kp-catalog-hero-background.webp");
+      background-image: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.86) 42%, rgba(255,255,255,.20) 100%), url("/assets/wear/catalog/kp-catalog-hero-background.webp");
     }
   }
   .kp-product-card {
@@ -93,7 +86,7 @@
 
         {{-- ── Editorial catalog hero ─────────────────────────────────── --}}
         <section class="kp-catalog-hero kp-reveal relative mb-7 w-full px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-11">
-            <div class="mx-auto flex w-full max-w-[1800px] min-h-[290px] flex-col justify-between gap-8 px-0 lg:min-h-[315px]">
+            <div class="mx-auto flex w-full max-w-[1800px] min-h-[250px] flex-col justify-between gap-8 px-0 lg:min-h-[275px]">
                 <div class="max-w-2xl pt-1 lg:pt-3">
                     <div class="mb-4 flex items-center gap-2 text-xs font-medium text-black/70">
                         <a href="{{ route('home') }}" class="transition hover:text-emerald-700">Home</a>

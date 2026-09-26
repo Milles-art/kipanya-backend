@@ -51,6 +51,9 @@ final class UserController extends Controller
 
         return view('admin.users.create', [
             'roles' => $this->staffRoles($request),
+            // The shared form partial expects $user (edit passes the model);
+            // hand it an empty instance so create renders instead of 500ing.
+            'user' => new User,
         ]);
     }
 

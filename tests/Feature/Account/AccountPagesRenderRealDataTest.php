@@ -233,9 +233,9 @@ final class AccountPagesRenderRealDataTest extends TestCase
         $this->request($token)
             ->get('/account/notifications')
             ->assertOk()
-            ->assertSee('name="notify_promotions" class="peer sr-only" checked', false)
-            ->assertSee('name="channel_sms" class="hidden" checked', false)
-            ->assertSee('name="channel_email" class="hidden"', false);
+            ->assertSee('name="notify_promotions" checked', false)
+            ->assertSee('name="channel_sms" checked', false)
+            ->assertSee('name="channel_email" >', false);
     }
 
     public function test_returns_page_renders_eligible_orders(): void

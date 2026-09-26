@@ -1,8 +1,8 @@
 @extends('layouts.app')
 @section('content')
-<div class="mx-auto kp-content px-4 pb-20 pt-10 sm:px-6 lg:px-8">
-    <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-        @include('components.account-sidebar')
+<div class="w-full px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+    <div class="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+        @include('components.account.sidebar')
 
         <div data-loyalty-page class="min-w-0">
             <div class="border-b border-emerald-950/12 pb-6">

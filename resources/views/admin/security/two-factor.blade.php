@@ -28,11 +28,11 @@
                 <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">ACTIVE</span>
             </div>
 
-            <form method="POST" action="{{ route('admin.security.two-factor.disable') }}" class="mt-6 space-y-4">
+            <form method="POST" action="{{ route('admin.security.two-factor.disable') }}" data-confirm="Disable two-factor authentication for this account?" class="mt-6 space-y-4">
                 @csrf
                 <label class="block text-sm font-semibold">Current authenticator code<input name="code" required inputmode="numeric" maxlength="6" class="field mt-2 w-full tracking-[0.4em]" placeholder="000000" autocomplete="one-time-code"></label>
                 <p class="text-xs text-black">Enter a code from your authenticator app to disable the second factor.</p>
-                <button class="inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700" onclick="return confirm('Disable two-factor authentication for this account?')">Disable two-factor authentication</button>
+                <button class="inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700">Disable two-factor authentication</button>
             </form>
         @else
             <div class="flex items-center justify-between gap-4">

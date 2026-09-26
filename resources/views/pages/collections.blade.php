@@ -98,7 +98,7 @@
             <div class="kp-store-products" data-collections-new-arrivals>
                 @foreach([
                     ['kp-wear-redefined-graphic-red-front.webp', 'hoodies', 'KP Redefined Graphic Hoodie'],
-                    ['kp-redefined-graffiti-white-front.webp', 't-shirts', 'KP Redefined Graffiti T-Shirt'],
+                    ['kp-wear-redefined-graffiti-white-front.webp', 't-shirts', 'KP Redefined Graffiti T-Shirt'],
                     ['kp-wear-sand-red-graffiti-front.webp', 'polos', 'KP Redefined Graffiti Polo'],
                     ['kp-wear-kilimanjaro-heritage-sand-front.webp', 'long-sleeves', 'Kilimanjaro Heritage Long Sleeve'],
                 ] as [$file, $folder, $name])
