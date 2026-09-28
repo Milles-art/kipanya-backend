@@ -211,8 +211,8 @@ class CheckoutOptionalAddressTest extends TestCase
 
         $html = $this->actingAs($user, 'sanctum')->get('/orders/KP-TEST-0001')->assertOk()->getContent();
 
-        $this->assertMatchesRegularExpression('/tkp-step active" data-track-step="2"/', $html, 'Payment must not be shown as already done.');
-        $this->assertDoesNotMatchRegularExpression('/tkp-step done" data-track-step="2"/', $html);
+        $this->assertMatchesRegularExpression('/os-step-wrap active" data-os-step="2"/', $html, 'Payment must not be shown as already done.');
+        $this->assertDoesNotMatchRegularExpression('/os-step-wrap (done|success)" data-os-step="2"/', $html);
         $this->assertStringContainsString('Tap <strong>Pay now</strong>', $html);
     }
 

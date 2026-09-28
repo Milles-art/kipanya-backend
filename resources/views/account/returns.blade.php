@@ -30,7 +30,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <div>
                                 <p class="text-sm font-medium text-black">Order #{{ $order->order_number }}</p>
-                                <p class="mt-0.5 text-xs text-black">Delivered {{ $order->delivered_at?->format('j M Y') }} · {{ $order->items->count() }} item(s)</p>
+                                <p class="mt-0.5 text-xs text-black">Completed {{ $order->delivered_at?->format('j M Y') }} · {{ $order->items->count() }} item(s)</p>
                             </div>
                             <button type="button" data-new-request class="button-dark px-5 py-2.5">
                                 <x-tabler-plus size="16" />
@@ -49,7 +49,7 @@
                     <x-tabler-rotate size="26" class="text-black" />
                 </div>
                 <h2 class="mt-4 text-lg font-semibold text-black">No return requests yet</h2>
-                <p class="mt-2 max-w-xs text-sm text-black">Select a delivered order to request a return or exchange. Our team will review the request and confirm eligibility.</p>
+                <p class="mt-2 max-w-xs text-sm text-black">Select a completed order to request a return or exchange. Our team will review the request and confirm eligibility.</p>
             </div>
 
             {{-- Requests list --}}

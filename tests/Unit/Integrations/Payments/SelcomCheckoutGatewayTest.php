@@ -3,7 +3,6 @@
 namespace Tests\Unit\Integrations\Payments;
 
 use App\Enums\Auth\UserStatus;
-use App\Integrations\Payments\FakePaymentGateway;
 use App\Integrations\Payments\PaymentGateway;
 use App\Integrations\Payments\SelcomCheckoutGateway;
 use App\Models\User;
@@ -284,7 +283,7 @@ class SelcomCheckoutGatewayTest extends TestCase
         $this->assertInstanceOf(SelcomCheckoutGateway::class, app(PaymentGateway::class));
     }
 
-    public function test_fake_gateway_is_bound_when_selcom_credentials_are_missing(): void
+    public function test_missing_selcom_credentials_use_testing_stub_without_simulator_url(): void
     {
         config()->set('services.selcom', [
             'base_url' => null,
@@ -293,10 +292,13 @@ class SelcomCheckoutGatewayTest extends TestCase
             'vendor_id' => null,
         ]);
 
-        $this->assertInstanceOf(FakePaymentGateway::class, app(PaymentGateway::class));
+        $gateway = app(PaymentGateway::class);
+
+        $this->assertInstanceOf(PaymentGateway::class, $gateway);
+        $this->assertNotInstanceOf(SelcomCheckoutGateway::class, $gateway);
     }
 
-    public function test_blank_selcom_credentials_still_select_the_fake_gateway(): void
+    public function test_blank_selcom_credentials_use_testing_stub_without_simulator_url(): void
     {
         config()->set('services.selcom', [
             'base_url' => '   ',
@@ -305,7 +307,10 @@ class SelcomCheckoutGatewayTest extends TestCase
             'vendor_id' => '   ',
         ]);
 
-        $this->assertInstanceOf(FakePaymentGateway::class, app(PaymentGateway::class));
+        $gateway = app(PaymentGateway::class);
+
+        $this->assertInstanceOf(PaymentGateway::class, $gateway);
+        $this->assertNotInstanceOf(SelcomCheckoutGateway::class, $gateway);
     }
 
     public function test_status_queries_order_status_endpoint_with_signed_order_id(): void

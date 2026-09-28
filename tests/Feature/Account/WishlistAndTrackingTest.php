@@ -21,7 +21,7 @@ class WishlistAndTrackingTest extends TestCase
         $this->assertStringContainsString('Wishlist', $html);
     }
 
-    public function test_orders_page_exposes_a_track_link_per_order(): void
+    public function test_orders_page_exposes_payment_and_detail_links_per_order(): void
     {
         $user = User::factory()->create(['status' => 'active']);
         $token = (new IssueSanctumToken)->execute($user);
@@ -42,7 +42,7 @@ class WishlistAndTrackingTest extends TestCase
             ->getContent();
 
         $this->assertStringContainsString('KP-3001', $html);
-        $this->assertStringContainsString('Track order', $html);
+        $this->assertStringContainsString('View details', $html);
         $this->assertStringContainsString('/orders/KP-3001', $html);
         $this->assertStringContainsString('data-server-order="KP-3001"', $html);
         $this->assertStringContainsString('Continue payment', $html);

@@ -32,6 +32,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('/login', [AuthenticationController::class, 'login'])
             ->middleware('throttle:10,1');
 
+        Route::post('/checkout/request-code', [AuthenticationController::class, 'requestCheckoutCode'])
+            ->middleware('throttle:otp-request');
+
+        Route::post('/checkout/verify', [AuthenticationController::class, 'verifyCheckoutCode'])
+            ->middleware('throttle:10,1');
+
         Route::middleware(['auth:sanctum', 'active', 'scoped.token:auth'])->group(function () {
             Route::post('/logout', [AuthenticationController::class, 'logout']);
             Route::post('/logout-all', [AuthenticationController::class, 'logoutAll']);
@@ -63,9 +69,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('scoped.token:commerce');
         Route::post('/checkout/place', [CheckoutController::class, 'store'])->middleware('scoped.token:commerce');
+        Route::get('/checkout/last-used-payment', [CheckoutController::class, 'lastUsedPayment'])->middleware('scoped.token:commerce');
         Route::get('/orders', [OrderController::class, 'index'])->middleware('scoped.token:commerce');
         Route::get('/orders/{order:order_number}', [OrderController::class, 'show'])->middleware('scoped.token:commerce');
         Route::post('/orders/{order:order_number}/cancel', [OrderController::class, 'cancel'])->middleware('scoped.token:commerce');
+        Route::post('/orders/{order:order_number}/repay', [OrderController::class, 'repay'])->middleware('scoped.token:commerce');
         Route::get('/returns', [ReturnRequestController::class, 'index'])->middleware('scoped.token:commerce');
         Route::get('/returns/eligible-orders', [ReturnRequestController::class, 'eligibleOrders'])->middleware('scoped.token:commerce');
         Route::post('/returns', [ReturnRequestController::class, 'store'])->middleware('scoped.token:commerce');

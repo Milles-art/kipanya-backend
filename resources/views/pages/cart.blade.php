@@ -4,7 +4,7 @@
 @push('head')
 <style nonce="{{ Vite::cspNonce() }}">
 /* ============================================================
-   KP WEAR Cart — redesigned
+   KP WEAR Cart
    ============================================================ */
 .kpc {
   --ink: #0c110e;
@@ -56,8 +56,7 @@
   display: none;
   align-items: center; gap: 6px;
   font-size: 13px; font-weight: 600;
-  color: var(--green);
-  text-decoration: none;
+  color: var(--green); text-decoration: none;
 }
 .kpc-header-link:hover { color: var(--green-dark); }
 @media (min-width: 640px) { .kpc-header-link { display: flex; } }
@@ -94,9 +93,7 @@
   display: none;
   align-items: center; gap: 6px;
   font-size: 13px; font-weight: 600;
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  color: var(--ink); text-decoration: underline; text-underline-offset: 4px;
 }
 .kpc-continue-link:hover { color: var(--green); }
 @media (min-width: 640px) { .kpc-continue-link { display: flex; } }
@@ -104,13 +101,9 @@
 /* ── Error banner ────────────────────────────────────────── */
 .kpc-error {
   display: none;
-  margin-top: 20px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
-  font-size: 13px;
+  margin-top: 20px; padding: 12px 14px;
+  border-radius: 12px; border: 1px solid #fecdd3;
+  background: #fff1f2; color: #be123c; font-size: 13px;
 }
 
 /* ── Skeleton ────────────────────────────────────────────── */
@@ -132,37 +125,27 @@
   padding: 112px 0; text-align: center;
 }
 .kpc-empty-icon {
-  width: 80px; height: 80px;
-  border-radius: 50%;
+  width: 80px; height: 80px; border-radius: 50%;
   background: var(--green-faint);
   display: grid; place-items: center;
   box-shadow: 0 0 0 12px rgba(238,248,243,.5);
-  color: var(--green);
-  margin-bottom: 24px;
+  color: var(--green); margin-bottom: 24px;
 }
-.kpc-empty h2 {
-  margin: 0; font-size: 20px; font-weight: 800; color: var(--ink);
-}
-.kpc-empty p {
-  margin: 8px 0 0; font-size: 14px; color: var(--muted); max-width: 260px;
-}
+.kpc-empty h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--ink); }
+.kpc-empty p { margin: 8px 0 0; font-size: 14px; color: var(--muted); max-width: 260px; }
 .kpc-empty-cta {
   margin-top: 28px;
   display: inline-flex; align-items: center; gap: 8px;
-  height: 44px; padding: 0 24px;
-  border-radius: 12px;
+  height: 44px; padding: 0 24px; border-radius: 12px;
   background: var(--green-dark); color: #fff;
-  font-size: 14px; font-weight: 800;
-  text-decoration: none;
+  font-size: 14px; font-weight: 800; text-decoration: none;
 }
 .kpc-empty-cta:hover { background: #0f4e33; transform: translateY(-1px); }
 
 /* ── Grid layout ─────────────────────────────────────────── */
 .kpc-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 36px;
-  margin-top: 32px;
+  display: grid; grid-template-columns: 1fr;
+  gap: 36px; margin-top: 32px;
 }
 @media (min-width: 1024px) {
   .kpc-grid { grid-template-columns: minmax(0,1fr) 400px; gap: 40px; }
@@ -181,8 +164,7 @@
 .kpc-clear-btn {
   display: flex; align-items: center; gap: 6px;
   background: none; border: 0; padding: 0;
-  font-size: 13px; font-weight: 600;
-  color: var(--muted); cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
 }
 .kpc-clear-btn:hover { color: #dc2626; }
 
@@ -190,29 +172,24 @@
 .kpc-items { display: flex; flex-direction: column; gap: 12px; }
 .kpc-item {
   display: flex; gap: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--card);
-  padding: 16px; box-shadow: var(--shadow-card);
+  border: 1px solid var(--border); border-radius: var(--radius-card);
+  background: var(--card); padding: 16px; box-shadow: var(--shadow-card);
   transition: border-color .2s, background .2s;
 }
-.kpc-item:hover {
-  border-color: rgba(26,122,82,.2);
-  background: rgba(238,248,243,.3);
-}
+.kpc-item:hover { border-color: rgba(26,122,82,.2); background: rgba(238,248,243,.3); }
 @media (min-width: 640px) { .kpc-item { padding: 20px; } }
 .kpc-item-img {
-  width: 96px; height: 96px;
-  border-radius: 14px;
-  overflow: hidden; flex: none;
-  border: 1px solid var(--border);
-  background: #f3f6f4;
-  display: grid; place-items: center;
+  width: 96px; height: 96px; border-radius: 14px;
+  overflow: hidden; flex: none; border: 1px solid var(--border);
+  background: #f3f6f4; display: grid; place-items: center;
 }
 @media (min-width: 640px) { .kpc-item-img { width: 112px; height: 112px; } }
 .kpc-item-img img { width: 100%; height: 100%; object-fit: cover; }
 .kpc-item-img span { font-size: 11px; font-weight: 900; color: var(--muted); }
-.kpc-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.kpc-item-body {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
 .kpc-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .kpc-item-name { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.35; }
 .kpc-item-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
@@ -221,20 +198,17 @@
   color: var(--muted); cursor: pointer; flex: none; margin-top: 2px;
 }
 .kpc-remove:hover { color: #dc2626; }
-.kpc-item-bottom { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 12px; }
+.kpc-item-bottom {
+  display: flex; align-items: flex-end; justify-content: space-between; margin-top: 12px;
+}
 .kpc-qty {
   display: flex; align-items: center; gap: 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 8px;
+  border: 1px solid var(--border); border-radius: 999px; padding: 4px 8px;
 }
 .kpc-qty-btn {
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  border: 0; background: none;
-  color: var(--muted); cursor: pointer;
-  display: grid; place-items: center;
-  font-size: 14px;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  display: grid; place-items: center; font-size: 14px;
 }
 .kpc-qty-btn:hover:not(:disabled) { background: var(--green-faint); color: var(--green-dark); }
 .kpc-qty-btn:disabled { opacity: .3; cursor: not-allowed; }
@@ -243,76 +217,115 @@
 
 /* ── Order summary ───────────────────────────────────────── */
 .kpc-summary {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: 20px; box-shadow: 0 16px 48px rgba(0,0,0,.05);
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 20px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.05);
 }
 @media (min-width: 640px) { .kpc-summary { padding: 24px; } }
 @media (min-width: 1280px) { .kpc-summary { padding: 28px; } }
 @media (min-width: 1024px) { .kpc-summary { position: sticky; top: 72px; } }
-.kpc-summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.kpc-summary-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
 .kpc-summary-head h2 {
   margin: 0; font-size: 18px; font-weight: 900;
   letter-spacing: -.025em; color: var(--ink);
 }
 .kpc-secure-badge {
   display: inline-flex; align-items: center; gap: 4px;
-  background: var(--green-faint);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 11px; font-weight: 700;
-  color: var(--green);
+  background: var(--green-faint); border-radius: 999px;
+  padding: 4px 10px; font-size: 11px; font-weight: 700; color: var(--green);
 }
+
+/* ── Journey steps (what happens next) ──────────────────── */
+.kpc-journey {
+  margin: 20px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: var(--green-faint2);
+}
+.kpc-journey-label {
+  font-size: 10px; font-weight: 800; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--green);
+  margin: 0 0 12px;
+}
+.kpc-journey-steps {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.kpc-journey-step {
+  display: flex; align-items: center; gap: 10px;
+}
+.kpc-journey-dot {
+  width: 24px; height: 24px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 900;
+}
+.kpc-journey-dot.current { background: var(--green); color: #fff; }
+.kpc-journey-dot.next { background: #e2e8e4; color: #7a8a82; }
+.kpc-journey-step-text {
+  font-size: 12px; font-weight: 600; color: var(--ink);
+  flex: 1; min-width: 0;
+}
+.kpc-journey-step-text small {
+  display: block; font-size: 11px; font-weight: 400; color: var(--muted);
+}
+.kpc-journey-connector {
+  width: 1px; height: 12px; background: #d4ddd8;
+  margin-left: 12px;
+}
+
+/* ── Subtotal row ────────────────────────────────────────── */
 .kpc-subtotal-row {
   display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 20px; margin-top: 28px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px; margin-top: 20px;
 }
 .kpc-subtotal-row span { font-size: 13px; color: var(--muted); }
 .kpc-subtotal-row strong { font-size: 20px; font-weight: 900; color: var(--ink); }
-.kpc-summary-meta { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.kpc-summary-meta { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 .kpc-summary-meta-row {
   display: flex; align-items: center; justify-content: space-between;
   font-size: 12px; color: var(--muted);
 }
 .kpc-summary-meta-row span:first-child { display: flex; align-items: center; gap: 6px; }
+
+/* ── Checkout CTA ────────────────────────────────────────── */
+.kpc-checkout-cta-wrap { margin-top: 20px; }
 .kpc-checkout-btn {
-  margin-top: 24px;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; height: 48px;
-  border-radius: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; height: 56px; padding: 0 20px;
+  border-radius: 14px; border: 0;
   background: var(--green-dark); color: #fff;
-  font-size: 14px; font-weight: 800;
-  text-decoration: none;
+  font-size: 15px; font-weight: 800;
+  text-decoration: none; cursor: pointer;
+  transition: background .18s, transform .15s;
 }
 .kpc-checkout-btn:hover { background: #0f4e33; transform: translateY(-1px); }
-.kpc-checkout-note { margin-top: 14px; text-align: center; font-size: 11px; color: var(--muted); }
+.kpc-checkout-btn-label { display: flex; align-items: center; gap: 8px; }
+.kpc-checkout-btn-total {
+  font-size: 14px; font-weight: 700;
+  opacity: .85;
+}
+.kpc-checkout-note {
+  margin-top: 10px; text-align: center;
+  font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
 
 /* ── Reassurance strip ───────────────────────────────────── */
 .kpc-strip {
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
   padding: 24px 0; margin-top: 48px;
 }
 @media (min-width: 640px) { .kpc-strip { margin-top: 56px; padding: 28px 0; } }
 .kpc-strip-grid { display: grid; gap: 20px; }
 @media (min-width: 640px) { .kpc-strip-grid { grid-template-columns: 1fr 1fr; gap: 0; } }
-.kpc-benefit {
-  display: flex; align-items: center; gap: 16px;
-  padding: 0;
-}
+.kpc-benefit { display: flex; align-items: center; gap: 16px; padding: 0; }
 @media (min-width: 640px) { .kpc-benefit { padding: 0 24px; } }
-.kpc-benefit + .kpc-benefit {
-  border-top: 1px solid rgba(26,122,82,.1);
-  padding-top: 20px;
-}
+.kpc-benefit + .kpc-benefit { border-top: 1px solid rgba(26,122,82,.1); padding-top: 20px; }
 @media (min-width: 640px) {
-  .kpc-benefit + .kpc-benefit {
-    border-top: 0;
-    border-left: 1px solid rgba(26,122,82,.1);
-    padding-top: 0;
-  }
+  .kpc-benefit + .kpc-benefit { border-top: 0; border-left: 1px solid rgba(26,122,82,.1); padding-top: 0; }
 }
 .kpc-benefit-icon { color: var(--ink); flex: none; }
 .kpc-benefit-title { font-size: 14px; font-weight: 700; color: var(--ink); }
@@ -333,9 +346,7 @@
   .kpc-header { padding: 0 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .kpc *, .kpc *::before, .kpc *::after {
-    transition: none !important; animation: none !important;
-  }
+  .kpc *, .kpc *::before, .kpc *::after { transition: none !important; animation: none !important; }
 }
 </style>
 @endpush
@@ -386,7 +397,7 @@
         <div class="kpc-skeleton" style="height:112px"></div>
         <div class="kpc-skeleton" style="height:96px"></div>
       </div>
-      <div class="kpc-skeleton" style="height:280px"></div>
+      <div class="kpc-skeleton" style="height:340px"></div>
     </div>
 
     {{-- ── Empty state ── --}}
@@ -410,8 +421,7 @@
       </a>
     </div>
 
-    {{-- ── Cart content (always rendered so API hydration has a target;
-         hidden until rows exist — server rows for members, API rows for guests) ── --}}
+    {{-- ── Cart content ── --}}
     <div data-cart-content class="kpc-grid" style="{{ $cartItems->isEmpty() ? 'display:none' : '' }}">
 
       {{-- Items --}}
@@ -433,7 +443,9 @@
 
         <div data-cart-items class="kpc-items" aria-live="polite">
           @foreach($cartItems as $item)
-          <div class="kpc-item" data-item-id="{{ $item->id }}" data-variant-id="{{ $item->wear_product_variant_id }}" data-unit-price="{{ (int) ($item->unit_price ?? 0) }}">
+          <div class="kpc-item" data-item-id="{{ $item->id }}"
+               data-variant-id="{{ $item->wear_product_variant_id }}"
+               data-unit-price="{{ (int) ($item->unit_price ?? 0) }}">
             <div class="kpc-item-img">
               @if($item->image_url ?? $item->product?->image ?? null)
                 <img src="{{ $item->image_url ?? $item->product->image }}"
@@ -487,7 +499,7 @@
         </div>
       </section>
 
-      {{-- Order summary --}}
+      {{-- ── Order summary ── --}}
       <aside class="kpc-summary" aria-label="Order summary">
         <div class="kpc-summary-head">
           <h2>Order summary</h2>
@@ -500,6 +512,41 @@
           </span>
         </div>
 
+        {{-- What happens next --}}
+        <div class="kpc-journey" aria-label="Checkout journey">
+          <p class="kpc-journey-label">What happens next</p>
+          <div class="kpc-journey-steps">
+            <div class="kpc-journey-step">
+              <div class="kpc-journey-dot current">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <div class="kpc-journey-step-text">
+                Review your bag
+                <small>You are here</small>
+              </div>
+            </div>
+            <div class="kpc-journey-connector" aria-hidden="true"></div>
+            <div class="kpc-journey-step">
+              <div class="kpc-journey-dot next">2</div>
+              <div class="kpc-journey-step-text">
+                Confirm details &amp; choose payment
+                <small>Address + Mobile Money number</small>
+              </div>
+            </div>
+            <div class="kpc-journey-connector" aria-hidden="true"></div>
+            <div class="kpc-journey-step">
+              <div class="kpc-journey-dot next">3</div>
+              <div class="kpc-journey-step-text">
+                Approve on your phone
+                <small>M-Pesa / Tigo / Airtel / Halo</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="kpc-subtotal-row">
           <span>Subtotal</span>
           <strong data-cart-summary>TZS {{ number_format($subtotal ?? 0) }}</strong>
@@ -510,34 +557,35 @@
             <span>
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h11a2 2 0 0 1 2 2v3"/>
-                <rect x="9" y="11" width="14" height="10" rx="1"/>
-              </svg>
-              Delivery
-            </span>
-            <span>Calculated at checkout</span>
-          </div>
-          <div class="kpc-summary-meta-row">
-            <span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>
+                <rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>
               </svg>
               Payment
             </span>
-            <span>Secure checkout</span>
+            <span>Mobile Money via Selcom</span>
           </div>
         </div>
 
-        <a href="{{ route('checkout') }}" class="kpc-checkout-btn">
-          Proceed to checkout
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14m-7-7 7 7-7 7"/>
-          </svg>
-        </a>
-
-        <p class="kpc-checkout-note">Taxes and delivery calculated at the next step</p>
+        <div class="kpc-checkout-cta-wrap">
+          <a href="{{ route('checkout') }}" class="kpc-checkout-btn">
+            <span class="kpc-checkout-btn-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              Proceed to checkout
+            </span>
+            <span class="kpc-checkout-btn-total" data-checkout-btn-total>
+              TZS {{ number_format($subtotal ?? 0) }}
+            </span>
+          </a>
+          <p class="kpc-checkout-note">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+            </svg>
+            Your payment is processed securely by Selcom
+          </p>
+        </div>
       </aside>
     </div>
 
@@ -559,13 +607,12 @@
           <svg class="kpc-benefit-icon" xmlns="http://www.w3.org/2000/svg" width="26" height="26"
                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h11a2 2 0 0 1 2 2v3"/>
-            <rect x="9" y="11" width="14" height="10" rx="1"/>
-            <circle cx="12" cy="16" r="1"/>
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
           </svg>
           <div>
-            <p class="kpc-benefit-title">Fast delivery</p>
-            <p class="kpc-benefit-sub">Across Tanzania</p>
+            <p class="kpc-benefit-title">Easy returns</p>
+            <p class="kpc-benefit-sub">30-day return window</p>
           </div>
         </div>
       </div>
@@ -605,7 +652,6 @@
         headers.set('Content-Type', 'application/json');
       }
     }
-    // Guests identify their cart with a token stored by the storefront JS.
     const guestToken = localStorage.getItem('kp_guest_cart_token');
     if (guestToken) headers.set('X-Guest-Cart-Token', guestToken);
     const res = await fetch('/api/v1' + path, {
@@ -625,9 +671,7 @@
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
-    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c]));
-
-  const isSignedIn = document.querySelector('meta[name="kp-signed-in"]')?.getAttribute('content') === '1';
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" }[c]));
 
   const errBox    = $('[data-cart-error]');
   const loadEl    = $('[data-cart-loading]');
@@ -640,18 +684,11 @@
     errBox.style.display = 'flex';
   };
 
-  // The server only renders rows for signed-in customers: a guest's bag
-  // lives behind X-Guest-Cart-Token, which only JavaScript can send. When
-  // there are no server rows (guest, or freshly merged account), hydrate
-  // the same v2 markup from GET /api/v1/cart so the bag is never
-  // misleadingly empty. Signed-in server rows are left untouched — the
-  // server render owns them.
   const apiRowHtml = item => {
     const id = `api-${item.variant_id}`;
     const qty = Math.max(1, parseInt(item.quantity || '1', 10));
     const unit = Math.round(Number(item.unit_price || 0));
     const name = item.product?.name || 'Product';
-    const slug = item.product?.slug || '';
     const image = item.product?.image || '';
     const meta = [item.variant?.size ? 'Size ' + item.variant.size : null, item.variant?.color || null]
       .filter(Boolean).join('  ·  ');
@@ -659,9 +696,7 @@
 
     return `<div class="kpc-item" data-item-id="${esc(id)}" data-variant-id="${esc(item.variant_id)}" data-unit-price="${unit}">`
       + `<div class="kpc-item-img">`
-      + (image
-          ? `<img src="${esc(image)}" alt="${esc(name)}" onerror="this.parentElement.innerHTML='<span>KP</span>'">`
-          : `<span>KP</span>`)
+      + (image ? `<img src="${esc(image)}" alt="${esc(name)}" onerror="this.parentElement.innerHTML='<span>KP</span>'">` : `<span>KP</span>`)
       + `</div>`
       + `<div class="kpc-item-body"><div class="kpc-item-top"><div>`
       + `<p class="kpc-item-name">${esc(name)}</p>`
@@ -682,37 +717,6 @@
       + `</div></div></div>`;
   };
 
-  const hydrateFromApi = async () => {
-    let cart = null;
-    try {
-      cart = (await api('/cart'))?.data;
-    } catch (err) {
-      if (loadEl) loadEl.style.display = 'none';
-      showError(err.message || 'Unable to load your bag.');
-      return;
-    }
-
-    const items = Array.isArray(cart?.items) ? cart.items : [];
-    const box = $('[data-cart-items]');
-
-    if (loadEl) loadEl.style.display = 'none';
-
-    if (!box || !items.length) return;
-
-    box.innerHTML = items.map(apiRowHtml).join('');
-
-    if (contentEl) contentEl.style.display = 'grid';
-    if (emptyEl) emptyEl.style.display = 'none';
-
-    recalcSubtotal();
-
-    const summary = $('[data-cart-summary]');
-    if (summary && Number.isFinite(Number(cart?.subtotal))) {
-      summary.textContent = 'TZS ' + Math.round(Number(cart.subtotal)).toLocaleString();
-    }
-  };
-
-  /* ── Subtotal recalculation ── */
   const recalcSubtotal = () => {
     let total = 0;
     $$('[data-item-id]').forEach(row => {
@@ -722,7 +726,11 @@
       total += qty * unitPrice;
     });
     const el = $('[data-cart-summary]');
-    if (el) el.textContent = 'TZS ' + total.toLocaleString();
+    const btnTotal = $('[data-checkout-btn-total]');
+    const formatted = 'TZS ' + total.toLocaleString();
+    if (el) el.textContent = formatted;
+    if (btnTotal) btnTotal.textContent = formatted;
+
     const countEl = $('[data-cart-header-count]');
     const itemCountEl = $('[data-cart-item-count]');
     const itemCount = $$('[data-item-id]').length;
@@ -737,9 +745,32 @@
     }
   };
 
-  // Server rows own the page when present; otherwise the API is the source
-  // of truth (guest bags are API-only). The skeleton stays visible until
-  // the hydrate resolves.
+  const hydrateFromApi = async () => {
+    let cart = null;
+    try {
+      cart = (await api('/cart'))?.data;
+    } catch (err) {
+      if (loadEl) loadEl.style.display = 'none';
+      showError(err.message || 'Unable to load your bag.');
+      return;
+    }
+    const items = Array.isArray(cart?.items) ? cart.items : [];
+    const box = $('[data-cart-items]');
+    if (loadEl) loadEl.style.display = 'none';
+    if (!box || !items.length) return;
+    box.innerHTML = items.map(apiRowHtml).join('');
+    if (contentEl) contentEl.style.display = 'grid';
+    if (emptyEl) emptyEl.style.display = 'none';
+    recalcSubtotal();
+    const summary = $('[data-cart-summary]');
+    const btnTotal = $('[data-checkout-btn-total]');
+    if (Number.isFinite(Number(cart?.subtotal))) {
+      const formatted = 'TZS ' + Math.round(Number(cart.subtotal)).toLocaleString();
+      if (summary) summary.textContent = formatted;
+      if (btnTotal) btnTotal.textContent = formatted;
+    }
+  };
+
   if ($$('[data-item-id]').length) {
     if (loadEl) loadEl.style.display = 'none';
     if (contentEl) contentEl.style.display = 'grid';
@@ -747,9 +778,7 @@
     hydrateFromApi();
   }
 
-  /* ── Quantity controls ── */
   document.addEventListener('click', async e => {
-    // Decrease
     const dec = e.target.closest('[data-qty-dec]');
     if (dec) {
       const id  = dec.dataset.qtyDec;
@@ -761,7 +790,6 @@
       qty--;
       if (valEl) valEl.textContent = qty;
       if (qty <= 1) dec.disabled = true;
-      // update line total
       const unitPrice = parseInt(row?.dataset.unitPrice || '0', 10);
       const totalEl = $(`[data-item-total="${id}"]`);
       if (totalEl) totalEl.textContent = 'TZS ' + (unitPrice * qty).toLocaleString();
@@ -771,7 +799,6 @@
       return;
     }
 
-    // Increase
     const inc = e.target.closest('[data-qty-inc]');
     if (inc) {
       const id  = inc.dataset.qtyInc;
@@ -793,7 +820,6 @@
       return;
     }
 
-    // Remove
     const rem = e.target.closest('[data-remove-item]');
     if (rem) {
       const id  = rem.dataset.removeItem;
@@ -807,7 +833,6 @@
       return;
     }
 
-    // Clear
     if (e.target.closest('[data-cart-clear]')) {
       $$('[data-item-id]').forEach(row => row.remove());
       recalcSubtotal();
@@ -816,19 +841,6 @@
       catch (err) { showError(err.message); }
     }
   });
-
-  // Scroll-reveal
-  const reveals = $$('.kpc-reveal');
-  if (!('IntersectionObserver' in window)) {
-    reveals.forEach(el => el.classList.add('is-visible'));
-  } else {
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) { entry.target.classList.add('is-visible'); obs.unobserve(entry.target); }
-      });
-    }, { threshold: 0.12 });
-    reveals.forEach(el => obs.observe(el));
-  }
 })();
 </script>
 @endpush

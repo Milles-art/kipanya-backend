@@ -33,6 +33,7 @@
   min-height: 100vh;
 }
 .ckp * { box-sizing: border-box; }
+.ckp [hidden] { display: none !important; }
 .ckp button, .ckp input, .ckp select, .ckp textarea { font: inherit; }
 .ckp button, .ckp a {
   transition: background .18s, border-color .18s, color .18s, opacity .18s, transform .15s;
@@ -747,21 +748,21 @@
 
   <nav class="ckp-progress" aria-label="Checkout progress">
     <div class="ckp-step active" data-step="1">
-      <span class="ckp-step-dot">1</span><span>Checkout</span>
+      <span class="ckp-step-dot">1</span><span>Details</span>
     </div>
     <svg class="ckp-step-sep" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m9 18 6-6-6-6"/>
     </svg>
     <div class="ckp-step" data-step="2">
-      <span class="ckp-step-dot">2</span><span>Payment</span>
+      <span class="ckp-step-dot">2</span><span>Pay</span>
     </div>
     <svg class="ckp-step-sep" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m9 18 6-6-6-6"/>
     </svg>
     <div class="ckp-step" data-step="3">
-      <span class="ckp-step-dot">3</span><span>Complete</span>
+      <span class="ckp-step-dot">3</span><span>Done</span>
     </div>
   </nav>
 
@@ -787,6 +788,59 @@
 
     {{-- ── LEFT COLUMN ── --}}
     <div class="ckp-left">
+
+      {{-- Guest sign-in (hidden once signed in by the script below) --}}
+      <section data-guest-panel class="ckp-card" hidden>
+        <div class="ckp-pay-header">
+          <span class="ckp-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>
+            </svg>
+          </span>
+          <div>
+            <h2 class="ckp-card-title">Continue with your phone number</h2>
+            <p class="ckp-card-sub">No account needed — we'll text you a code.</p>
+          </div>
+        </div>
+
+        <div class="ckp-phone-wrap">
+          <span class="ckp-phone-label">Mobile number</span>
+          <div class="ckp-phone">
+            <span class="ckp-phone-prefix">+255</span>
+            <input type="tel" data-guest-phone placeholder="624 643 714"
+                   autocomplete="tel" inputmode="tel">
+          </div>
+        </div>
+
+        <div data-guest-code-row hidden>
+          <div class="ckp-phone-wrap">
+            <span class="ckp-phone-label">Your name <span style="font-weight:400">(for new customers)</span></span>
+            <div class="ckp-phone">
+              <input type="text" data-guest-name placeholder="e.g. Amina Juma"
+                     autocomplete="name" style="padding-left:14px">
+            </div>
+          </div>
+          <div class="ckp-phone-wrap">
+            <span class="ckp-phone-label">SMS code</span>
+            <div class="ckp-phone">
+              <input type="text" data-guest-code placeholder="6-digit code"
+                     autocomplete="one-time-code" inputmode="numeric" maxlength="6" style="padding-left:14px">
+            </div>
+          </div>
+        </div>
+
+        <p data-guest-error class="ckp-error" role="alert" style="display:none"></p>
+
+        <div style="margin-top:14px">
+          <button type="button" data-guest-send class="ckp-place" style="margin-top:0">
+            <span data-guest-send-label>Send code</span>
+          </button>
+          <button type="button" data-guest-verify class="ckp-place" style="display:none;margin-top:0">
+            <span>Verify &amp; continue</span>
+          </button>
+        </div>
+      </section>
 
       {{-- Contact card --}}
       <section class="ckp-card">
@@ -827,7 +881,7 @@
           </span>
           <div class="ckp-addr-body">
             <div class="ckp-addr-title-row">
-              <h2 class="ckp-card-title">Delivery address</h2>
+              <h2 class="ckp-card-title">Address</h2>
               <span data-addr-badge class="ckp-required"
                     style="{{ isset($selectedAddress) && $selectedAddress ? 'display:none' : '' }}">Optional</span>
             </div>
@@ -835,7 +889,7 @@
               @if(isset($selectedAddress) && $selectedAddress)
                 {{ $selectedAddress->street }}  —  {{ collect([$selectedAddress->ward, $selectedAddress->district, $selectedAddress->region])->filter()->implode(', ') }}
               @else
-                No delivery address — continue without one or add one below.
+                No Address — continue without one or add one below.
               @endif
             </p>
           </div>
@@ -878,6 +932,16 @@
             <p class="ckp-card-sub">Choose how you want to pay.</p>
           </div>
         </div>
+
+        {{-- One-tap: pay again with the last successful mobile-money details --}}
+        <button type="button" data-onetap class="ckp-outline-btn" hidden
+                style="width:100%;justify-content:center;margin-bottom:14px;border-color:rgba(26,122,82,.35);background:var(--green-faint2)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2 3 14h7l-1 8 10-12h-7z"/>
+          </svg>
+          Pay again with&nbsp;<strong data-onetap-label></strong>
+        </button>
 
         <div class="ckp-pay-grid">
           {{-- Mobile Money --}}
@@ -1004,10 +1068,6 @@
               <span>Subtotal</span>
               <strong>TZS {{ number_format($subtotal ?? 0) }}</strong>
             </div>
-            <div class="ckp-total-row">
-              <span>Delivery fee</span>
-              <strong>TZS {{ number_format($deliveryFee ?? 0) }}</strong>
-            </div>
             <div class="ckp-grand">
               <strong>Total</strong>
               <strong>TZS {{ number_format($total ?? 0) }}</strong>
@@ -1041,7 +1101,7 @@
               <circle cx="12" cy="16" r="1"/>
             </svg>
           </div>
-          <div class="ckp-feature-label">Fast delivery</div>
+          <div class="ckp-feature-label">Easy returns</div>
         </div>
         <div>
           <div class="ckp-feature-icon">
@@ -1273,7 +1333,7 @@
     if (summary) {
       summary.textContent = a
         ? [a.street, [a.ward, a.district, a.region].filter(Boolean).join(', ')].filter(Boolean).join('  —  ')
-        : 'No delivery address — continue without one or add one below.';
+        : 'No Address — continue without one or add one below.';
     }
     if (badge) {
       if (a) { badge.style.display = 'none'; }
@@ -1310,7 +1370,7 @@
   const placeLabel = $('[data-place-label]');
   const errBox     = $('[data-checkout-error]');
 
-  /* ── progress stepper: 1 Checkout → 2 Payment → 3 Complete ── */
+  /* ── progress stepper: 1 Details → 2 Pay → 3 Done ── */
   const setStep = n => {
     $$('.ckp-step[data-step]').forEach(el => {
       const i = Number(el.dataset.step);
@@ -1320,7 +1380,7 @@
   };
 
   const updateBtn = () => {
-    // Delivery address is optional: the button enables as soon as the bag
+    // Address is optional: the button enables as soon as the bag
     // has a payable total — which also means details are done.
     const ready = grandTotal > 0;
     setStep(grandTotal > 0 ? 2 : 1);
@@ -1361,10 +1421,8 @@
     }).join('');
 
     const subtotal = Number(d.subtotal || 0);
-    const delivery = Number(d.delivery_fee || 0);
     box.innerHTML = '<div class="ckp-items">' + rows + '</div>'
       + '<div class="ckp-totals"><div class="ckp-total-row"><span>Subtotal</span><strong>TZS ' + subtotal.toLocaleString() + '</strong></div>'
-      + '<div class="ckp-total-row"><span>Delivery fee</span><strong>TZS ' + delivery.toLocaleString() + '</strong></div>'
       + '<div class="ckp-grand"><strong>Total</strong><strong>TZS ' + grandTotal.toLocaleString() + '</strong></div></div>';
     updateBtn();
   };
@@ -1451,8 +1509,8 @@
       const placedNumber = placed?.data?.order_number;
       const statusPage = placedNumber ? '/orders/' + encodeURIComponent(placedNumber) : '/account/orders';
 
-      // Step 2: send the customer STRAIGHT to the secure payment page. Only https (or
-      // same-origin, for the local simulator) URLs are followed. If there is no payment
+      // Step 2: send the customer STRAIGHT to the secure Selcom payment page. Only https
+      // URLs are followed. If there is no payment
       // page yet, the order status page still shows a clear "Pay now" button.
       const payments = Array.isArray(placed?.data?.payment) ? placed.data.payment : [];
       const gatewayUrl = payments.find(p => p && typeof p.payment_gateway_url === 'string' && p.payment_gateway_url)?.payment_gateway_url;
@@ -1473,6 +1531,89 @@
     }
   });
 
+  /* ── guest sign-in (phone OTP) + one-tap pay ───────────── */
+  // Guests verify by SMS and reload signed in; members with a previous
+  // successful mobile-money payment get a one-tap "pay again" button.
+  (async () => {
+    const panel = $('[data-guest-panel]');
+    let me = null;
+    try { me = (await api('/auth/me'))?.data || null; } catch { me = null; }
+
+    if (me) {
+      if (panel) panel.hidden = true;
+      // One-tap: offer the last successful provider + number.
+      try {
+        const last = (await api('/checkout/last-used-payment'))?.data;
+        if (last?.provider && last?.phone) {
+          const btn = $('[data-onetap]');
+          if (btn) {
+            const nice = { mpesa: 'M-Pesa', tigopesa: 'Tigopesa', halopesa: 'HaloPesa', airtelmoney: 'Airtel Money' };
+            btn.querySelector('[data-onetap-label]').textContent =
+              (nice[last.provider] || last.provider) + ' •••' + String(last.phone).slice(-3);
+            btn.hidden = false;
+            btn.addEventListener('click', () => {
+              const card = [...document.querySelectorAll('[data-provider-card]')]
+                .find(c => c.querySelector(`input[name="payment_provider"][value="${CSS.escape(last.provider)}"]`));
+              if (card) card.click();
+              const input = $('input[name="payment_phone"]');
+              if (input) input.value = last.phone;
+              placeBtn?.click();
+            }, { once: true });
+          }
+        }
+      } catch { /* one-tap is a convenience — manual flow always works */ }
+      return;
+    }
+
+    if (panel) panel.hidden = false;
+    const errEl = $('[data-guest-error]');
+    const guestError = msg => {
+      if (!errEl) return;
+      errEl.textContent = msg;
+      errEl.style.display = 'flex';
+    };
+    const guestClear = () => { if (errEl) errEl.style.display = 'none'; };
+    const sendBtn = $('[data-guest-send]');
+    const verifyBtn = $('[data-guest-verify]');
+
+    sendBtn?.addEventListener('click', async () => {
+      guestClear();
+      const phone = normalizePhone($('[data-guest-phone]')?.value?.trim() || '');
+      if (!phone) { guestError('Enter your mobile number.'); return; }
+      sendBtn.disabled = true;
+      $('[data-guest-send-label]').textContent = 'Sending…';
+      try {
+        await api('/auth/checkout/request-code', { method: 'POST', body: { phone } });
+        $('[data-guest-code-row]').hidden = false;
+        sendBtn.style.display = 'none';
+        verifyBtn.style.display = '';
+      } catch (e) { guestError(e.message || 'Could not send code.'); }
+      finally {
+        sendBtn.disabled = false;
+        $('[data-guest-send-label]').textContent = 'Send code';
+      }
+    });
+
+    verifyBtn?.addEventListener('click', async () => {
+      guestClear();
+      const phone = normalizePhone($('[data-guest-phone]')?.value?.trim() || '');
+      const code = ($('[data-guest-code]')?.value || '').replace(/\D/g, '');
+      const name = ($('[data-guest-name]')?.value || '').trim();
+      if (code.length !== 6) { guestError('Enter the 6-digit code.'); return; }
+      verifyBtn.disabled = true;
+      try {
+        await api('/auth/checkout/verify', { method: 'POST', body: { phone, code, name: name || undefined } });
+        // Carry a guest bag into the new account, then boot signed in.
+        try {
+          const guestToken = localStorage.getItem('kp_guest_cart_token');
+          if (guestToken) await api('/cart/merge', { method: 'POST', body: { guest_cart_token: guestToken } });
+        } catch { /* empty guest bag — nothing to carry */ }
+        window.location.reload();
+      } catch (e) { guestError(e.message || 'Verification failed.'); }
+      finally { verifyBtn.disabled = false; }
+    });
+  })();
+
   /* ── save address form ───────────────────────────────── */
   $('[data-address-form]')?.addEventListener('submit', async e => {
     e.preventDefault();
@@ -1491,7 +1632,7 @@
       renderSavedList();
       form.reset();
       closeModal(addrModal);
-      toast('Delivery address saved.');
+      toast('Address saved.');
     } catch (err) {
       if (formErr) { formErr.textContent = err.message || 'Unable to save address.'; formErr.style.display = 'flex'; }
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save address'; }

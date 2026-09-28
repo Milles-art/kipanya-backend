@@ -60,7 +60,7 @@ class PublicPagesRenderTest extends TestCase
     {
         $html = $this->get('/orders/KP-9999')->assertOk()->getContent();
 
-        $this->assertStringContainsString('data-track-step="1"', $html);
-        $this->assertStringContainsString('data-track-step="3"', $html);
+        $this->assertStringContainsString('data-os-step="1"', $html);
+        $this->assertStringContainsString('data-os-step="3"', $html);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Integrations\Payments\FakePaymentGateway;
 use App\Integrations\Payments\PaymentGateway;
 use App\Integrations\Payments\SelcomCheckoutGateway;
 use App\Integrations\Sms\LogSmsGateway;
@@ -31,25 +30,65 @@ class AppServiceProvider extends ServiceProvider
 
             $configured = fn ($value): bool => is_string($value) && trim($value) !== '';
 
-            // Fully configured server-side credentials enable the real gateway;
-            // otherwise the fake gateway keeps local development/testing
-            // self-contained. Production refuses silent fallback because
-            // FakePaymentGateway throws in production environments.
-            if ($configured($apiKey) && $configured($apiSecret) && $configured($vendorId) && $configured($baseUrl)) {
-                return new SelcomCheckoutGateway(
-                    baseUrl: (string) $baseUrl,
-                    apiKey: (string) $apiKey,
-                    apiSecret: (string) $apiSecret,
-                    vendorId: (string) $vendorId,
-                    currency: (string) ($config['currency'] ?? 'TZS'),
-                    redirectUrl: (string) ($config['redirect_url'] ?? ''),
-                    cancelUrl: (string) ($config['cancel_url'] ?? ''),
-                    webhookUrl: ($config['webhook_url'] ?? null) ?: null,
-                    timeout: (int) ($config['timeout'] ?? 10),
+            // Production-only gateway: Selcom credentials must be configured.
+            // There is no fake/simulator fallback — checkout refuses to run
+            // without real credentials so real money flow is the only path.
+            if (! ($configured($apiKey) && $configured($apiSecret) && $configured($vendorId) && $configured($baseUrl))) {
+                // Test seam only: phpunit boots with APP_ENV=testing and no
+                // Selcom keys. Return an in-memory pending payment (no redirect
+                // URL, no HTTP) so order-creation tests can run without a
+                // user-facing simulator. Never reachable in production or local
+                // dev — both throw below.
+                if ($app->environment('testing')) {
+                    return new class implements PaymentGateway {
+                        public function initiate(\App\Models\Wear\WearOrder $order, string $idempotencyKey): array
+                        {
+                            $reference = 'TEST-'.strtoupper(bin2hex(random_bytes(9)));
+
+                            return [
+                                'provider' => 'selcom_checkout',
+                                'reference' => $reference,
+                                'status' => 'pending',
+                                'payload' => [
+                                    'environment' => 'testing',
+                                    'order_number' => $order->order_number,
+                                    'idempotency_key' => $idempotencyKey,
+                                    // Dummy https URL so the checkout response keeps
+                                    // the payment_gateway_url contract. Not a
+                                    // simulator — no local blade or route serves it.
+                                    'payment_gateway_url' => 'https://pay.example.test/launch/'.$reference,
+                                ],
+                            ];
+                        }
+
+                        public function status(string $orderId): array
+                        {
+                            return ['status' => 'pending', 'provider' => 'selcom_checkout', 'payload' => ['order_id' => $orderId]];
+                        }
+
+                        public function cancel(string $orderId): bool
+                        {
+                            return true;
+                        }
+                    };
+                }
+
+                throw new \RuntimeException(
+                    'Selcom payment gateway is not configured. Set SELCOM_BASE_URL, SELCOM_API_KEY, SELCOM_API_SECRET and SELCOM_VENDOR_ID.'
                 );
             }
 
-            return new FakePaymentGateway;
+            return new SelcomCheckoutGateway(
+                baseUrl: (string) $baseUrl,
+                apiKey: (string) $apiKey,
+                apiSecret: (string) $apiSecret,
+                vendorId: (string) $vendorId,
+                currency: (string) ($config['currency'] ?? 'TZS'),
+                redirectUrl: (string) ($config['redirect_url'] ?? ''),
+                cancelUrl: (string) ($config['cancel_url'] ?? ''),
+                webhookUrl: ($config['webhook_url'] ?? null) ?: null,
+                timeout: (int) ($config['timeout'] ?? 10),
+            );
         });
 
         $this->app->singleton(PaymentStateMachine::class, fn (): PaymentStateMachine => new PaymentStateMachine);

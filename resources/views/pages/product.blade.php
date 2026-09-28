@@ -124,10 +124,6 @@
 
             <div class="mt-7 grid gap-3 border-t border-emerald-950/10 pt-6 sm:mt-8 sm:grid-cols-2">
                 <div class="flex items-start gap-2.5 text-sm text-black">
-                    <x-tabler-truck size="17" class="mt-0.5 flex-shrink-0 text-black" />
-                    Delivery calculated at checkout
-                </div>
-                <div class="flex items-start gap-2.5 text-sm text-black">
                     <x-tabler-rotate size="17" class="mt-0.5 flex-shrink-0 text-black" />
                     Easy exchange within 7 days
                 </div>

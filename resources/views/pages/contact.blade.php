@@ -215,10 +215,6 @@
 
                 <div class="divide-y divide-emerald-950/10 rounded-2xl border border-emerald-950/10">
                     <details class="kp-faq group p-5 sm:p-6">
-                        <summary class="flex items-center justify-between gap-4"><span class="text-sm font-semibold sm:text-base">How long does delivery take?</span><x-tabler-chevron-down size="18" class="kp-faq-chevron flex-shrink-0 text-emerald-700" /></summary>
-                        <p class="mt-3 text-sm leading-6 text-black/65">Delivery time depends on your location and is calculated at checkout. Orders within Dar es Salaam typically arrive faster than upcountry deliveries.</p>
-                    </details>
-                    <details class="kp-faq group p-5 sm:p-6">
                         <summary class="flex items-center justify-between gap-4"><span class="text-sm font-semibold sm:text-base">How do I track my order?</span><x-tabler-chevron-down size="18" class="kp-faq-chevron flex-shrink-0 text-emerald-700" /></summary>
                         <p class="mt-3 text-sm leading-6 text-black/65">Once your order is placed, you can follow its status from your account under My Orders, or use the order number we send you.</p>
                     </details>

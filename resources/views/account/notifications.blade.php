@@ -118,7 +118,7 @@
             </span>
             <div>
               <p class="kpnf-row-label">Order updates</p>
-              <p class="kpnf-row-sub">Confirmation, shipping, and delivery status for your orders.</p>
+              <p class="kpnf-row-sub">Confirmation and payment status for your orders.</p>
             </div>
           </div>
           <span class="kpnf-always">Always on</span>

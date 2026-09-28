@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Web\AccountController;
 use App\Http\Controllers\Web\CartPageController;
-use App\Http\Controllers\Web\PaySimulatorController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home', ['title' => 'KP Wear — Everyday, made better'])->name('home');
@@ -38,13 +37,5 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 });
 Route::redirect('/orders', '/account/orders');
 Route::view('/orders/{orderNumber}', 'pages.order-status')->name('order-status');
-
-// Local payment simulator for the fake gateway. The controller itself also
-// refuses production, so these URLs can never settle real money.
-Route::middleware(['auth:sanctum', 'active'])->group(function () {
-    Route::get('/pay/simulate/{orderNumber}', [PaySimulatorController::class, 'show'])->name('pay.simulate');
-    Route::post('/pay/simulate/{orderNumber}/complete', [PaySimulatorController::class, 'complete'])->name('pay.simulate.complete');
-    Route::post('/pay/simulate/{orderNumber}/fail', [PaySimulatorController::class, 'fail'])->name('pay.simulate.fail');
-});
 
 require __DIR__.'/admin.php';

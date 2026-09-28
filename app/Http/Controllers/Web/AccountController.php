@@ -46,7 +46,7 @@ final class AccountController extends Controller
         $user = $this->user($request);
         $orders = WearOrder::query()
             ->where('user_id', $user->id)
-            ->with(['items'])
+            ->with(['items.product'])
             ->latest('id')
             ->get();
 
@@ -61,7 +61,7 @@ final class AccountController extends Controller
         $user = $this->user($request);
         $order = WearOrder::query()
             ->where('user_id', $user->id)
-            ->with(['items', 'payments', 'statusHistory'])
+            ->with(['items', 'items.product', 'payments', 'statusHistory'])
             ->where(fn ($q) => $q->where('order_number', $orderId)->orWhere('id', (int) $orderId))
             ->latest('id')
             ->firstOrFail();

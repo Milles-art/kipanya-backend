@@ -34,10 +34,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Server-side payment gateway for the Checkout API (developers.selcommobile.com).
-    | Credentials stay server-side; an empty API key/secret/vendor in local
-    | development keeps the FakePaymentGateway active. Production must provide
-    | all of SELCOM_BASE_URL, SELCOM_API_KEY, SELCOM_API_SECRET and
-    | SELCOM_VENDOR_ID or checkout will refuse to run.
+    | Credentials stay server-side. Production-only flow: all of
+    | SELCOM_BASE_URL, SELCOM_API_KEY, SELCOM_API_SECRET and
+    | SELCOM_VENDOR_ID must be set or checkout will refuse to run.
     |
     */
 
