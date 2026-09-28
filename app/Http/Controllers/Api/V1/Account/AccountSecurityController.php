@@ -30,6 +30,15 @@ final class AccountSecurityController extends Controller
         $user->password = $data['new_password'];
         $user->save();
 
+        // A credential change must end every other session: if the old credential (or a
+        // session token) was compromised, the attacker must not stay signed in elsewhere.
+        $tokens = $user->tokens();
+        $current = $user->currentAccessToken();
+        if ($current instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $tokens->whereKeyNot($current->getKey());
+        }
+        $tokens->delete();
+
         return response()->json(['message' => 'Password updated.']);
     }
 

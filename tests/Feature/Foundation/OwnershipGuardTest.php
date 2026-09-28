@@ -140,4 +140,69 @@ class OwnershipGuardTest extends TestCase
             method_exists(\App\Services\Payments\PaymentService::class, 'translateGatewayFailure')
         );
     }
+
+    // ---- ownership helper behaviour (AuthorizesUserOwnership)
+
+    /** The trait reads request()->user(); outside an HTTP call that needs a resolver. */
+    private function actingAsInRequest(User $user): void
+    {
+        request()->setUserResolver(static fn () => $user);
+    }
+
+    private function guardHarness(): object
+    {
+        return new class
+        {
+            use \App\Http\Controllers\Api\V1\Concerns\AuthorizesUserOwnership;
+
+            public function owned(string $class, int|string $key)
+            {
+                return $this->ownedOrFail($class, $key);
+            }
+
+            public function assert(\Illuminate\Database\Eloquent\Model $model): void
+            {
+                $this->assertOwnedBy($model);
+            }
+        };
+    }
+
+    public function test_owned_or_fail_finds_the_callers_record_and_hides_everyone_elses(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $mine = PaymentMethod::create(['user_id' => $owner->id, 'brand' => 'Visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030]);
+        $theirs = PaymentMethod::create(['user_id' => $other->id, 'brand' => 'Visa', 'last4' => '1111', 'exp_month' => 1, 'exp_year' => 2031]);
+
+        $this->actingAsInRequest($owner);
+        $guard = $this->guardHarness();
+
+        $this->assertTrue($guard->owned(PaymentMethod::class, $mine->id)->is($mine));
+
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $guard->owned(PaymentMethod::class, $theirs->id);
+    }
+
+    public function test_ownership_is_compared_as_integers_so_string_keys_do_not_lock_out_the_owner(): void
+    {
+        $owner = User::factory()->create();
+        $method = PaymentMethod::create(['user_id' => $owner->id, 'brand' => 'Visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030]);
+        $method->setRawAttributes(array_merge($method->getAttributes(), ['user_id' => (string) $owner->id]));
+
+        $this->actingAsInRequest($owner);
+        $this->guardHarness()->assert($method);
+
+        $this->assertTrue(true, 'A numeric-string user_id still identifies the real owner.');
+    }
+
+    public function test_a_record_with_no_owner_is_never_treated_as_owned(): void
+    {
+        $user = User::factory()->create();
+        $orphan = new PaymentMethod(['brand' => 'Visa', 'last4' => '0000']);
+
+        $this->actingAsInRequest($user);
+
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->guardHarness()->assert($orphan);
+    }
 }

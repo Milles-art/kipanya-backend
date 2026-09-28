@@ -25,7 +25,12 @@ class CreateOrderRequest extends FormRequest
                 ),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'payment_method' => ['nullable', 'string', Rule::in(['mobile_money', 'card'])],
+            // Only mobile money is wired to a real gateway. 'card' was accepted here
+            // while the checkout page collected a raw PAN/CVV into a plain form field
+            // and silently discarded it server-side — cardholder data must never touch
+            // this domain outside a PCI-compliant hosted/tokenized flow, so the value
+            // is rejected until a real card gateway exists.
+            'payment_method' => ['nullable', 'string', Rule::in(['mobile_money'])],
             'payment_provider' => ['nullable', 'string', 'max:50', Rule::in(['mpesa', 'tigopesa', 'halopesa', 'airtelmoney'])],
             'payment_phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9\s-]{7,20}$/', new ValidTanzanianPhoneNumber],
         ];

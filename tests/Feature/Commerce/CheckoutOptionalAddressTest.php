@@ -142,4 +142,54 @@ class CheckoutOptionalAddressTest extends TestCase
         $this->assertStringContainsString('Uhuru St 12', $row->delivery_address);
         $this->assertSame('Leave at gate', $row->notes);
     }
+
+    // ---- card payments: no cardholder data on this domain
+
+    public function test_card_is_not_an_accepted_payment_method(): void
+    {
+        [$user] = $this->customer();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/checkout', ['payment_method' => 'card'], $this->idempotency())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('payment_method');
+
+        $this->assertSame(0, \App\Models\Wear\WearOrder::query()->count());
+    }
+
+    public function test_card_fields_sent_by_a_client_are_never_stored_or_echoed(): void
+    {
+        [$user] = $this->customer();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/checkout', [
+                'payment_method' => 'mobile_money',
+                'payment_provider' => 'mpesa',
+                'payment_phone' => '0624643714',
+                'card_number' => '4111111111111111',
+                'card_cvv' => '123',
+                'card_expiry' => '12/30',
+                'card_name' => 'Test Person',
+            ], $this->idempotency())
+            ->assertOk();
+
+        $this->assertStringNotContainsString('4111111111111111', $response->getContent());
+
+        foreach (\Illuminate\Support\Facades\DB::getSchemaBuilder()->getTableListing() as $table) {
+            foreach (\Illuminate\Support\Facades\DB::table($table)->get() as $row) {
+                $this->assertStringNotContainsString('4111111111111111', json_encode($row), "Card number found in {$table}");
+            }
+        }
+    }
+
+    public function test_the_checkout_page_does_not_render_card_inputs(): void
+    {
+        [$user] = $this->customer();
+
+        $html = $this->actingAs($user, 'sanctum')->get('/checkout')->assertOk()->getContent();
+
+        foreach (['card_number', 'card_cvv', 'card_expiry', 'cc-number', 'cc-csc'] as $needle) {
+            $this->assertStringNotContainsString($needle, $html, "Checkout must not collect {$needle}");
+        }
+    }
 }

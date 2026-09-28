@@ -901,27 +901,6 @@
             </span>
           </label>
 
-          {{-- Card --}}
-          <label data-pay-option data-method="card" class="ckp-pay-option">
-            <input type="radio" name="payment_method" value="card" hidden>
-            <span class="ckp-pay-check">
-              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            </span>
-            <span class="ckp-pay-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="20" height="14" x="2" y="5" rx="2"/>
-                <line x1="2" x2="22" y1="10" y2="10"/>
-              </svg>
-            </span>
-            <span>
-              <span class="ckp-pay-name">Card</span>
-              <span class="ckp-pay-sub">Debit or credit card</span>
-            </span>
-          </label>
         </div>
 
         {{-- Mobile money panel --}}
@@ -960,38 +939,6 @@
               <line x1="12" x2="12.01" y1="16" y2="16"/>
             </svg>
             <span>After placing your order, you'll be redirected to complete your payment securely.</span>
-          </div>
-        </div>
-
-        {{-- Card panel --}}
-        <div data-method-panel="card" class="ckp-card-panel" style="display:none">
-          <label class="ckp-field full">
-            <span>Card number</span>
-            <input name="card_number" inputmode="numeric" autocomplete="cc-number"
-                   placeholder="1234 1234 1234 1234">
-          </label>
-          <div class="ckp-card-row">
-            <label class="ckp-field">
-              <span>Expiry</span>
-              <input name="card_expiry" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY">
-            </label>
-            <label class="ckp-field">
-              <span>CVV</span>
-              <input name="card_cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="123">
-            </label>
-          </div>
-          <label class="ckp-field full">
-            <span>Name on card</span>
-            <input name="card_name" autocomplete="cc-name" placeholder="As it appears on the card">
-          </label>
-          <div class="ckp-info">
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 style="flex:none;margin-top:1px">
-              <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/>
-              <line x1="12" x2="12.01" y1="16" y2="16"/>
-            </svg>
-            <span>Your card is charged securely once you place the order.</span>
           </div>
         </div>
 
@@ -1475,10 +1422,6 @@
 
     const phone      = normalizePhone($('input[name="payment_phone"]')?.value?.trim() || '');
     const provider   = $('input[name="payment_provider"]:checked')?.value || '';
-    const cardNumber = $('input[name="card_number"]')?.value?.trim() || '';
-    const cardExpiry = $('input[name="card_expiry"]')?.value?.trim() || '';
-    const cardCvv    = $('input[name="card_cvv"]')?.value?.trim() || '';
-    const cardName   = $('input[name="card_name"]')?.value?.trim() || '';
 
     if (selectedMethod === 'mobile_money' && !phone) {
       showError('Please enter your mobile number.'); return;
@@ -1503,10 +1446,6 @@
           payment_method:  selectedMethod,
           payment_provider: provider,
           payment_phone:   phone,
-          card_number:     cardNumber,
-          card_expiry:     cardExpiry,
-          card_cvv:        cardCvv,
-          card_name:       cardName,
         },
       });
       const placedNumber = placed?.data?.order_number;

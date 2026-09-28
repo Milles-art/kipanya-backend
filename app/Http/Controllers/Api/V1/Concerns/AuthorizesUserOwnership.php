@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Concerns;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * Centralised ownership checks for customer-owned resources.
@@ -24,10 +22,9 @@ trait AuthorizesUserOwnership
     /**
      * Abort unless the model belongs to the authenticated user.
      *
-     * @param  Model|Relation  $model  A model carrying a `user_id` column, or a
-     *                                relation already constrained to the owner.
+     * @param  Model  $model  A model carrying a `user_id` column.
      */
-    protected function assertOwnedBy(Model|Relation $model): void
+    protected function assertOwnedBy(Model $model): void
     {
         $user = request()->user();
 
@@ -35,16 +32,7 @@ trait AuthorizesUserOwnership
             abort(401);
         }
 
-        if ($model instanceof Relation) {
-            abort_unless($model->whereKey($model->getRelated()->getKey())->exists(), 403);
-
-            return;
-        }
-
-        abort_unless(
-            $model->getAttribute('user_id') === $user->getKey(),
-            403,
-        );
+        abort_unless($this->ownsRecord($model, $user), 403);
     }
 
     /**
@@ -63,7 +51,7 @@ trait AuthorizesUserOwnership
             return;
         }
 
-        abort_unless($model->getAttribute('user_id') === $user->getKey(), 403);
+        abort_unless($this->ownsRecord($model, $user), 403);
     }
 
     /**
@@ -73,7 +61,7 @@ trait AuthorizesUserOwnership
      * unowned id is simply not found, so the existence of another customer's
      * record is never confirmed.
      */
-    protected function ownedOrFail(string $modelClass, int|string $key)
+    protected function ownedOrFail(string $modelClass, int|string $key): Model
     {
         $user = request()->user();
 
@@ -81,11 +69,23 @@ trait AuthorizesUserOwnership
             abort(401);
         }
 
-        $instance = new $modelClass;
-
-        return $instance->newQuery()
+        // The owner column is `user_id` on every customer-owned table. (Model::getForeignKey()
+        // is NOT that: it names the key other tables use to point AT this model, e.g.
+        // `wear_order_id`, which would filter on a column that does not exist.)
+        return (new $modelClass)->newQuery()
             ->whereKey($key)
-            ->where($instance->getForeignKey(), $user->getKey())
+            ->where('user_id', $user->getKey())
             ->firstOrFail();
+    }
+
+    /**
+     * Compare as integers: some drivers return primary/foreign keys as numeric strings, and a
+     * strict === between "5" and 5 would wrongly deny the real owner.
+     */
+    private function ownsRecord(Model $model, Model $user): bool
+    {
+        $owner = $model->getAttribute('user_id');
+
+        return $owner !== null && (int) $owner === (int) $user->getKey();
     }
 }
