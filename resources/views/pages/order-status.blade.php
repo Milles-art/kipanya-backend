@@ -122,6 +122,10 @@
   background: var(--green-faint); color: var(--green);
   box-shadow: 0 0 0 10px rgba(26,122,82,.09);
 }
+.os-status-icon.refunded {
+  background: var(--green-faint); color: var(--green);
+  box-shadow: 0 0 0 10px rgba(26,122,82,.09);
+}
 .os-status-icon.failed {
   background: var(--red-faint); color: var(--red);
   box-shadow: 0 0 0 10px rgba(220,38,38,.07);
@@ -397,6 +401,14 @@
         </p>
       </div>
 
+      {{-- ── REFUNDED panel ── --}}
+      <div data-os-panel="refunded" style="display:none">
+        <p class="os-success-msg">Payment refunded</p>
+        <p class="os-body-msg">
+          The money was returned to your original payment method. It usually arrives within a few days.
+        </p>
+      </div>
+
     </div>{{-- /os-card --}}
 
     {{-- ── Order summary (filled in from the status API; stays hidden for guests) ── --}}
@@ -478,6 +490,16 @@
       </div>
     </div>
 
+    {{-- Refunded actions --}}
+    <div data-os-ctas="refunded" class="os-actions" style="display:none">
+      <a href="{{ route('shop') }}" class="os-btn-primary">
+        Continue shopping
+      </a>
+      <a href="{{ route('account.orders') }}" class="os-btn-secondary">
+        View my orders
+      </a>
+    </div>
+
     {{-- Help --}}
     <p class="os-help">
       Having trouble? <a href="{{ route('contact') }}">Contact support</a>
@@ -507,6 +529,7 @@
     pending: `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
     success: `<polyline points="20 6 9 17 4 12"/>`,
     failed:  `<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`,
+    refunded: `<polyline points="20 6 9 17 4 12"/>`,
   };
 
   const applyState = state => {
@@ -524,7 +547,7 @@
     }
 
     // title
-    const titles = { pending: 'Awaiting payment', paid: 'Payment confirmed!', failed: 'Payment failed' };
+    const titles = { pending: 'Awaiting payment', paid: 'Payment confirmed!', failed: 'Payment failed', refunded: 'Payment refunded' };
     if (titleEl) titleEl.textContent = titles[state] || 'Awaiting payment';
 
     // panels
@@ -657,7 +680,7 @@
 
   const TERMINAL = new Set(['paid', 'completed', 'delivered', 'failed', 'cancelled', 'refunded']);
   const SUCCESS  = new Set(['paid', 'completed', 'delivered']);
-  const FAILED   = new Set(['failed', 'cancelled', 'refunded']);
+  const FAILED   = new Set(['failed', 'cancelled']);
 
   let pollCount = 0;
   const MAX_POLLS = 72; // ~6 minutes at 5s intervals
@@ -684,6 +707,10 @@
       if (SUCCESS.has(status)) {
         applyState('paid');
         return; // done — no more polling
+      }
+      if (status === 'refunded') {
+        applyState('refunded');
+        return;
       }
       if (FAILED.has(status)) {
         applyState('failed');

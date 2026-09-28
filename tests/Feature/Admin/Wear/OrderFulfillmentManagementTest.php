@@ -89,6 +89,23 @@ class OrderFulfillmentManagementTest extends TestCase
         $this->assertNotNull($order->delivered_at);
     }
 
+    public function test_confirmed_order_can_be_completed_directly_without_shipping_steps(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $order = WearOrder::factory()->create([
+            'status' => OrderStatus::Confirmed,
+            'payment_status' => PaymentStatus::Paid,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.wear.orders.status', $order), ['status' => OrderStatus::Delivered->value])
+            ->assertRedirect();
+
+        $order->refresh();
+        $this->assertSame(OrderStatus::Delivered, $order->status);
+        $this->assertNotNull($order->delivered_at);
+    }
+
     public function test_cancelling_a_pending_payment_order_releases_the_stock_reservation(): void
     {
         $admin = User::factory()->admin()->create();

@@ -20,8 +20,11 @@ final class OrderStateService
     {
         return match ($current) {
             OrderStatus::PendingPayment => [OrderStatus::Cancelled],
-            OrderStatus::Confirmed => [OrderStatus::Processing],
-            OrderStatus::Processing => [OrderStatus::Shipped],
+            // Direct handover: no shipping step, so a confirmed order can be
+            // completed without walking Processing → Shipped → Delivered.
+            // (Returns unlock on delivered status, so this keeps them reachable.)
+            OrderStatus::Confirmed => [OrderStatus::Processing, OrderStatus::Delivered],
+            OrderStatus::Processing => [OrderStatus::Shipped, OrderStatus::Delivered],
             OrderStatus::Shipped => [OrderStatus::Delivered],
             OrderStatus::Delivered, OrderStatus::Cancelled => [],
         };

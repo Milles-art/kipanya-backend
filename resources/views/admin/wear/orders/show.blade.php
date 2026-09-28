@@ -102,15 +102,11 @@
             </section>
 
             <section class="rounded-2xl border border-black bg-white p-5">
-                <h2 class="font-bold">Fulfillment & tracking</h2>
-                <p class="mt-1 text-sm text-black">Add the delivery provider and tracking reference without changing payment state.</p>
+                <h2 class="font-bold">Fulfillment</h2>
+                <p class="mt-1 text-sm text-black">Internal handover note without changing payment state.</p>
                 <form method="POST" action="{{ route('admin.wear.orders.delivery', $order) }}" class="mt-5 space-y-4">
                     @csrf
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-black">Delivery provider</span><input name="delivery_provider" value="{{ old('delivery_provider', $order->delivery_provider) }}" class="mt-2 w-full rounded-xl border border-black px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Courier / rider / provider"></label>
-                        <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-black">Tracking number</span><input name="tracking_number" value="{{ old('tracking_number', $order->tracking_number) }}" class="mt-2 w-full rounded-xl border border-black px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Tracking reference"></label>
-                    </div>
-                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-black">Fulfillment note</span><textarea name="fulfillment_notes" rows="3" class="mt-2 w-full rounded-xl border border-black px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Internal delivery note">{{ old('fulfillment_notes', $order->fulfillment_notes) }}</textarea></label>
+                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-black">Fulfillment note</span><textarea name="fulfillment_notes" rows="3" class="mt-2 w-full rounded-xl border border-black px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Internal handover note">{{ old('fulfillment_notes', $order->fulfillment_notes) }}</textarea></label>
                     <div class="grid gap-3 text-xs text-black sm:grid-cols-2">
                         <div class="rounded-xl bg-white p-3"><span class="font-semibold text-black">Shipped:</span> {{ $order->shipped_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
                         <div class="rounded-xl bg-white p-3"><span class="font-semibold text-black">Delivered:</span> {{ $order->delivered_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
