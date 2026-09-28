@@ -59,6 +59,8 @@ class ProductionSecurityGuardTest extends TestCase
         config()->set('services.selcom.api_secret', 'prod-secret');
         config()->set('services.selcom.vendor_id', 'VENDOR1');
         config()->set('services.selcom.webhook_url', 'https://kipanya.example/api/webhooks/selcom');
+        config()->set('services.selcom.redirect_url', 'https://kipanya.example/orders/{order}');
+        config()->set('services.selcom.cancel_url', 'https://kipanya.example/orders/{order}');
 
         $this->expectNotToPerformAssertions();
         ProductionSecurityGuard::assert();

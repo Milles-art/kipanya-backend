@@ -938,7 +938,7 @@
               <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/>
               <line x1="12" x2="12.01" y1="16" y2="16"/>
             </svg>
-            <span>After placing your order, you'll be redirected to complete your payment securely.</span>
+            <span>Next step: you'll be taken to our secure payment page to approve the payment on your phone. Your order is confirmed once payment is received.</span>
           </div>
         </div>
 
@@ -1449,10 +1449,23 @@
         },
       });
       const placedNumber = placed?.data?.order_number;
-      toast('Order placed!');
-      // Land on this order's tracking page (falls back to the orders list
-      // if the response shape ever changes).
-      window.location.href = placedNumber ? '/orders/' + encodeURIComponent(placedNumber) : '/account/orders';
+      const statusPage = placedNumber ? '/orders/' + encodeURIComponent(placedNumber) : '/account/orders';
+
+      // Step 2: send the customer STRAIGHT to the secure payment page. Only https (or
+      // same-origin, for the local simulator) URLs are followed. If there is no payment
+      // page yet, the order status page still shows a clear "Pay now" button.
+      const payments = Array.isArray(placed?.data?.payment) ? placed.data.payment : [];
+      const gatewayUrl = payments.find(p => p && typeof p.payment_gateway_url === 'string' && p.payment_gateway_url)?.payment_gateway_url;
+      let target = statusPage;
+      if (gatewayUrl) {
+        try {
+          const u = new URL(gatewayUrl, window.location.origin);
+          if (u.protocol === 'https:' || u.origin === window.location.origin) target = u.href;
+        } catch (_) { /* malformed URL: fall back to the status page */ }
+      }
+
+      placeLabel.textContent = target === statusPage ? 'Order placed…' : 'Opening secure payment…';
+      window.location.href = target;
     } catch (e) {
       showError(e.message || 'Unable to place order. Please try again.');
       placeBtn.disabled = false;

@@ -56,8 +56,10 @@ final class SelcomCheckoutGateway implements PaymentGateway
             'buyer_phone' => ltrim((string) $order->customer_phone, '+'),
             'amount' => (string) ((int) round((float) $order->total)),
             'currency' => $this->currency,
-            'redirect_url' => base64_encode($this->redirectUrl),
-            'cancel_url' => base64_encode($this->cancelUrl),
+            // "{order}" in SELCOM_REDIRECT_URL / SELCOM_CANCEL_URL becomes this order's number,
+            // so the buyer returns to THEIR order's status page (e.g. https://shop.example/orders/{order}).
+            'redirect_url' => base64_encode($this->forOrder($this->redirectUrl, $orderId)),
+            'cancel_url' => base64_encode($this->forOrder($this->cancelUrl, $orderId)),
             'webhook' => base64_encode($webhook),
             'buyer_remarks' => 'Kipanya order '.$orderId,
             'merchant_remarks' => 'Kipanya order '.$orderId,
@@ -308,5 +310,10 @@ final class SelcomCheckoutGateway implements PaymentGateway
         }
 
         throw new RuntimeException('Selcom Checkout returned a payment gateway URL on an unexpected host.');
+    }
+
+    private function forOrder(string $url, string $orderNumber): string
+    {
+        return str_replace('{order}', rawurlencode($orderNumber), $url);
     }
 }

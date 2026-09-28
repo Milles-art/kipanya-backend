@@ -410,9 +410,9 @@
       </a>
     </div>
 
-    {{-- ── Cart content ── --}}
-    @if($cartItems->isNotEmpty())
-    <div data-cart-content class="kpc-grid">
+    {{-- ── Cart content (always rendered so API hydration has a target;
+         hidden until rows exist — server rows for members, API rows for guests) ── --}}
+    <div data-cart-content class="kpc-grid" style="{{ $cartItems->isEmpty() ? 'display:none' : '' }}">
 
       {{-- Items --}}
       <section aria-label="Cart items">
@@ -540,7 +540,6 @@
         <p class="kpc-checkout-note">Taxes and delivery calculated at the next step</p>
       </aside>
     </div>
-    @endif
 
     {{-- ── Reassurance strip ── --}}
     <div class="kpc-strip">
@@ -625,6 +624,10 @@
 
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c]));
+
+  const isSignedIn = document.querySelector('meta[name="kp-signed-in"]')?.getAttribute('content') === '1';
 
   const errBox    = $('[data-cart-error]');
   const loadEl    = $('[data-cart-loading]');
@@ -637,9 +640,77 @@
     errBox.style.display = 'flex';
   };
 
-  // Hide skeleton once page data is server-rendered
-  if (loadEl) loadEl.style.display = 'none';
-  if (contentEl) contentEl.style.display = 'grid';
+  // The server only renders rows for signed-in customers: a guest's bag
+  // lives behind X-Guest-Cart-Token, which only JavaScript can send. When
+  // there are no server rows (guest, or freshly merged account), hydrate
+  // the same v2 markup from GET /api/v1/cart so the bag is never
+  // misleadingly empty. Signed-in server rows are left untouched — the
+  // server render owns them.
+  const apiRowHtml = item => {
+    const id = `api-${item.variant_id}`;
+    const qty = Math.max(1, parseInt(item.quantity || '1', 10));
+    const unit = Math.round(Number(item.unit_price || 0));
+    const name = item.product?.name || 'Product';
+    const slug = item.product?.slug || '';
+    const image = item.product?.image || '';
+    const meta = [item.variant?.size ? 'Size ' + item.variant.size : null, item.variant?.color || null]
+      .filter(Boolean).join('  ·  ');
+    const lineTotal = Math.round(Number(item.line_total ?? unit * qty));
+
+    return `<div class="kpc-item" data-item-id="${esc(id)}" data-variant-id="${esc(item.variant_id)}" data-unit-price="${unit}">`
+      + `<div class="kpc-item-img">`
+      + (image
+          ? `<img src="${esc(image)}" alt="${esc(name)}" onerror="this.parentElement.innerHTML='<span>KP</span>'">`
+          : `<span>KP</span>`)
+      + `</div>`
+      + `<div class="kpc-item-body"><div class="kpc-item-top"><div>`
+      + `<p class="kpc-item-name">${esc(name)}</p>`
+      + (meta ? `<p class="kpc-item-meta">${esc(meta)}</p>` : '')
+      + `</div>`
+      + `<button type="button" class="kpc-remove" aria-label="Remove item" data-remove-item="${esc(id)}">`
+      + `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+      + `</button></div>`
+      + `<div class="kpc-item-bottom"><div class="kpc-qty">`
+      + `<button type="button" class="kpc-qty-btn" aria-label="Decrease quantity" data-qty-dec="${esc(id)}"${qty <= 1 ? ' disabled' : ''}>`
+      + `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>`
+      + `</button>`
+      + `<span class="kpc-qty-val" data-qty-val="${esc(id)}">${qty}</span>`
+      + `<button type="button" class="kpc-qty-btn" aria-label="Increase quantity" data-qty-inc="${esc(id)}">`
+      + `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`
+      + `</button></div>`
+      + `<strong class="kpc-item-price" data-item-total="${esc(id)}">TZS ${lineTotal.toLocaleString()}</strong>`
+      + `</div></div></div>`;
+  };
+
+  const hydrateFromApi = async () => {
+    let cart = null;
+    try {
+      cart = (await api('/cart'))?.data;
+    } catch (err) {
+      if (loadEl) loadEl.style.display = 'none';
+      showError(err.message || 'Unable to load your bag.');
+      return;
+    }
+
+    const items = Array.isArray(cart?.items) ? cart.items : [];
+    const box = $('[data-cart-items]');
+
+    if (loadEl) loadEl.style.display = 'none';
+
+    if (!box || !items.length) return;
+
+    box.innerHTML = items.map(apiRowHtml).join('');
+
+    if (contentEl) contentEl.style.display = 'grid';
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    recalcSubtotal();
+
+    const summary = $('[data-cart-summary]');
+    if (summary && Number.isFinite(Number(cart?.subtotal))) {
+      summary.textContent = 'TZS ' + Math.round(Number(cart.subtotal)).toLocaleString();
+    }
+  };
 
   /* ── Subtotal recalculation ── */
   const recalcSubtotal = () => {
@@ -665,6 +736,16 @@
       emptyEl.style.display = 'flex';
     }
   };
+
+  // Server rows own the page when present; otherwise the API is the source
+  // of truth (guest bags are API-only). The skeleton stays visible until
+  // the hydrate resolves.
+  if ($$('[data-item-id]').length) {
+    if (loadEl) loadEl.style.display = 'none';
+    if (contentEl) contentEl.style.display = 'grid';
+  } else {
+    hydrateFromApi();
+  }
 
   /* ── Quantity controls ── */
   document.addEventListener('click', async e => {

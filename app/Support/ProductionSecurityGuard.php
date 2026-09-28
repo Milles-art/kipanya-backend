@@ -97,6 +97,8 @@ final class ProductionSecurityGuard
             'api_secret' => 'SELCOM_API_SECRET',
             'vendor_id' => 'SELCOM_VENDOR_ID',
             'webhook_url' => 'SELCOM_WEBHOOK_URL',
+            'redirect_url' => 'SELCOM_REDIRECT_URL',
+            'cancel_url' => 'SELCOM_CANCEL_URL',
         ] as $key => $envName) {
             if (! is_string(config("services.selcom.$key")) || trim((string) config("services.selcom.$key")) === '') {
                 $issues[] = $envName.' must be set in production so customers can pay and payments can be confirmed.';

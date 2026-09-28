@@ -127,6 +127,37 @@
     return data;
   };
 
+  // Only same-origin paths are accepted as post-auth destinations, so a
+  // crafted `redirect` value can never bounce the customer off-site.
+  const safeRedirect = value => {
+    if (typeof value !== 'string') return null;
+    const target = value.trim();
+    if (!target.startsWith('/') || target.startsWith('//')) return null;
+    if (/[\\]/.test(target)) return null;
+    return target;
+  };
+
+  const postAuthDestination = form => {
+    const fromField = safeRedirect(form?.querySelector('input[name="redirect"]')?.value);
+    if (fromField) return fromField;
+
+    try {
+      const params = new URLSearchParams(location.search);
+      const fromQuery = safeRedirect(params.get('redirect'));
+      if (fromQuery) return fromQuery;
+    } catch {}
+
+    return '/account';
+  };
+
+  const loginWithReturn = () => {
+    location.href =
+      '/login?redirect=' +
+      encodeURIComponent(
+        location.pathname + location.search
+      );
+  };
+
   const setAuth = (payload) => {
     if (payload?.token) {
       localStorage.setItem(
@@ -297,11 +328,13 @@
     Number(product.compare_at_price) >
       Number(product.price);
 
+  const PLACEHOLDER_IMAGE = '/assets/wear/catalog/placeholder.svg';
+
   const resolveProductImage = product => {
     const image = product?.image;
 
     if (!image) {
-      return '/assets/wear/catalog/generated/product-01.jpg';
+      return PLACEHOLDER_IMAGE;
     }
 
     try {
@@ -398,7 +431,7 @@
                     src="${escapeHtml(image)}"
                     alt="${escapeHtml(p.name || 'Product')}"
                     loading="lazy"
-                    onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'"
+                    onerror="this.onerror=null;this.src='/assets/wear/catalog/placeholder.svg'"
                     class="h-full w-full object-contain p-4 transition duration-500 ease-out group-hover:scale-105"
                   >
                 </a>
@@ -641,7 +674,7 @@
     button = null
   ) => {
     if (!signedIn()) {
-      location.href = '/login';
+      loginWithReturn();
       return;
     }
 
@@ -717,7 +750,7 @@ const bootHome = async () => {
       }
 
       host.innerHTML = collections.slice(0, 3).map(collection => {
-        const image = collection.cover || collection.image || '/assets/wear/catalog/generated/product-01.jpg';
+        const image = collection.cover || collection.image || '/assets/wear/catalog/placeholder.svg';
 
         return `
           <a
@@ -729,7 +762,7 @@ const bootHome = async () => {
               alt="${escapeHtml(collection.name || 'Collection')}"
               class="absolute inset-0 h-full w-full object-cover object-top transition duration-700 group-hover:scale-[1.035]"
               loading="lazy"
-              onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'"
+              onerror="this.onerror=null;this.src='/assets/wear/catalog/placeholder.svg'"
             >
             <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"></div>
             <div class="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
@@ -1328,16 +1361,56 @@ const bootHome = async () => {
       stock.classList.toggle('text-black', totalStock > 0);
 
       const main = page.querySelector('[data-product-image]');
-      main.src = p.image || '';
+      main.src = p.image || PLACEHOLDER_IMAGE;
       main.alt = p.name || 'Product';
+      main.onerror = () => {
+        main.onerror = null;
+        main.src = PLACEHOLDER_IMAGE;
+      };
 
       const gallery = page.querySelector('[data-product-gallery]');
-      if (gallery && p.image) {
-        gallery.innerHTML = `<button type="button" data-gallery-image="${escapeHtml(p.image)}" class="overflow-hidden rounded-xl border-2 border-black bg-white"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name || 'Product')}" class="aspect-square w-full object-contain p-2"></button>`;
-        gallery.addEventListener('click', e => {
-          const button = e.target.closest('[data-gallery-image]');
-          if (button) main.src = button.dataset.galleryImage;
-        });
+      if (gallery) {
+        const shots = Array.isArray(p.gallery) && p.gallery.length
+          ? p.gallery
+              .map(g => ({
+                url: g?.url || '',
+                alt: g?.alt || p.name || 'Product',
+              }))
+              .filter(g => g.url)
+          : (p.image ? [{ url: p.image, alt: p.name || 'Product' }] : []);
+
+        if (!shots.length) {
+          gallery.innerHTML = '';
+        } else {
+          const paint = url => { main.src = url; };
+
+          gallery.innerHTML = shots.map((shot, index) => `
+            <button type="button" data-gallery-image="${escapeHtml(shot.url)}"
+              aria-label="View image ${index + 1}"
+              class="overflow-hidden rounded-xl border-2 ${index === 0 ? 'border-black' : 'border-transparent'} bg-white">
+              <img src="${escapeHtml(shot.url)}" alt="${escapeHtml(shot.alt)}"
+                loading="lazy"
+                onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}'"
+                class="aspect-square w-full object-contain p-2">
+            </button>`).join('');
+
+          const thumbs = [...gallery.querySelectorAll('[data-gallery-image]')];
+
+          gallery.onclick = e => {
+            const button = e.target.closest('[data-gallery-image]');
+            if (!button) return;
+
+            paint(button.dataset.galleryImage);
+
+            thumbs.forEach(t => {
+              const active = t === button;
+              t.classList.toggle('border-black', active);
+              t.classList.toggle('border-transparent', !active);
+            });
+          };
+
+          paint(shots[0].url);
+        }
       }
 
       const variantsBox = page.querySelector('[data-product-variants]');
@@ -1467,7 +1540,7 @@ const bootHome = async () => {
         return `
           <article class="kp-cart-item grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-4 py-5 sm:grid-cols-[152px_minmax(0,1fr)_150px_150px] sm:items-center sm:gap-6 lg:grid-cols-[152px_minmax(0,1fr)_132px_150px]">
             <a href="/product/${encodeURIComponent(item.product?.slug || '')}" class="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-xl bg-emerald-50/30 ring-1 ring-emerald-950/6 sm:h-[152px] sm:w-[152px]">
-              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2.5" loading="lazy" onerror="this.onerror=null;this.src='/assets/wear/catalog/generated/product-01.jpg'">
+              <img src="${escapeHtml(image)}" alt="${escapeHtml(item.product?.name || 'Product')}" class="h-full w-full object-contain p-2.5" loading="lazy" onerror="this.onerror=null;this.src='/assets/wear/catalog/placeholder.svg'">
             </a>
 
             <div class="min-w-0 self-stretch sm:flex sm:flex-col sm:justify-center">
@@ -1711,7 +1784,7 @@ const bootHome = async () => {
           }
 
           location.href =
-            '/account';
+            postAuthDestination(form);
         } catch (err) {
           showAuthError(err.message);
         }
@@ -1913,8 +1986,7 @@ const bootHome = async () => {
 
       if (!signedIn()) {
         if (account) {
-          location.href =
-            '/login';
+          loginWithReturn();
         }
 
         return;
@@ -2016,7 +2088,10 @@ const bootHome = async () => {
   const bootReturns = async () => {
     const page = document.querySelector('[data-returns-page]');
     if (!page) return;
-    if (!signedIn()) { location.href = '/login'; return; }
+    if (!signedIn()) {
+      loginWithReturn();
+      return;
+    }
 
     const list = page.querySelector('[data-returns-list]');
     const empty = page.querySelector('[data-returns-empty]');
@@ -2138,27 +2213,35 @@ const bootHome = async () => {
       const paid = payment === 'paid';
       const cancelled = status === 'cancelled';
       const pending = !paid && !cancelled;
-      if (title) title.textContent = cancelled ? 'Order cancelled' : paid ? 'Order confirmed' : 'Order created';
+      if (title) title.textContent = cancelled ? 'Order cancelled' : paid ? 'Order confirmed' : 'Complete your payment';
       if (text) {
         text.innerHTML = cancelled
           ? '<span class="h-2 w-2 rounded-full bg-rose-500"></span> This order has been cancelled.'
           : paid
           ? '<span class="h-2 w-2 rounded-full bg-emerald-500"></span> Payment received. Your order is confirmed.'
-          : '<span class="h-2 w-2 animate-pulse rounded-full bg-amber-500"></span> Your order is awaiting payment.';
+          : '<span class="h-2 w-2 animate-pulse rounded-full bg-amber-500"></span> Step 2 of 3 — waiting for your payment.';
       }
       if (iconBox) {
         iconBox.className = `mx-auto flex h-16 w-16 items-center justify-center rounded-full ${cancelled ? 'bg-rose-100 text-rose-700' : paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} ring-8 ${cancelled ? 'ring-rose-50' : paid ? 'ring-emerald-50' : 'ring-amber-50'}`;
         iconBox.innerHTML = cancelled ? icon('x',30) : paid ? icon('check',30) : icon('clock',30);
       }
+      // Payment is the ACTIVE step until money arrives; only then is it done and the
+      // order complete. (The page used to show Payment as already done.)
+      const trackStep2 = page.querySelector('[data-track-step="2"]');
       const trackStep3 = page.querySelector('[data-track-step="3"]');
+      if (trackStep2) {
+        trackStep2.classList.toggle('done', paid);
+        trackStep2.classList.toggle('active', pending);
+      }
       if (trackStep3) {
         trackStep3.classList.toggle('done', paid);
-        trackStep3.classList.toggle('active', !paid && !cancelled);
+        trackStep3.classList.toggle('active', false);
       }
+      page.querySelector('[data-payment-help]')?.classList.toggle('hidden', !pending);
       if (actions) {
         const payment = Array.isArray(order.payment) ? order.payment : [];
         const gatewayUrl = payment.find(p => p && typeof p.payment_gateway_url === 'string' && p.payment_gateway_url)?.payment_gateway_url;
-        const payNow = pending && gatewayUrl ? `<a href="${escapeHtml(gatewayUrl)}" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Pay now</a>` : '';
+        const payNow = pending && gatewayUrl ? `<a href="${escapeHtml(gatewayUrl)}" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 rounded-xl bg-black px-8 py-3.5 text-base font-bold text-white hover:bg-emerald-700">Pay now — TZS ${Number(order.total || 0).toLocaleString()}</a>` : '';
         actions.innerHTML = `${payNow}<a href="/account/orders/${encodeURIComponent(order.order_number)}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-black px-6 py-3 text-sm font-medium text-black hover:bg-white">View order</a>${pending ? `<button type="button" data-cancel-pending-order class="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-6 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50">Cancel order</button>` : ''}`;
         actions.querySelector('[data-cancel-pending-order]')?.addEventListener('click', async e => {
           const button=e.currentTarget; if (!(await window.kpConfirm?.('Cancel this order?', { title: 'Cancel this order?' }))) return; button.disabled=true; button.textContent='Cancelling…';
@@ -2203,7 +2286,7 @@ const bootHome = async () => {
     if (!page) return;
 
     if (!signedIn()) {
-      location.href = '/login';
+      loginWithReturn();
       return;
     }
 
@@ -2275,7 +2358,7 @@ const bootHome = async () => {
     if (!page) return;
 
     if (!signedIn()) {
-      location.href = '/login';
+      loginWithReturn();
       return;
     }
 
@@ -2378,8 +2461,7 @@ const bootHome = async () => {
       if (!page) return;
 
       if (!signedIn()) {
-        location.href =
-          '/login';
+        loginWithReturn();
 
         return;
       }

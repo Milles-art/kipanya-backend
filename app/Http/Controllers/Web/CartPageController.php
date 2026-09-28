@@ -12,9 +12,10 @@ use Illuminate\Http\Request;
  *
  * The template expects `$cartItems` (a collection of CartItem models with
  * `name`, `size`, `color`, `unit_price` and `image_url` attributes set) and
- * an integer `$subtotal`. Guests get an empty bag: their cart lives behind
- * the X-Guest-Cart-Token header, which only JavaScript can send, so the
- * page shows the empty state with a call to action instead.
+ * an integer `$subtotal`. Guests get an empty server render: their cart
+ * lives behind the X-Guest-Cart-Token header, which only JavaScript can
+ * send, so the page's inline script hydrates the same v2 markup from
+ * GET /api/v1/cart on load.
  */
 final class CartPageController extends Controller
 {

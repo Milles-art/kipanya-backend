@@ -192,4 +192,39 @@ class CheckoutOptionalAddressTest extends TestCase
             $this->assertStringNotContainsString($needle, $html, "Checkout must not collect {$needle}");
         }
     }
+
+    // ---- a clear, direct payment journey
+
+    public function test_the_checkout_page_sends_the_customer_straight_to_the_payment_page(): void
+    {
+        [$user] = $this->customer();
+
+        $html = $this->actingAs($user, 'sanctum')->get('/checkout')->assertOk()->getContent();
+
+        $this->assertStringContainsString('payment_gateway_url', $html, 'After placing the order the page must follow the payment URL.');
+        $this->assertStringContainsString('Next step:', $html);
+    }
+
+    public function test_the_order_status_page_starts_with_payment_as_the_active_step(): void
+    {
+        [$user] = $this->customer();
+
+        $html = $this->actingAs($user, 'sanctum')->get('/orders/KP-TEST-0001')->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/tkp-step active" data-track-step="2"/', $html, 'Payment must not be shown as already done.');
+        $this->assertDoesNotMatchRegularExpression('/tkp-step done" data-track-step="2"/', $html);
+        $this->assertStringContainsString('Tap <strong>Pay now</strong>', $html);
+    }
+
+    public function test_a_placed_order_exposes_the_payment_url_the_page_redirects_to(): void
+    {
+        [$user] = $this->customer();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/checkout', ['payment_method' => 'mobile_money', 'payment_provider' => 'mpesa', 'payment_phone' => '0624643714'], $this->idempotency())
+            ->assertOk();
+
+        $urls = collect($response->json('data.payment'))->pluck('payment_gateway_url')->filter();
+        $this->assertNotEmpty($urls, 'The order response must carry the payment page URL.');
+    }
 }

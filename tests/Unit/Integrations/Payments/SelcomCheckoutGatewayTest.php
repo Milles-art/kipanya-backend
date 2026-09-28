@@ -465,4 +465,33 @@ class SelcomCheckoutGatewayTest extends TestCase
 
         $this->assertSame('https://checkout.pay.example/launch', $result['payload']['payment_gateway_url']);
     }
+
+    // ---- the buyer returns to THEIR order after paying or cancelling
+
+    public function test_return_urls_can_carry_the_order_number(): void
+    {
+        config()->set('services.selcom.redirect_url', 'https://kipanya.example/orders/{order}');
+        config()->set('services.selcom.cancel_url', 'https://kipanya.example/orders/{order}?cancelled=1');
+        $this->fakeGatewayUrl('https://pay.example/launch');
+
+        $order = $this->order('KP-260921-ZZ99YY88');
+        $this->gateway()->initiate($order, 'checkout-return-urls-01');
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+            $body = $request->data();
+
+            return isset($body['redirect_url'], $body['cancel_url'])
+                && base64_decode($body['redirect_url']) === 'https://kipanya.example/orders/KP-260921-ZZ99YY88'
+                && base64_decode($body['cancel_url']) === 'https://kipanya.example/orders/KP-260921-ZZ99YY88?cancelled=1';
+        });
+    }
+
+    public function test_plain_return_urls_without_a_placeholder_are_sent_unchanged(): void
+    {
+        $this->fakeGatewayUrl('https://pay.example/launch');
+
+        $this->gateway()->initiate($this->order(), 'checkout-return-urls-02');
+
+        \Illuminate\Support\Facades\Http::assertSent(fn ($request) => base64_decode($request->data()['redirect_url'] ?? '') === self::REDIRECT_URL);
+    }
 }

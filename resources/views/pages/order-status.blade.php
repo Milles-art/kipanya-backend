@@ -21,9 +21,9 @@
     <div class="tkp-steps" aria-label="Order progress">
         <span class="tkp-step done" data-track-step="1"><span class="tkp-step-dot">1</span>Checkout</span>
         <span class="tkp-step-sep" aria-hidden="true"></span>
-        <span class="tkp-step done" data-track-step="2"><span class="tkp-step-dot">2</span>Payment</span>
+        <span class="tkp-step active" data-track-step="2"><span class="tkp-step-dot">2</span>Payment</span>
         <span class="tkp-step-sep" aria-hidden="true"></span>
-        <span class="tkp-step active" data-track-step="3"><span class="tkp-step-dot">3</span>Complete</span>
+        <span class="tkp-step" data-track-step="3"><span class="tkp-step-dot">3</span>Complete</span>
     </div>
 
     <div class="mt-7 rounded-2xl border border-emerald-950/12 bg-white p-6 shadow-sm">
@@ -31,7 +31,12 @@
             <span class="h-2 w-2 animate-pulse rounded-full bg-amber-500"></span>
             Loading order status…
         </p>
-        <p class="mt-4 text-xs leading-5 text-black">Payment must be completed before the order is confirmed. You can safely leave this page and return to your orders.</p>
+        <ol data-payment-help class="mt-5 space-y-2 text-left text-sm leading-6 text-black">
+            <li><strong>1.</strong> Tap <strong>Pay now</strong> to open our secure payment page.</li>
+            <li><strong>2.</strong> Choose how to pay and approve it on your phone.</li>
+            <li><strong>3.</strong> Come back here — this page updates by itself when your payment arrives.</li>
+        </ol>
+        <p class="mt-4 text-xs leading-5 text-black">Your order is only confirmed once payment is received. You can safely leave this page and find the order later under My orders.</p>
     </div>
 
     <div data-order-status-actions class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
