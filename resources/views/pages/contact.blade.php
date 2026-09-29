@@ -154,7 +154,7 @@
 
                     <p data-contact-feedback class="mt-4 hidden rounded-xl px-4 py-3 text-sm" role="status" aria-live="polite"></p>
 
-                    <button data-contact-submit type="submit" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+                    <button data-contact-submit type="submit" class="button-dark mt-6 w-full sm:w-auto">
                         Send message <span aria-hidden="true">→</span>
                     </button>
 

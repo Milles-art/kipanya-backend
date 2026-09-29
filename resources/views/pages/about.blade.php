@@ -139,7 +139,7 @@
                 </p>
                 <a
                     href="{{ route('shop') }}"
-                    class="mt-8 inline-flex w-fit items-center rounded-xl bg-black px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                    class="button-dark mt-8 w-fit"
                 >
                     Explore KP Wear
                     <span class="ml-2" aria-hidden="true">→</span>

@@ -258,7 +258,7 @@
     }
   };
 
-  const icon = (name, size = 18) => {
+  const icon = (name, size = 18, extraClass = '') => {
     const paths = {
       heart:
         '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"></path>',
@@ -273,7 +273,10 @@
         '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
 
       star:
-        '<path d="m12 3 2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 17.2l-5.56 2.92 1.06-6.2L3 9.53l6.22-.9L12 3Z"></path>'
+        '<path d="m12 3 2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 17.2l-5.56 2.92 1.06-6.2L3 9.53l6.22-.9L12 3Z"></path>',
+
+      spinner:
+        '<path d="M12 3a9 9 0 1 0 9 9"></path>'
     };
 
     return `
@@ -288,10 +291,37 @@
         stroke-linecap="round"
         stroke-linejoin="round"
         aria-hidden="true"
+        ${extraClass ? `class="${extraClass}"` : ''}
       >
         ${paths[name] || ''}
       </svg>
     `;
+  };
+
+  // Wraps a button's async click handler so every click gets immediate,
+  // visible feedback: the button is disabled and swapped to a spinner the
+  // moment it's clicked, then restored (or left in a caller-supplied end
+  // state) once the async work settles. Also guards against double-fires
+  // from rapid double-clicking while a request is already in flight.
+  const withButtonBusy = async (button, task) => {
+    if (!button || button.dataset.kpBusy === '1') return;
+
+    const originalHtml = button.innerHTML;
+    const wasDisabled = button.disabled;
+
+    button.dataset.kpBusy = '1';
+    button.disabled = true;
+    button.classList.add('kp-btn-busy');
+    button.innerHTML = icon('spinner', Number(button.dataset.kpIconSize) || 18, 'kp-spin');
+
+    try {
+      await task();
+    } finally {
+      button.dataset.kpBusy = '0';
+      button.disabled = wasDisabled;
+      button.classList.remove('kp-btn-busy');
+      button.innerHTML = originalHtml;
+    }
   };
 
   const colorHex = {
@@ -1478,22 +1508,28 @@ const bootHome = async () => {
       });
 
       page.querySelector('[data-product-wishlist]')?.addEventListener('click', async event => {
-        try {
-          await toggleWishlist(p.id, event.currentTarget);
-          event.currentTarget.textContent = '♥ Saved';
-          event.currentTarget.dataset.saved = '1';
-        } catch (e) {
-          toast(e.message);
-        }
+        const btn = event.currentTarget;
+        await withButtonBusy(btn, async () => {
+          try {
+            await toggleWishlist(p.id, btn);
+            btn.dataset.saved = '1';
+          } catch (e) {
+            toast(e.message);
+          }
+        });
+        if (btn.dataset.saved === '1') btn.textContent = '♥ Saved';
       });
 
-      page.querySelector('[data-add-selected]')?.addEventListener('click', async () => {
+      page.querySelector('[data-add-selected]')?.addEventListener('click', async event => {
         if (!page.dataset.selectedVariant) return toast(totalStock ? 'Select an available size' : 'This product is out of stock');
-        try {
-          await addVariantToCart(page.dataset.selectedVariant, Number(quantity.value || 1));
-        } catch (e) {
-          toast(e.message);
-        }
+        const btn = event.currentTarget;
+        await withButtonBusy(btn, async () => {
+          try {
+            await addVariantToCart(page.dataset.selectedVariant, Number(quantity.value || 1));
+          } catch (e) {
+            toast(e.message);
+          }
+        });
       });
 
       page.querySelector('[data-add-selected]').disabled = totalStock === 0;
@@ -1677,10 +1713,13 @@ const bootHome = async () => {
     // by the API/FormRequest on each step instead.
     form.noValidate = true;
 
+    const authSubmitBtn = form.querySelector('.kp-auth-submit');
+
     form.addEventListener(
       'submit',
       async e => {
         e.preventDefault();
+        if (authSubmitBtn?.dataset.kpBusy === '1') return;
         clearAuthError();
 
         const fd =
@@ -1688,6 +1727,14 @@ const bootHome = async () => {
 
         const phone =
           fd.get('phone');
+
+        const originalAuthLabel = authSubmitBtn?.innerHTML;
+        if (authSubmitBtn) {
+          authSubmitBtn.dataset.kpBusy = '1';
+          authSubmitBtn.disabled = true;
+          authSubmitBtn.classList.add('kp-btn-busy');
+          authSubmitBtn.innerHTML = 'Please wait…';
+        }
 
         try {
           const first =
@@ -1787,6 +1834,13 @@ const bootHome = async () => {
             postAuthDestination(form);
         } catch (err) {
           showAuthError(err.message);
+        } finally {
+          if (authSubmitBtn) {
+            authSubmitBtn.dataset.kpBusy = '0';
+            authSubmitBtn.disabled = false;
+            authSubmitBtn.classList.remove('kp-btn-busy');
+            authSubmitBtn.innerHTML = originalAuthLabel;
+          }
         }
       }
     );
@@ -1888,49 +1942,51 @@ const bootHome = async () => {
           );
 
         if (add) {
-          try {
-            const quickVariant =
-              add.dataset
-                .quickVariant;
+          await withButtonBusy(add, async () => {
+            try {
+              const quickVariant =
+                add.dataset
+                  .quickVariant;
 
-            if (quickVariant) {
-              await addVariantToCart(
-                quickVariant
-              );
-            } else {
-              const products =
-                await fetchProducts(
-                  'per_page=50'
+              if (quickVariant) {
+                await addVariantToCart(
+                  quickVariant
                 );
+              } else {
+                const products =
+                  await fetchProducts(
+                    'per_page=50'
+                  );
 
-              const product =
-                products.find(
-                  x =>
-                    String(x.id) ===
-                    String(
-                      add.dataset
-                        .quickAdd
-                    )
-                );
+                const product =
+                  products.find(
+                    x =>
+                      String(x.id) ===
+                      String(
+                        add.dataset
+                          .quickAdd
+                      )
+                  );
 
-              const variant =
-                findFirstVariant(
-                  product
-                );
+                const variant =
+                  findFirstVariant(
+                    product
+                  );
 
-              if (!variant) {
-                throw new Error(
-                  'No variant available'
+                if (!variant) {
+                  throw new Error(
+                    'No variant available'
+                  );
+                }
+
+                await addVariantToCart(
+                  variant.id
                 );
               }
-
-              await addVariantToCart(
-                variant.id
-              );
+            } catch (err) {
+              toast(err.message);
             }
-          } catch (err) {
-            toast(err.message);
-          }
+          });
         }
 
         const wish =
@@ -1939,15 +1995,17 @@ const bootHome = async () => {
           );
 
         if (wish) {
-          try {
-            await toggleWishlist(
-              wish.dataset
-                .wishlistProduct,
-              wish
-            );
-          } catch (err) {
-            toast(err.message);
-          }
+          await withButtonBusy(wish, async () => {
+            try {
+              await toggleWishlist(
+                wish.dataset
+                  .wishlistProduct,
+                wish
+              );
+            } catch (err) {
+              toast(err.message);
+            }
+          });
         }
       }
     );

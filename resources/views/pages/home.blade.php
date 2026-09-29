@@ -180,7 +180,7 @@ $slides = [
           <a
             data-storefront-hero-cta
             href="{{ route('shop') }}"
-            class="kp-magnetic inline-flex items-center justify-center rounded-xl bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-emerald-600"
+            class="button-dark kp-magnetic hover:-translate-y-0.5"
           >
             <span data-storefront-hero-cta-label>Shop Collection</span>
             <span class="ml-2 text-base">→</span>
@@ -305,7 +305,7 @@ $slides = [
         Browse
       </p>
 
-      <h2 class="mt-2 text-3xl font-bold tracking-tight">
+      <h2 class="mt-2 text-3xl font-black tracking-tight">
         Shop by category
       </h2>
     </div>
@@ -338,7 +338,7 @@ $slides = [
         <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
           Curated
         </p>
-        <h2 class="mt-2 text-3xl font-bold tracking-tight">
+        <h2 class="mt-2 text-3xl font-black tracking-tight">
           Shop collections
         </h2>
       </div>
@@ -371,7 +371,7 @@ $slides = [
         <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">
           The edit
         </p>
-        <h2 class="mt-2 text-3xl font-bold tracking-tight">
+        <h2 class="mt-2 text-3xl font-black tracking-tight">
           Featured pieces
         </h2>
       </div>
@@ -408,7 +408,7 @@ $slides = [
   <div class="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-10">
     <div class="kp-reveal mb-10">
       <p class="text-sm font-semibold uppercase tracking-wider text-emerald-600">Style guide</p>
-      <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-950">How to wear it</h2>
+      <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">How to wear it</h2>
     </div>
 
     <div class="kp-reveal grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

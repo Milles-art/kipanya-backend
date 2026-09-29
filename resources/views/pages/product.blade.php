@@ -88,7 +88,7 @@
 
         <div class="lg:py-2 xl:py-6">
             <p data-product-category class="text-xs font-medium uppercase tracking-[0.14em] text-black sm:text-sm"></p>
-            <h1 data-product-name class="mt-2 text-3xl font-semibold tracking-[-0.025em] text-black sm:text-4xl lg:text-[2.7rem]"></h1>
+            <h1 data-product-name class="mt-2 text-3xl font-black tracking-[-0.025em] text-black sm:text-4xl lg:text-[2.7rem]"></h1>
 
             <div class="mt-4 flex flex-wrap items-center gap-3 sm:mt-5">
                 <span data-product-price class="text-2xl font-semibold text-black"></span>

@@ -3,8 +3,8 @@
 
         {{-- Logo --}}
         <a href="{{ route('home') }}"
-           class="shrink-0 text-2xl font-black tracking-tight">
-            KP<span class="text-emerald-600">.</span>
+           class="shrink-0 rounded-xl bg-black px-2.5 py-1.5" aria-label="KP Wear — home">
+            <img src="{{ asset('images/kp-wear-logo.png') }}" alt="KP Wear" class="h-7 w-auto">
         </a>
 
         {{-- Main Navigation --}}

@@ -5,9 +5,7 @@
     <div class="mx-auto grid kp-content gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
 
         <div>
-            <div class="text-2xl font-black" style="color:#FFFFFF !important;">
-                KP<span class="text-emerald-500">.</span>
-            </div>
+            <img src="{{ asset('images/kp-wear-logo.png') }}" alt="KP Wear" class="h-12 w-auto">
             <p
                 class="mt-4 max-w-xs text-sm leading-6"
                 style="color:#FFFFFF !important;"

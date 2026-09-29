@@ -157,6 +157,25 @@
         .kp-skeleton::after { animation: none; transform: none; opacity: .35; }
     }
 
+    /* Generic in-flight state for any button that triggers an async action
+       (add to bag, wishlist, quick actions). Keeps the icon/label in place
+       but spins it and mutes the button so a click always gets visible
+       feedback instead of appearing to do nothing until it resolves. */
+    .kp-btn-busy {
+        pointer-events: none;
+        opacity: .7;
+    }
+    .kp-btn-busy .kp-spin,
+    .kp-spin {
+        animation: kp-spin .7s linear infinite;
+    }
+    @keyframes kp-spin {
+        100% { transform: rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .kp-btn-busy .kp-spin, .kp-spin { animation: none; }
+    }
+
     .badge {
         @apply absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white;
     }

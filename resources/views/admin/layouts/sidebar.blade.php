@@ -1,9 +1,8 @@
 <aside class="kp-admin-sidebar w-full shrink-0 bg-slate-950 text-white lg:sticky lg:top-0 lg:h-screen lg:w-[218px] lg:overflow-y-auto">
     <div class="flex items-center justify-between px-5 py-5">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-amber-300"><x-tabler-crown size="21" stroke-width="1.8" /></span>
+            <img src="{{ asset('images/kp-wear-logo.png') }}" alt="KP Wear" class="h-9 w-auto">
             <span>
-                <span class="block text-[18px] font-black tracking-tight">Kipanya Wear</span>
                 <span class="block text-[10px] font-medium text-slate-400">Admin Dashboard</span>
             </span>
         </a>

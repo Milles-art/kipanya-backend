@@ -12,8 +12,7 @@
         </div>
 
         <div class="kp-auth-card-brand" aria-label="KP Wear">
-            <span>KP WEAR</span>
-            <small>STYLE MOVES YOU</small>
+            <img src="{{ asset('images/kp-wear-logo.png') }}" alt="KP Wear" style="height:72px;width:auto;max-width:100%">
         </div>
 
         <div class="kp-auth-heading">
