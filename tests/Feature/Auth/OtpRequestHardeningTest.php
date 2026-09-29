@@ -132,25 +132,4 @@ final class OtpRequestHardeningTest extends TestCase
         $this->assertCount(1, $this->sent);
         $this->assertSame(self::UNKNOWN, $this->sent[0]['phone']);
     }
-
-    public function test_admin_otp_request_does_not_reveal_which_numbers_are_admins(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $customer = $this->member();
-
-        $forAdmin = $this->post(route('admin.login.request-otp'), ['phone' => $admin->phone]);
-        $forCustomer = $this->post(route('admin.login.request-otp'), ['phone' => $customer->phone]);
-        $forUnknown = $this->post(route('admin.login.request-otp'), ['phone' => self::UNKNOWN]);
-
-        foreach ([$forAdmin, $forCustomer, $forUnknown] as $response) {
-            $response->assertRedirect()->assertSessionHas('otp_sent', true);
-        }
-
-        // Immediately again for the real admin: the cooldown must not become an oracle.
-        $again = $this->post(route('admin.login.request-otp'), ['phone' => $admin->phone]);
-        $again->assertRedirect()->assertSessionHas('otp_sent', true)->assertSessionHasNoErrors();
-
-        $this->assertCount(1, $this->sent);
-        $this->assertSame($admin->phone, $this->sent[0]['phone']);
-    }
 }

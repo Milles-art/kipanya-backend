@@ -2,17 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\Auth\OtpPurpose;
 use App\Http\Controllers\Controller;
-use App\Jobs\SendOtpJob;
 use App\Models\User;
-use App\Rules\ValidTanzanianPhoneNumber;
-use App\Services\Auth\OtpService;
 use App\Services\Auth\TotpService;
-use App\Support\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -32,48 +28,39 @@ final class AuthController extends Controller
         return view('admin.auth.login');
     }
 
-    public function requestOtp(Request $request, OtpService $otpService): RedirectResponse
+    /**
+     * Staff sign-in: work email + password. No SMS step — the second factor
+     * is the authenticator app (challenged below when enrolled, and enrolment
+     * is forced by EnsureAdminTwoFactor). One uniform message and a strict
+     * per-email+IP budget so the endpoint never reveals which emails exist.
+     */
+    public function login(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber],
+            'email' => ['required', 'string', 'max:255'],
+            'password' => ['required', 'string', 'max:200'],
         ]);
 
-        $phone = PhoneNumber::normalize($data['phone'])->value();
-        $key = 'admin-login-otp:'.sha1($phone);
+        $key = 'admin-login:'.sha1(strtolower(trim($data['email'])).'|'.$request->ip());
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['phone' => ['Too many requests. Please try again later.']]);
+            throw ValidationException::withMessages(['email' => ['Too many attempts. Please try again later.']]);
         }
 
-        RateLimiter::hit($key, 3600);
+        $user = User::query()->whereEmail($data['email'])->where('status', 'active')->first();
 
-        // Eligibility check and SMS happen after the response so the reply is identical
-        // (status, body, timing, cooldown errors) for admin and non-admin numbers.
-        SendOtpJob::dispatch($phone, OtpPurpose::AdminLogin)->afterResponse();
+        if (! $user || ! $user->isAdmin() || ! Hash::check($data['password'], (string) ($user->password ?? ''))) {
+            RateLimiter::hit($key, 600);
 
-        return back()->with('otp_sent', true)->with('phone', $request->string('phone')->toString());
-    }
-
-    public function login(Request $request, OtpService $otpService): RedirectResponse
-    {
-        $data = $request->validate([
-            'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber],
-            'code' => ['required', 'digits:6'],
-        ]);
-
-        $phone = PhoneNumber::normalize($data['phone'])->value();
-        $otpService->verify($phone, OtpPurpose::AdminLogin, $data['code']);
-
-        $user = User::query()->wherePhone($phone)->where('status', 'active')->first();
-
-        if (! $user || ! $user->isAdmin()) {
-            throw ValidationException::withMessages(['phone' => ['Administrator access required.']]);
+            throw ValidationException::withMessages(['email' => ['These credentials do not match our records.']]);
         }
+
+        RateLimiter::clear($key);
 
         if ($user->twoFactorEnabled()) {
             $request->session()->put(self::PENDING_2FA_SESSION_KEY, [
                 'user_id' => $user->id,
-                // The second factor must follow the SMS code closely.
+                // The second factor must follow the password closely.
                 'expires_at' => now()->addMinutes(self::PENDING_2FA_TTL_MINUTES)->getTimestamp(),
             ]);
 

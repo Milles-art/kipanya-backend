@@ -2,13 +2,10 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Enums\Auth\OtpPurpose;
 use App\Models\Administration\AuditLog;
-use App\Models\Auth\OtpCode;
 use App\Models\User;
 use App\Services\Auth\TotpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminTwoFactorTest extends TestCase
@@ -17,19 +14,17 @@ class AdminTwoFactorTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->admin()->create();
+        $admin = User::factory()->admin()->create([
+            'email' => 'admin-'.\Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(8)).'@example.test',
+        ]);
+        $admin->forceFill(['password' => 'correct-horse-123'])->save();
+
+        return $admin->fresh();
     }
 
-    private function seedValidOtp(string $phone): void
+    private function credentials(User $admin, string $password = 'correct-horse-123'): array
     {
-        OtpCode::create([
-            'phone' => $phone,
-            'code_hash' => Hash::make('123456'),
-            'purpose' => OtpPurpose::AdminLogin->value,
-            'attempts' => 0,
-            'expires_at' => now()->addMinutes(5),
-            'last_sent_at' => now(),
-        ]);
+        return ['email' => $admin->email, 'password' => $password];
     }
 
     /**
@@ -48,13 +43,9 @@ class AdminTwoFactorTest extends TestCase
     public function test_admin_without_two_factor_signs_in_directly(): void
     {
         $admin = $this->admin();
-        $this->seedValidOtp($admin->phone);
 
         $this->from('/admin/login')
-            ->post('/admin/login', [
-                'phone' => $admin->phone,
-                'code' => '123456',
-            ])
+            ->post('/admin/login', $this->credentials($admin))
             ->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($admin);
@@ -63,13 +54,9 @@ class AdminTwoFactorTest extends TestCase
     public function test_admin_with_two_factor_must_confirm_code_before_signing_in(): void
     {
         [$admin, $totp] = $this->adminWithTwoFactor();
-        $this->seedValidOtp($admin->phone);
 
         $this->from('/admin/login')
-            ->post('/admin/login', [
-                'phone' => $admin->phone,
-                'code' => '123456',
-            ])
+            ->post('/admin/login', $this->credentials($admin))
             ->assertRedirect('/admin/login')
             ->assertSessionHas('two_factor_required');
 
@@ -89,25 +76,22 @@ class AdminTwoFactorTest extends TestCase
         $this->assertFalse(session()->has('admin.two_factor.pending'));
     }
 
-    public function test_admin_login_rejects_a_storefront_login_otp(): void
+    public function test_admin_login_rejects_a_wrong_password_without_revealing_which_part_failed(): void
     {
         $admin = $this->admin();
 
-        OtpCode::create([
-            'phone' => $admin->phone,
-            'code_hash' => Hash::make('123456'),
-            'purpose' => OtpPurpose::Login->value,
-            'attempts' => 0,
-            'expires_at' => now()->addMinutes(5),
-            'last_sent_at' => now(),
-        ]);
-
         $this->from('/admin/login')
-            ->post('/admin/login', [
-                'phone' => $admin->phone,
-                'code' => '123456',
-            ])
-            ->assertSessionHasErrors('code');
+            ->post('/admin/login', $this->credentials($admin, 'wrong-password-xyz'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest('web');
+    }
+
+    public function test_admin_login_rejects_unknown_emails_with_the_same_message(): void
+    {
+        $this->from('/admin/login')
+            ->post('/admin/login', ['email' => 'ghost@example.test', 'password' => 'wrong-password-xyz'])
+            ->assertSessionHasErrors('email');
 
         $this->assertGuest('web');
     }

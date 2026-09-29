@@ -64,6 +64,10 @@ final class UserController extends Controller
         $data = $this->validated($request);
         $phone = PhoneNumber::normalize($data['phone'])->value();
 
+        if (! empty($data['password'])) {
+            $this->ensureSuperAdminForPassword($request, $data);
+        }
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'] ?: null,
@@ -76,12 +80,18 @@ final class UserController extends Controller
             'status' => $data['status'],
         ])->save();
 
+        if (! empty($data['password'])) {
+            // The 'hashed' cast hashes the plaintext on save.
+            $user->forceFill(['password' => $data['password']])->save();
+        }
+
         $role = $this->resolveRole($request, (int) $data['role_id']);
         $user->roles()->sync([$role->id]);
 
         $auditLogger->log($request, 'admin.users.created', $user, [
             'role' => $role->slug,
             'status' => $user->status,
+            'password_changed' => ! empty($data['password']),
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'Admin user created successfully.');
@@ -118,8 +128,7 @@ final class UserController extends Controller
             }
         }
 
-        return DB::transaction(function () use ($request, $user, $auditLogger, $data, $phone, $role): RedirectResponse {
-            $losesSuperAdmin = $user->hasRole('super_admin')
+        return DB::transaction(function () use ($request, $user, $auditLogger, $data, $phone, $role): RedirectResponse {            $losesSuperAdmin = $user->hasRole('super_admin')
                 && ($role->slug !== 'super_admin' || $data['status'] !== 'active');
 
             if ($losesSuperAdmin) {
@@ -153,10 +162,17 @@ final class UserController extends Controller
 
             $user->forceFill(['status' => $data['status']])->save();
 
-            // Revoke all API tokens when the account is deactivated or its
-            // identifying credentials change, so a token issued under the old
-            // identity cannot outlive the change.
-            if ($data['status'] !== 'active' || $credentialsChanged) {
+            $passwordChanged = ! empty($data['password']);
+
+            if ($passwordChanged) {
+                $this->ensureSuperAdminForPassword($request, $data);
+                $user->forceFill(['password' => $data['password']])->save();
+            }
+
+            // Revoke all API tokens when the account is deactivated, its
+            // identifying credentials change, or its password is reset, so a
+            // token issued under the old identity cannot outlive the change.
+            if ($data['status'] !== 'active' || $credentialsChanged || $passwordChanged) {
                 $user->tokens()->delete();
             }
 
@@ -174,6 +190,7 @@ final class UserController extends Controller
             $auditLogger->log($request, 'admin.users.updated', $user, [
                 'before' => $old,
                 'after' => ['role' => $role->slug, 'status' => $user->status],
+                'password_changed' => $passwordChanged,
             ]);
 
             return redirect()->route('admin.users.index')->with('success', 'Admin user updated successfully.');
@@ -256,6 +273,26 @@ final class UserController extends Controller
     }
 
     /**
+     * A sign-in password is a credential like the phone number: only a super
+     * administrator may set it, and the account needs an email address for
+     * password sign-in to find it.
+     */
+    private function ensureSuperAdminForPassword(Request $request, array $data): void
+    {
+        if (! $request->user()?->hasRole('super_admin')) {
+            throw ValidationException::withMessages([
+                'password' => 'Only a super administrator can set an administrator\'s password.',
+            ]);
+        }
+
+        if (empty($data['email'])) {
+            throw ValidationException::withMessages([
+                'email' => 'An email address is required to enable password sign-in.',
+            ]);
+        }
+    }
+
+    /**
      * Roles an actor may assign. `super_admin` is only assignable by an
      * existing super administrator so a holder of `users.manage` can never
      * grant it to themselves or others.
@@ -286,6 +323,7 @@ final class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
             'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber, Rule::unique('users', 'phone')->ignore($user?->id)],
+            'password' => ['nullable', 'string', 'min:10', 'max:200'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(function ($query) use ($request): void {
                 $query->where('slug', '!=', 'user');

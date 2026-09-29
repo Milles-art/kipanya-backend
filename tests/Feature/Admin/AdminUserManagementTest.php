@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Enums\Auth\UserRole;
+use App\Models\Administration\Permission;
 use App\Models\Administration\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,5 +67,53 @@ final class AdminUserManagementTest extends TestCase
     {
         $user = User::factory()->create(['role' => UserRole::User, 'status' => 'active']);
         $this->actingAs($user)->get(route('admin.users.index'))->assertForbidden();
+    }
+
+    public function test_super_admin_can_set_a_staff_password_and_staff_can_sign_in(): void
+    {
+        $admin = $this->admin();
+        $role = Role::query()->where('slug', 'support')->firstOrFail();
+
+        $this->actingAs($admin)->post(route('admin.users.store'), [
+            'name' => 'Support Staffer',
+            'phone' => '+255710000222',
+            'email' => 'support-staffer@example.test',
+            'password' => 'staff-secret-123',
+            'role_id' => $role->id,
+            'status' => 'active',
+        ])->assertRedirect(route('admin.users.index'));
+
+        $staff = User::query()->wherePhone('+255710000222')->firstOrFail();
+
+        $this->from('/admin/login')
+            ->post('/admin/login', ['email' => 'support-staffer@example.test', 'password' => 'staff-secret-123'])
+            ->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($staff);
+    }
+
+    public function test_non_super_admin_cannot_set_passwords(): void
+    {
+        $admin = $this->admin();
+        $manager = User::factory()->create(['role' => UserRole::Admin, 'status' => 'active']);
+        $commerceRole = Role::query()->where('slug', 'commerce_manager')->firstOrFail();
+        $manager->roles()->sync([$commerceRole->id]);
+        // Grant user management without super-admin powers: the request now
+        // reaches password validation instead of stopping at the 403 gate.
+        $commerceRole->permissions()->syncWithoutDetaching([
+            Permission::query()->where('slug', 'users.manage')->value('id'),
+        ]);
+        $role = Role::query()->where('slug', 'support')->firstOrFail();
+
+        $this->actingAs($manager)->post(route('admin.users.store'), [
+            'name' => 'No Password',
+            'phone' => '+255710000333',
+            'email' => 'no-password@example.test',
+            'password' => 'staff-secret-123',
+            'role_id' => $role->id,
+            'status' => 'active',
+        ])->assertSessionHasErrors('password');
+
+        $this->assertFalse(User::query()->wherePhone('+255710000333')->exists());
     }
 }

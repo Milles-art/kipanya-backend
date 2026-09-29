@@ -9,5 +9,6 @@
         <div><label class="text-sm font-bold text-black">Status</label><select name="status" required class="mt-2 w-full rounded-xl border border-black px-4 py-3 text-sm outline-none focus:border-black">
             <option value="active" @selected(old('status', $user->status ?? 'active') === 'active')>Active</option><option value="inactive" @selected(old('status', $user->status ?? '') === 'inactive')>Inactive</option>
         </select></div>
+        <div class="sm:col-span-2"><label class="text-sm font-bold text-black">Sign-in password @if($user->exists)<span class="font-normal">(leave blank to keep)</span>@endif</label><input type="password" name="password" @if(!$user->exists)required @endif autocomplete="new-password" minlength="10" class="mt-2 w-full rounded-xl border border-black px-4 py-3 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black"><p class="mt-2 text-xs leading-5 text-black">Min 10 characters. Only a super administrator can set this; the account also needs an email address above.</p></div>
     </div>
 </div>
