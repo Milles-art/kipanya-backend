@@ -24,31 +24,14 @@ class PhoneValidationRegressionTest extends TestCase
         '',
     ];
 
-    public function test_registration_otp_request_rejects_malformed_phone(): void
-    {
-        foreach (self::INVALID_PHONES as $phone) {
-            $this->postJson('/api/v1/auth/register/request-otp', ['phone' => $phone])
-                ->assertStatus(422)
-                ->assertJsonValidationErrors('phone');
-        }
-    }
-
-    public function test_login_otp_request_rejects_malformed_phone(): void
-    {
-        foreach (self::INVALID_PHONES as $phone) {
-            $this->postJson('/api/v1/auth/login/request-otp', ['phone' => $phone])
-                ->assertStatus(422)
-                ->assertJsonValidationErrors('phone');
-        }
-    }
-
-    public function test_registration_rejects_malformed_phone(): void
+    public function test_register_rejects_malformed_phone(): void
     {
         foreach (self::INVALID_PHONES as $phone) {
             $this->postJson('/api/v1/auth/register', [
                 'phone' => $phone,
-                'code' => '123456',
                 'name' => 'Test User',
+                'password' => 'secret-pass-123',
+                'password_confirmation' => 'secret-pass-123',
             ])
                 ->assertStatus(422)
                 ->assertJsonValidationErrors('phone');
@@ -60,7 +43,29 @@ class PhoneValidationRegressionTest extends TestCase
         foreach (self::INVALID_PHONES as $phone) {
             $this->postJson('/api/v1/auth/login', [
                 'phone' => $phone,
-                'code' => '123456',
+                'password' => 'secret-pass-123',
+            ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('phone');
+        }
+    }
+
+    public function test_forgot_password_rejects_malformed_phone(): void
+    {
+        foreach (self::INVALID_PHONES as $phone) {
+            $this->postJson('/api/v1/auth/forgot-password', ['phone' => $phone])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('phone');
+        }
+    }
+
+    public function test_checkout_signin_rejects_malformed_phone(): void
+    {
+        foreach (self::INVALID_PHONES as $phone) {
+            $this->postJson('/api/v1/auth/checkout/signin', [
+                'phone' => $phone,
+                'name' => 'Guest Buyer',
+                'password' => 'secret-pass-123',
             ])
                 ->assertStatus(422)
                 ->assertJsonValidationErrors('phone');

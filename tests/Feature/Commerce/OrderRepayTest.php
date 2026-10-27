@@ -94,6 +94,53 @@ class OrderRepayTest extends TestCase
         $this->assertNotSame($first->provider_reference, $fresh->provider_reference);
         $this->assertSame(PaymentStatus::Cancelled, $first->fresh()->status);
         $this->assertSame(PaymentStatus::Pending, $fresh->status);
+        $this->assertSame('pending_payment', $fresh->order->status->value);
+        $this->assertSame('active', $fresh->order->stockReservation->status->value);
+        $this->assertNotSame($first->gateway_order_id, $fresh->gateway_order_id);
+    }
+
+    public function test_late_capture_of_superseded_attempt_fulfils_only_once(): void
+    {
+        [$user] = $this->customer();
+        $number = $this->placeOrder($user);
+        $first = $this->latestPayment($number);
+        $first->update(['initiated_at' => now()->subMinutes(5)]);
+        $this->actingAs($user, 'sanctum')->postJson("/api/v1/orders/{$number}/repay")->assertOk();
+        $second = $this->latestPayment($number);
+        $variant = $first->order->items->first()->variant;
+        $stock = $variant->stock;
+        $states = app(PaymentStateMachine::class);
+        $states->transition($first->fresh(), PaymentStatus::Paid, ['transid' => 'late-first']);
+        $this->assertSame($stock - 1, $variant->fresh()->stock);
+        $states->transition($second->fresh(), PaymentStatus::Paid, ['transid' => 'second-capture']);
+        $this->assertSame($stock - 1, $variant->fresh()->stock);
+        $this->assertSame('confirmed', $first->order->fresh()->status->value);
+        $this->assertTrue($second->fresh()->payload['needs_refund']);
+        $states->recordRefund($second->fresh(), 'refund-second', null);
+        $this->assertSame(PaymentStatus::Paid, $first->order->fresh()->payment_status);
+    }
+
+    public function test_old_failure_does_not_cancel_an_order_with_a_new_attempt(): void
+    {
+        [$user] = $this->customer();
+        $number = $this->placeOrder($user);
+        $first = $this->latestPayment($number);
+        $first->update(['initiated_at' => now()->subMinutes(5)]);
+        $this->actingAs($user, 'sanctum')->postJson("/api/v1/orders/{$number}/repay")->assertOk();
+        $first->update(['status' => PaymentStatus::InProgress, 'payload' => []]);
+        app(PaymentStateMachine::class)->transition($first, PaymentStatus::Cancelled);
+        $this->assertSame('pending_payment', $first->order->fresh()->status->value);
+        $this->assertSame('active', $first->order->stockReservation->fresh()->status->value);
+    }
+
+    public function test_expired_reservation_cannot_start_a_new_attempt(): void
+    {
+        [$user] = $this->customer();
+        $number = $this->placeOrder($user);
+        $payment = $this->latestPayment($number);
+        $payment->order->stockReservation->update(['expires_at' => now()->subMinutes(5)]);
+        $this->actingAs($user, 'sanctum')->postJson("/api/v1/orders/{$number}/repay")->assertUnprocessable();
+        $this->assertSame(1, $payment->order->payments()->count());
     }
 
     public function test_repay_reuses_a_token_minted_moments_ago(): void

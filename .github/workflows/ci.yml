@@ -12,6 +12,13 @@ jobs:
   tests:
     name: Tests (PHP 8.4)
     runs-on: ubuntu-latest
+    # composer's package-discover script boots the app before .env exists.
+    # config/app.php defaults APP_ENV to "production" and ProductionSecurityGuard
+    # refuses to boot an unkeyed production app, so the runner environment must
+    # declare a non-production env explicitly or composer install aborts.
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
     steps:
       - uses: actions/checkout@v7
 

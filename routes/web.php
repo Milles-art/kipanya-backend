@@ -18,6 +18,8 @@ Route::get('/cart', [CartPageController::class, 'show'])->name('cart');
 Route::view('/checkout', 'pages.checkout', ['title' => 'Checkout — KP Wear'])->name('checkout');
 Route::view('/login', 'pages.login', ['title' => 'Sign in — KP Wear'])->name('login');
 Route::view('/register', 'pages.register', ['title' => 'Create account — KP Wear'])->name('register');
+Route::view('/forgot-password', 'pages.forgot-password', ['title' => 'Forgot password — KP Wear'])->name('password.forgot');
+Route::view('/reset-password', 'pages.reset-password', ['title' => 'Set a new password — KP Wear'])->name('password.reset');
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // Account pages are server-protected and server-rendered from real data.
     // The HttpOnly kp_web_session cookie is converted to a Sanctum bearer before

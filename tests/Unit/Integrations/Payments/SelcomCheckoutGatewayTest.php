@@ -159,7 +159,7 @@ class SelcomCheckoutGatewayTest extends TestCase
             if ($payload['vendor'] !== self::VENDOR_ID) {
                 return false;
             }
-            if ($payload['order_id'] !== $order->order_number) {
+            if ($payload['order_id'] !== \App\Services\Payments\PaymentService::gatewayOrderId('checkout-selcom-0001')) {
                 return false;
             }
             if ($payload['buyer_email'] !== 'buyer@example.com') {
@@ -197,7 +197,7 @@ class SelcomCheckoutGatewayTest extends TestCase
         $this->assertSame('0289999288', $result['reference']);
         $this->assertSame('pending', $result['status']);
         $this->assertSame('https://pay.example/launch/pg', $result['payload']['payment_gateway_url']);
-        $this->assertSame($order->order_number, $result['payload']['gateway_order_id']);
+        $this->assertSame(\App\Services\Payments\PaymentService::gatewayOrderId('checkout-selcom-0001'), $result['payload']['gateway_order_id']);
         $this->assertSame('buyer-uuid-1', $result['payload']['gateway_buyer_uuid']);
     }
 

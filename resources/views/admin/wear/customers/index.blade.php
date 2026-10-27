@@ -9,6 +9,12 @@
                 <h2 class="text-2xl font-black tracking-tight sm:text-3xl">Customers</h2>
                 <p class="mt-2 text-sm leading-6 text-black">View registered customers who have placed KP Wear orders.</p>
             </div>
+            @if(Route::has('admin.wear.customers.duplicates'))
+                <a href="{{ route('admin.wear.customers.duplicates') }}"
+                   class="inline-flex items-center justify-center rounded-xl border border-black bg-white px-5 py-3 text-sm font-bold hover:bg-black hover:text-white">
+                    Duplicate devices
+                </a>
+            @endif
         </div>
     </section>
 

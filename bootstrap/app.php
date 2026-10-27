@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureAdminTwoFactor;
 use App\Http\Middleware\EnsureAdminWebAccess;
 use App\Http\Middleware\EnsureScopedApiToken;
 use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsureDeviceCookie;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureWebSessionCookie;
 use App\Http\Middleware\SecurityHeaders;
@@ -30,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // request path (the api group is not reliably ordered before route
         // middleware in the test client).
         $middleware->append(EnsureWebSessionCookie::class);
+        // Issues the kp_device anti-farm cookie on every response that lacks it.
+        $middleware->append(EnsureDeviceCookie::class);
         $middleware->appendToGroup('api', [AddRequestId::class]);
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,

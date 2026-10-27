@@ -41,10 +41,15 @@ class ReconcilePayments extends Command
             ->orderBy('id')
             ->chunkById(50, fn ($chunk) => $chunk->each($poll));
 
-        // Held for review (e.g. completed without an amount): give the provider another look.
+        // Held for review (e.g. completed without an amount): give the provider another
+        // look. Bounded on both ends: a row is only re-polled while it is fresh (an
+        // uncertain initiation whose gateway order was never created answers "not
+        // found" forever, so an unbounded poll would report() that noise daily for
+        // the lifetime of the table) and not so fresh that it was just checked.
         PaymentTransaction::query()
             ->where('status', PaymentStatus::ReconciliationRequired->value)
             ->where('updated_at', '<=', now()->subMinutes(5))
+            ->where('updated_at', '>=', now()->subDays(3))
             ->orderBy('id')
             ->chunkById(50, fn ($chunk) => $chunk->filter(fn ($p) => ($p->payload['needs_review'] ?? false) === true)->each($poll));
 

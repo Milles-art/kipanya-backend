@@ -4,6 +4,7 @@ namespace Tests\Feature\Commerce;
 
 use App\Enums\Auth\UserStatus;
 use App\Enums\Commerce\PaymentStatus;
+use App\Exceptions\SelcomGatewayException;
 use App\Integrations\Payments\PaymentGateway;
 use App\Integrations\Sms\SmsGateway;
 use App\Models\Administration\Role;
@@ -34,6 +35,9 @@ final class PaymentReconciliationOpsTest extends TestCase
 
     /** What the stubbed provider answers to status(): array, or a Throwable to throw. */
     public array|\Throwable $providerAnswer = ['status' => 'PENDING'];
+
+    /** When set, the stubbed gateway throws this from initiate() instead of succeeding. */
+    public ?\Throwable $initiateAnswer = null;
 
     private const API_KEY = 'selcom_test_key';
 
@@ -114,7 +118,7 @@ final class PaymentReconciliationOpsTest extends TestCase
         config()->set('services.selcom.api_secret', self::API_SECRET);
 
         $timestamp = now()->format('Y-m-d\TH:i:sP');
-        $fields = ['transid', 'order_id', 'reference', 'result', 'resultcode', 'payment_status'];
+        $fields = ['transid', 'order_id', 'reference', 'result', 'resultcode', 'payment_status', 'amount'];
         $digest = $this->sign($timestamp, $fields, $body);
 
         return $this->postJson('/api/webhooks/selcom', $body, array_merge([
@@ -150,6 +154,11 @@ final class PaymentReconciliationOpsTest extends TestCase
 
             public function initiate(\App\Models\Wear\WearOrder $order, string $idempotencyKey): array
             {
+                $answer = $this->test->initiateAnswer;
+                if ($answer instanceof \Throwable) {
+                    throw $answer;
+                }
+
                 return ['provider' => 'fake', 'reference' => 'FAKE-'.$order->order_number, 'payload' => [], 'status' => 'pending'];
             }
 
@@ -245,6 +254,129 @@ final class PaymentReconciliationOpsTest extends TestCase
     public function test_reconcile_command_is_scheduled(): void
     {
         $this->artisan('schedule:list')->expectsOutputToContain('kipanya:reconcile-payments')->assertSuccessful();
+    }
+
+    // ------------------------------------------------------------ initiation failures
+
+    public function test_a_definitive_gateway_rejection_releases_the_attempt_for_retry(): void
+    {
+        $user = $this->user();
+        [, $variant] = $this->product(5);
+        $address = $this->address($user);
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', [
+            'variant_id' => $variant->id,
+            'quantity' => 2,
+        ])->assertOk();
+
+        $this->stubProvider();
+        $this->initiateAnswer = SelcomGatewayException::providerError(400, 'INVALID_REQUEST', 'rejected');
+
+        $key = 'initiate-4xx-retry-01';
+        $this->actingAs($user, 'sanctum')->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/checkout', ['address_id' => $address->id])
+            ->assertStatus(422);
+
+        // The provider refused outright: no gateway order exists, so the claim
+        // must be released instead of sending the attempt to eternal review.
+        $payment = PaymentTransaction::query()->where('idempotency_key', $key)->firstOrFail();
+        $this->assertSame('pending', $payment->status->value);
+        $this->assertNull($payment->initiated_at, 'A rejected initiation must release its claim.');
+        $this->assertFalse($payment->payload['initiation_uncertain'] ?? false);
+        $this->assertFalse($payment->payload['needs_review'] ?? false);
+
+        // The provider recovers: the same request must now go through.
+        $this->initiateAnswer = null;
+        $this->actingAs($user, 'sanctum')->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/checkout', ['address_id' => $address->id])
+            ->assertOk();
+
+        $payment->refresh();
+        $this->assertSame('pending', $payment->status->value);
+        $this->assertNotNull($payment->initiated_at);
+        $this->assertSame('FAKE-'.$payment->order->order_number, $payment->provider_reference);
+    }
+
+    public function test_an_uncertain_initiation_does_not_lock_the_order_out_of_repay(): void
+    {
+        $user = $this->user();
+        [, $variant] = $this->product(5);
+        $address = $this->address($user);
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', [
+            'variant_id' => $variant->id,
+            'quantity' => 2,
+        ])->assertOk();
+
+        $this->stubProvider();
+        $this->initiateAnswer = SelcomGatewayException::timeout();
+
+        $key = 'initiate-timeout-repay-1';
+        $this->actingAs($user, 'sanctum')->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/checkout', ['address_id' => $address->id])
+            ->assertStatus(422);
+
+        $payment = PaymentTransaction::query()->where('idempotency_key', $key)->firstOrFail();
+        $this->assertSame('reconciliation_required', $payment->status->value);
+        $this->assertTrue($payment->payload['initiation_uncertain'] ?? false);
+
+        // The customer never received a payment URL, so no money can be on this
+        // attempt: repay must supersede it instead of blocking the order forever.
+        $this->initiateAnswer = null;
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/orders/'.$payment->order->order_number.'/repay')
+            ->assertOk();
+
+        $payment->refresh();
+        $this->assertSame('cancelled', $payment->status->value);
+        $this->assertTrue($payment->payload['superseded'] ?? false);
+
+        $fresh = PaymentTransaction::query()->where('wear_order_id', $payment->wear_order_id)->latest('id')->firstOrFail();
+        $this->assertNotSame($payment->id, $fresh->id);
+        $this->assertSame('pending', $fresh->status->value);
+        $this->assertNotNull($fresh->initiated_at);
+        $this->assertNotSame($payment->gateway_order_id, $fresh->gateway_order_id);
+    }
+
+    public function test_repay_is_still_blocked_by_a_held_attempt_that_may_hold_money(): void
+    {
+        $payment = $this->paymentFor($this->checkout('repay-blocked-held-001'));
+        // Held for review WITHOUT an uncertain initiation (e.g. completed without
+        // an amount): money may be on it, so repay must still refuse.
+        $payment->update([
+            'status' => PaymentStatus::ReconciliationRequired,
+            'payload' => array_merge($payment->payload ?? [], ['needs_review' => true]),
+        ]);
+
+        $this->actingAs(User::findOrFail($payment->user_id), 'sanctum')
+            ->postJson('/api/v1/orders/'.$payment->order->order_number.'/repay')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('payment');
+
+        $this->assertSame('reconciliation_required', $payment->fresh()->status->value);
+    }
+
+    public function test_reconcile_command_stops_polling_old_review_rows(): void
+    {
+        $payment = $this->paymentFor($this->checkout('recon-old-review-0001'));
+        $payment->update([
+            'status' => PaymentStatus::ReconciliationRequired,
+            'payload' => array_merge($payment->payload ?? [], ['needs_review' => true, 'initiation_uncertain' => true]),
+        ]);
+        PaymentTransaction::query()->whereKey($payment->id)->update(['updated_at' => now()->subDays(4)]);
+
+        $this->stubProvider();
+        $this->providerAnswer = new \RuntimeException('provider down');
+
+        // An uncertain-initiation row answers "order not found" forever: polling
+        // it would report() the same failure daily for the life of the table.
+        $this->artisan('kipanya:reconcile-payments', ['--minutes' => 0])
+            ->expectsOutputToContain('Reconciled 0 payment(s); 0 could not be checked')
+            ->assertSuccessful();
+
+        // A fresh review row is still re-polled.
+        PaymentTransaction::query()->whereKey($payment->id)->update(['updated_at' => now()->subMinutes(10)]);
+        $this->artisan('kipanya:reconcile-payments', ['--minutes' => 0])
+            ->expectsOutputToContain('Reconciled 0 payment(s); 1 could not be checked')
+            ->assertSuccessful();
     }
 
     // ------------------------------------------------------------ ops alert

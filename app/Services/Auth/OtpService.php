@@ -32,8 +32,8 @@ final class OtpService
     {
         $normalized = PhoneNumber::normalize($phone)->value();
 
-        // A single per-phone budget shared by every flow (storefront login,
-        // registration, admin login) so an attacker cannot multiply SMS to one
+        // A single per-phone budget shared by every remaining OTP flow (phone
+        // change, email change) so an attacker cannot multiply SMS to one
         // number by alternating endpoints/purposes.
         $sendKey = 'otp-send:'.sha1($normalized);
 

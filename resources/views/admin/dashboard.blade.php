@@ -1,26 +1,26 @@
 @extends('admin.layouts.app', ['title' => 'Dashboard', 'heading' => 'Wear Dashboard'])
 
 @section('content')
-<div class="mx-auto max-w-[1450px] space-y-5">
+<div class="kp-admin-dashboard mx-auto max-w-[1450px] space-y-5">
     @if(session('success'))
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
     @endif
 
     <section class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-xs font-semibold text-slate-400">Kipanya Wear</p>
-            <h2 class="mt-1 text-[27px] font-black tracking-tight text-slate-950">Welcome back, {{ auth()->user()->name }} <span aria-hidden="true">👋</span></h2>
-            <p class="mt-1 text-sm text-slate-500">Here's what's happening with your store today.</p>
+            <p class="kp-admin-eyebrow">Kipanya Wear</p>
+            <h2 class="kp-admin-display mt-1 text-[32px] text-stone-950">Welcome back, {{ auth()->user()->name }}</h2>
+            <p class="mt-1 text-sm text-stone-500">A clear view of your store, orders, and stock.</p>
         </div>
         <div class="flex items-center gap-3">
             @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))
                 <a href="{{ route('admin.wear.products.create') }}" class="kp-admin-primary-button"><x-tabler-plus size="17" /> Add product</a>
             @endif
-            <div class="hidden items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 sm:flex">
-                <x-tabler-calendar size="21" class="text-slate-700" stroke-width="1.8" />
+            <div class="kp-admin-date-card hidden items-center gap-3 rounded-xl border px-4 py-2.5 sm:flex">
+                <x-tabler-calendar size="21" stroke-width="1.8" />
                 <div class="leading-tight">
-                    <p class="text-xs font-bold text-slate-800">{{ now()->format('l, d F Y') }}</p>
-                    <p class="mt-0.5 text-[10px] text-slate-400">Kipanya Wear Admin</p>
+                    <p class="text-xs font-bold">{{ now()->format('l, d F Y') }}</p>
+                    <p class="mt-0.5 text-[10px]">Kipanya Wear Admin</p>
                 </div>
             </div>
         </div>
@@ -86,18 +86,18 @@
                         <p class="text-xs text-slate-400">Paid revenue over the selected period.</p>
                     </div>
                 </div>
-                <div class="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="Sales chart period">
+                <div class="kp-admin-period flex rounded-lg border p-0.5" role="group" aria-label="Sales chart period">
                     @foreach([7, 30, 365] as $period)
                         <a href="{{ route('admin.dashboard', ['days' => $period]) }}"
-                           class="rounded-md px-3 py-1.5 text-[11px] font-bold {{ isset($chartDays) && $chartDays === $period ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
+                           class="rounded-md px-3 py-1.5 text-[11px] font-bold {{ isset($chartDays) && $chartDays === $period ? 'is-active' : '' }}">
                             {{ $period === 365 ? 'All time' : $period.' days' }}
                         </a>
                     @endforeach
                 </div>
             </div>
-            <div class="mt-4 overflow-hidden rounded-xl bg-slate-50/70">
+            <div class="kp-admin-chart-panel mt-4 overflow-hidden rounded-xl">
                 <div class="relative h-60 w-full">
-                    <svg id="sales-chart" viewBox="0 0 1000 320" preserveAspectRatio="none" class="h-full w-full text-blue-600" role="img" aria-label="Sales revenue chart">
+                    <svg id="sales-chart" viewBox="0 0 1000 320" preserveAspectRatio="none" class="h-full w-full text-[#a68148]" role="img" aria-label="Sales revenue chart">
                         <defs><linearGradient id="sales-area-gradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity="0.14"></stop><stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop></linearGradient></defs>
                         <g id="sales-grid"></g><path id="sales-area" fill="url(#sales-area-gradient)" stroke="none"></path><path id="sales-line" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><g id="sales-points"></g>
                     </svg>

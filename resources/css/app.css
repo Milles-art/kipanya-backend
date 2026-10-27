@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -226,164 +226,227 @@
 
     .kp-admin-body {
         font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        --admin-ink: #171612;
+        --admin-ink-soft: #24221c;
+        --admin-paper: #faf8f3;
+        --admin-canvas: #f2eee5;
+        --admin-line: #e2dacb;
+        --admin-muted: #756f64;
+        --admin-gold: #aa8951;
+        --admin-gold-soft: #eee3ce;
+        background:
+            radial-gradient(circle at 75% -18%, rgba(170, 137, 81, .15), transparent 32rem),
+            var(--admin-canvas);
+        color: var(--admin-ink);
     }
 
     .kp-admin-sidebar {
-        box-shadow: 10px 0 30px rgba(15, 23, 42, .05);
+        background:
+            linear-gradient(155deg, rgba(255, 255, 255, .055), transparent 28%),
+            var(--admin-ink);
+        box-shadow: 12px 0 42px rgba(23, 22, 18, .13);
     }
 
     .kp-admin-nav-link {
-        @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-slate-300 transition;
+        @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-medium text-stone-300 transition duration-200;
     }
 
     .kp-admin-nav-link:hover {
-        @apply bg-white/5 text-white;
+        background: rgba(238, 227, 206, .09);
+        color: #fffdf8;
     }
 
     .kp-admin-nav-link.is-active {
-        @apply bg-amber-500/90 text-white shadow-sm;
+        background: linear-gradient(135deg, #c3a16b, #9a7845);
+        color: #171612;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, .19);
     }
 
     .kp-admin-topbar {
-        box-shadow: 0 1px 12px rgba(15, 23, 42, .03);
+        background: color-mix(in srgb, var(--admin-paper) 92%, transparent);
+        border-color: color-mix(in srgb, var(--admin-line) 85%, transparent);
+        box-shadow: 0 1px 0 rgba(23, 22, 18, .025);
     }
 
     .kp-admin-search {
-        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .02);
+        border-color: var(--admin-line);
+        background: rgba(255, 255, 255, .62);
+        box-shadow: inset 0 1px 2px rgba(23, 22, 18, .025);
     }
 
     .kp-admin-icon-button {
-        @apply flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-950;
+        @apply flex h-9 w-9 items-center justify-center rounded-xl transition;
+        color: var(--admin-muted);
     }
 
-    .kp-admin-primary-button {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800;
+    .kp-admin-icon-button:hover {
+        background: var(--admin-gold-soft);
+        color: var(--admin-ink);
+    }
+
+    /* The shared admin action system also brings utility-only legacy templates
+       into the same restrained ink, gold, and ivory language. */
+    .kp-admin-primary-button,
+    .kp-admin-body :is(a, button).bg-black,
+    .kp-admin-body :is(a, button).bg-slate-900 {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition duration-200 ease-out;
+        background: var(--admin-ink);
+        box-shadow: 0 6px 16px rgba(23, 22, 18, .12);
+    }
+
+    .kp-admin-primary-button:hover,
+    .kp-admin-body :is(a, button).bg-black:hover,
+    .kp-admin-body :is(a, button).bg-slate-900:hover {
+        background: var(--admin-gold);
+        color: #171612;
+        box-shadow: 0 8px 20px rgba(170, 137, 81, .24);
+    }
+
+    .kp-admin-primary-button:active,
+    .kp-admin-body :is(a, button).bg-black:active,
+    .kp-admin-body :is(a, button).bg-slate-900:active {
+        transform: translateY(1px);
+    }
+
+    .kp-admin-primary-button:disabled,
+    .kp-admin-body :is(a, button).bg-black:disabled,
+    .kp-admin-body :is(a, button).bg-slate-900:disabled {
+        @apply cursor-not-allowed opacity-50;
+        transform: none;
+    }
+
+    .kp-admin-secondary-button,
+    .kp-admin-body :is(a, button).border-black:not(.bg-black) {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border bg-white px-5 py-3 text-sm font-semibold transition duration-200 ease-out;
+        border-color: var(--admin-line);
+        color: var(--admin-ink);
+    }
+
+    .kp-admin-secondary-button:hover,
+    .kp-admin-body :is(a, button).border-black:not(.bg-black):hover {
+        background: var(--admin-gold-soft);
+        border-color: var(--admin-gold);
+        color: var(--admin-ink);
+    }
+
+    .kp-admin-body :is(a, button):focus-visible {
+        outline: 2px solid var(--admin-gold);
+        outline-offset: 2px;
     }
 
     .kp-admin-card {
-        @apply rounded-xl border border-slate-200/80 bg-white;
-        box-shadow: 0 2px 12px rgba(15, 23, 42, .035);
+        @apply rounded-2xl border bg-white;
+        border-color: var(--admin-line);
+        box-shadow: 0 14px 32px rgba(39, 33, 24, .045);
     }
 
     .kp-admin-link {
-        @apply inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700;
+        @apply inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold transition;
+        color: #7e6338;
     }
 
+    .kp-admin-link:hover { color: var(--admin-ink); }
+
+    .kp-admin-display {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 600;
+        letter-spacing: -.035em;
+    }
+
+    .kp-admin-eyebrow {
+        color: var(--admin-gold);
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+    }
+
+    .kp-admin-date-card {
+        border-color: var(--admin-line);
+        background: rgba(255, 253, 248, .72);
+        color: #4e483d;
+    }
+
+    .kp-admin-date-card > svg { color: var(--admin-gold); }
+    .kp-admin-date-card p:last-child { color: var(--admin-muted); }
+
+    .kp-admin-period {
+        border-color: var(--admin-line);
+        background: #f6f2ea;
+    }
+
+    .kp-admin-period a { color: var(--admin-muted); transition: color .2s ease, background .2s ease, box-shadow .2s ease; }
+    .kp-admin-period a:hover { color: var(--admin-ink); }
+    .kp-admin-period a.is-active { background: var(--admin-ink); color: #fffaf0; box-shadow: 0 2px 8px rgba(23, 22, 18, .16); }
+
+    .kp-admin-chart-panel { background: #f8f4ec; }
+
     .kp-section-icon {
-        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-700;
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl;
+        background: #f5f0e5;
+        color: #715a34;
     }
 
     .kp-summary-card {
-        @apply flex min-w-0 items-start gap-3 rounded-xl border bg-white p-4;
-        box-shadow: 0 2px 12px rgba(15, 23, 42, .035);
+        @apply flex min-w-0 items-start gap-3 rounded-2xl border bg-white p-4;
+        border-color: var(--admin-line);
+        box-shadow: 0 14px 32px rgba(39, 33, 24, .045);
     }
 
     .kp-summary-icon {
         @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl;
-    }
-
-    .kp-summary-card.tone-emerald {
-        @apply border-emerald-100 bg-emerald-50/20;
-    }
-
-    .kp-summary-card.tone-emerald .kp-summary-icon {
-        @apply bg-emerald-100 text-emerald-600;
-    }
-
-    .kp-summary-card.tone-blue {
-        @apply border-blue-100 bg-blue-50/20;
-    }
-
-    .kp-summary-card.tone-blue .kp-summary-icon {
-        @apply bg-blue-100 text-blue-600;
-    }
-
-    .kp-summary-card.tone-violet {
-        @apply border-violet-100 bg-violet-50/20;
-    }
-
-    .kp-summary-card.tone-violet .kp-summary-icon {
-        @apply bg-violet-100 text-violet-600;
-    }
-
-    .kp-summary-card.tone-amber {
-        @apply border-amber-100 bg-amber-50/20;
-    }
-
-    .kp-summary-card.tone-amber .kp-summary-icon {
-        @apply bg-amber-100 text-amber-600;
+        background: #f5f0e5;
+        color: #715a34;
     }
 
     .kp-pipeline-item {
         @apply flex items-center justify-between rounded-xl border bg-white px-4 py-3;
+        border-color: var(--admin-line);
     }
 
     .kp-pipeline-icon {
         @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full;
-    }
-
-    .kp-pipeline-item.tone-amber {
-        @apply border-amber-100;
-    }
-
-    .kp-pipeline-item.tone-amber .kp-pipeline-icon {
-        @apply bg-amber-50 text-amber-600;
-    }
-
-    .kp-pipeline-item.tone-blue {
-        @apply border-blue-100;
-    }
-
-    .kp-pipeline-item.tone-blue .kp-pipeline-icon {
-        @apply bg-blue-50 text-blue-600;
-    }
-
-    .kp-pipeline-item.tone-violet {
-        @apply border-violet-100;
-    }
-
-    .kp-pipeline-item.tone-violet .kp-pipeline-icon {
-        @apply bg-violet-50 text-violet-600;
-    }
-
-    .kp-pipeline-item.tone-emerald {
-        @apply border-emerald-100;
-    }
-
-    .kp-pipeline-item.tone-emerald .kp-pipeline-icon {
-        @apply bg-emerald-50 text-emerald-600;
+        background: #f5f0e5;
+        color: #715a34;
     }
 
     .kp-inventory-row {
         @apply flex items-center gap-3 rounded-xl border px-3 py-2.5;
+        border-color: var(--admin-line);
+        background: #fcfbf8;
     }
 
     .kp-inventory-icon {
         @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl;
+        background: #f5f0e5;
+        color: #715a34;
     }
 
-    .kp-inventory-row.tone-blue {
-        @apply border-blue-100 bg-blue-50/60;
+    .kp-admin-body :is(input, select, textarea).border-black,
+    .kp-admin-body .field {
+        border-color: var(--admin-line);
+        background: #fffdfa;
+        color: var(--admin-ink);
     }
 
-    .kp-inventory-row.tone-blue .kp-inventory-icon {
-        @apply bg-blue-100 text-blue-600;
+    .kp-admin-body :is(input, select, textarea).border-black:focus,
+    .kp-admin-body .field:focus {
+        border-color: var(--admin-gold);
+        box-shadow: 0 0 0 3px rgba(170, 137, 81, .14);
     }
 
-    .kp-inventory-row.tone-emerald {
-        @apply border-emerald-100 bg-emerald-50/60;
+    .kp-admin-body :is(.rounded-2xl, .rounded-xl).border.border-black.bg-white {
+        border-color: var(--admin-line);
+        box-shadow: 0 14px 32px rgba(39, 33, 24, .04);
     }
 
-    .kp-inventory-row.tone-emerald .kp-inventory-icon {
-        @apply bg-emerald-100 text-emerald-600;
+    .kp-admin-body table thead {
+        background: #f6f2ea !important;
+        color: #766f62 !important;
     }
 
-    .kp-inventory-row.tone-amber {
-        @apply border-amber-100 bg-amber-50/60;
-    }
-
-    .kp-inventory-row.tone-amber .kp-inventory-icon {
-        @apply bg-amber-100 text-amber-600;
+    .kp-admin-body table tbody tr:hover {
+        background: #fcfaf6 !important;
     }
 
     .kp-inventory-row.tone-red {
@@ -395,7 +458,15 @@
     }
 
     .kp-quick-action {
-        @apply flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50;
+        @apply flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition;
+        border-color: var(--admin-line);
+        color: #4e483d;
+    }
+
+    .kp-quick-action:hover {
+        background: #f6f1e7;
+        border-color: #cbb58c;
+        color: var(--admin-ink);
     }
 }
 
@@ -561,6 +632,16 @@
     .kp-auth-switch-text a { color:var(--kp-emerald); font-weight:700; text-underline-offset:3px; }
     .kp-auth-register-fields { display:grid; gap:.85rem; }
     .kp-auth-animate { animation:kp-auth-card-in .65s cubic-bezier(.2,.8,.2,1) both; }
+
+    /* The admin entry point belongs to the control room, not the storefront. */
+    .kp-admin-login .kp-auth-page { background: #171612; }
+    .kp-admin-login .kp-auth-backdrop::after { background: linear-gradient(120deg, rgba(23,22,18,.9), rgba(23,22,18,.46)); }
+    .kp-admin-login .kp-auth-card { border-color: rgba(224, 204, 163, .42); background: rgba(250, 248, 243, .96); box-shadow: 0 28px 88px rgba(0,0,0,.35); }
+    .kp-admin-login .kp-auth-card-brand::after { content: "CONTROL ROOM"; margin-top: .45rem; color: #9a7845; font-size: .58rem; font-weight: 800; letter-spacing: .22em; }
+    .kp-admin-login .kp-auth-heading h1 { font-family: "Playfair Display", Georgia, serif; font-weight: 600; }
+    .kp-admin-login .kp-auth-back:hover { color: #9a7845; }
+    .kp-admin-login .button-dark { background: #171612; }
+    .kp-admin-login .button-dark:hover { background: #aa8951; color: #171612; }
     @keyframes kp-auth-card-in { from { opacity:0; transform:translateY(18px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
     @keyframes kp-auth-bg-drift { from { transform:scale(1); } to { transform:scale(1.035); } }
 

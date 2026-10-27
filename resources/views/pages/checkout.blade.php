@@ -799,8 +799,8 @@
             </svg>
           </span>
           <div>
-            <h2 class="ckp-card-title">Continue with your phone number</h2>
-            <p class="ckp-card-sub">No account needed — we'll text you a code.</p>
+            <h2 class="ckp-card-title">Sign in or create your account</h2>
+            <p class="ckp-card-sub">One step — no SMS codes, no waiting.</p>
           </div>
         </div>
 
@@ -813,33 +813,35 @@
           </div>
         </div>
 
-        <div data-guest-code-row hidden>
-          <div class="ckp-phone-wrap">
-            <span class="ckp-phone-label">Your name <span style="font-weight:400">(for new customers)</span></span>
-            <div class="ckp-phone">
-              <input type="text" data-guest-name placeholder="e.g. Amina Juma"
-                     autocomplete="name" style="padding-left:14px">
-            </div>
+        <div class="ckp-phone-wrap">
+          <span class="ckp-phone-label">Your name <span style="font-weight:400">(only for new customers)</span></span>
+          <div class="ckp-phone">
+            <input type="text" data-guest-name placeholder="e.g. Amina Juma"
+                   autocomplete="name" style="padding-left:14px">
           </div>
-          <div class="ckp-phone-wrap">
-            <span class="ckp-phone-label">SMS code</span>
-            <div class="ckp-phone">
-              <input type="text" data-guest-code placeholder="6-digit code"
-                     autocomplete="one-time-code" inputmode="numeric" maxlength="6" style="padding-left:14px">
-            </div>
+        </div>
+
+        <div class="ckp-phone-wrap">
+          <span class="ckp-phone-label">Password</span>
+          <div class="ckp-phone">
+            <input type="password" data-guest-password placeholder="Your password (min 8 characters)"
+                   autocomplete="current-password" style="padding-left:14px">
           </div>
         </div>
 
         <p data-guest-error class="ckp-error" role="alert" style="display:none"></p>
 
         <div style="margin-top:14px">
-          <button type="button" data-guest-send class="ckp-place" style="margin-top:0">
-            <span data-guest-send-label>Send code</span>
-          </button>
-          <button type="button" data-guest-verify class="ckp-place" style="display:none;margin-top:0">
-            <span>Verify &amp; continue</span>
+          <button type="button" data-guest-continue class="ckp-place" style="margin-top:0">
+            <span data-guest-continue-label>Continue</span>
           </button>
         </div>
+
+        <p style="margin-top:10px;font-size:12px;line-height:1.5;color:#555">
+          Forgot your password?
+          <a href="{{ route('password.forgot') }}" style="text-decoration:underline">Reset it by email</a>
+          — it's free.
+        </p>
       </section>
 
       {{-- Contact card --}}
@@ -1531,9 +1533,10 @@
     }
   });
 
-  /* ── guest sign-in (phone OTP) + one-tap pay ───────────── */
-  // Guests verify by SMS and reload signed in; members with a previous
-  // successful mobile-money payment get a one-tap "pay again" button.
+  /* ── guest sign-in (phone + password) + one-tap pay ──── */
+  // Guests sign in (or create an account) with phone + password in one step
+  // and reload signed in; members with a previous successful mobile-money
+  // payment get a one-tap "pay again" button.
   (async () => {
     const panel = $('[data-guest-panel]');
     let me = null;
@@ -1573,44 +1576,36 @@
       errEl.style.display = 'flex';
     };
     const guestClear = () => { if (errEl) errEl.style.display = 'none'; };
-    const sendBtn = $('[data-guest-send]');
-    const verifyBtn = $('[data-guest-verify]');
+    const continueBtn = $('[data-guest-continue]');
+    const continueLabel = $('[data-guest-continue-label]');
 
-    sendBtn?.addEventListener('click', async () => {
+    continueBtn?.addEventListener('click', async () => {
       guestClear();
       const phone = normalizePhone($('[data-guest-phone]')?.value?.trim() || '');
-      if (!phone) { guestError('Enter your mobile number.'); return; }
-      sendBtn.disabled = true;
-      $('[data-guest-send-label]').textContent = 'Sending…';
-      try {
-        await api('/auth/checkout/request-code', { method: 'POST', body: { phone } });
-        $('[data-guest-code-row]').hidden = false;
-        sendBtn.style.display = 'none';
-        verifyBtn.style.display = '';
-      } catch (e) { guestError(e.message || 'Could not send code.'); }
-      finally {
-        sendBtn.disabled = false;
-        $('[data-guest-send-label]').textContent = 'Send code';
-      }
-    });
-
-    verifyBtn?.addEventListener('click', async () => {
-      guestClear();
-      const phone = normalizePhone($('[data-guest-phone]')?.value?.trim() || '');
-      const code = ($('[data-guest-code]')?.value || '').replace(/\D/g, '');
       const name = ($('[data-guest-name]')?.value || '').trim();
-      if (code.length !== 6) { guestError('Enter the 6-digit code.'); return; }
-      verifyBtn.disabled = true;
+      const password = $('[data-guest-password]')?.value || '';
+      if (!phone) { guestError('Enter your mobile number.'); return; }
+      if (password.length < 8) { guestError('Enter your password (at least 8 characters).'); return; }
+      continueBtn.disabled = true;
+      if (continueLabel) continueLabel.textContent = 'Signing in…';
       try {
-        await api('/auth/checkout/verify', { method: 'POST', body: { phone, code, name: name || undefined } });
-        // Carry a guest bag into the new account, then boot signed in.
+        // Known number → password check; new number → account created with
+        // the name (server response `registered` says which ran).
+        await api('/auth/checkout/signin', {
+          method: 'POST',
+          body: { phone, name: name || undefined, password },
+        });
+        // Carry a guest bag into the account, then boot signed in.
         try {
           const guestToken = localStorage.getItem('kp_guest_cart_token');
           if (guestToken) await api('/cart/merge', { method: 'POST', body: { guest_cart_token: guestToken } });
         } catch { /* empty guest bag — nothing to carry */ }
         window.location.reload();
-      } catch (e) { guestError(e.message || 'Verification failed.'); }
-      finally { verifyBtn.disabled = false; }
+      } catch (e) { guestError(e.message || 'Could not continue. Please try again.'); }
+      finally {
+        continueBtn.disabled = false;
+        if (continueLabel) continueLabel.textContent = 'Continue';
+      }
     });
   })();
 

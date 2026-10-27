@@ -16,7 +16,7 @@ class LoginRequest extends FormRequest
     {
         return [
             'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber()],
-            'code' => ['required', 'digits:6'],
+            'password' => ['required', 'string', 'max:200'],
         ];
     }
 }

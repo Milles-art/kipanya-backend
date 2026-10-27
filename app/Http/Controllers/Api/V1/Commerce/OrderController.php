@@ -15,6 +15,7 @@ use App\Services\Payments\PaymentStateMachine;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class OrderController extends Controller
@@ -57,43 +58,37 @@ final class OrderController extends Controller
     {
         $this->assertOwnedByOrCan($order, 'commerce.manage');
 
-        if ($order->status !== OrderStatus::PendingPayment) {
-            throw ValidationException::withMessages([
-                'payment' => 'This order can no longer be paid.',
-            ]);
-        }
-
-        $order->loadMissing(['payments']);
-        $latest = $order->payments->sortByDesc('id')->first();
-
-        if ($latest !== null && $latest->status === PaymentStatus::Paid) {
-            throw ValidationException::withMessages([
-                'payment' => 'This order is already paid.',
-            ]);
-        }
-
-        // A token minted moments ago is still fresh — reuse it so double
-        // taps and rapid retries don't stack up pending payments.
-        if ($latest !== null
-            && $latest->status->isPendingLike()
-            && $latest->initiated_at !== null
-            && $latest->initiated_at->gt(now()->subMinutes(2))) {
-            return new OrderResource($order->load(['items', 'payments', 'stockReservation.items.variant.product']));
-        }
-
-        // Supersede stale pending-like attempts so only the new token can settle.
         $states = app(PaymentStateMachine::class);
-        foreach ($order->payments as $previous) {
-            if ($previous->status->isPendingLike() && $previous->status->canTransitionTo(PaymentStatus::Cancelled)) {
-                $states->transition($previous, PaymentStatus::Cancelled, [
-                    'reason' => 'superseded by repay',
-                ]);
-            }
-        }
+        $attempt = DB::transaction(function () use ($order, $payments, $states) {
+            $order = WearOrder::query()->lockForUpdate()->findOrFail($order->id);
+            $states->assertPayable($order);
+            $previousAttempts = $order->payments()->lockForUpdate()->orderByDesc('id')->get();
+            $latest = $previousAttempts->first();
 
-        $payments->createPending($order, 'repay-'.Str::uuid()->toString(), [
-            'repay' => true,
-        ]);
+            $uncertain = fn ($p): bool => ($p->payload['initiation_uncertain'] ?? false) === true;
+            foreach ($previousAttempts as $previous) {
+                if (! in_array($previous->status, [PaymentStatus::Processing, PaymentStatus::InProgress, PaymentStatus::ReconciliationRequired], true)) {
+                    continue;
+                }
+                // An attempt whose initiation failed ambiguously never handed the
+                // customer a payment URL, so no money can be on it. Blocking on it
+                // would make the order permanently unpayable after one gateway
+                // hiccup; it is safe to supersede and retry.
+                if ($uncertain($previous)) {
+                    continue;
+                }
+                throw ValidationException::withMessages(['payment' => 'A payment is still being checked. Please wait before trying again.']);
+            }
+            if ($latest && ! $uncertain($latest) && $latest->status->isPendingLike()
+                && (! $latest->initiated_at || $latest->initiated_at->gt(now()->subMinutes(2)))) {
+                return $latest;
+            }
+            foreach ($previousAttempts as $previous) {
+                $states->supersede($previous);
+            }
+            return $payments->prepare($order, 'repay-'.Str::uuid()->toString(), ['repay' => true]);
+        });
+        $payments->initiatePrepared($attempt);
 
         return new OrderResource($order->fresh(['items', 'payments', 'stockReservation.items.variant.product']));
     }

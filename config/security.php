@@ -33,6 +33,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Sign-up limits (anti-farm)
+    |--------------------------------------------------------------------------
+    | Caps on account creation per source connection and per device cookie.
+    | The IP ceilings are deliberately looser than the device ceilings: mobile
+    | carriers put many unrelated customers behind one public IP (CGNAT), so a
+    | tight per-IP cap would block real shoppers, while the device cookie is
+    | unique per browser and can be held much tighter. All values are env
+    | tunable so a promotion or a bad actor can be adjusted without a deploy.
+    */
+    'signup_ip_per_minute' => (int) env('SIGNUP_IP_PER_MINUTE', 2),
+    'signup_ip_per_hour' => (int) env('SIGNUP_IP_PER_HOUR', 5),
+    'signup_ip_per_day' => (int) env('SIGNUP_IP_PER_DAY', 15),
+    'signup_device_per_day' => (int) env('SIGNUP_DEVICE_PER_DAY', 5),
+
+    /*
+    |--------------------------------------------------------------------------
     | Content-Security-Policy img-src
     |--------------------------------------------------------------------------
     | Defaults to any HTTPS host because product images may be third-party.

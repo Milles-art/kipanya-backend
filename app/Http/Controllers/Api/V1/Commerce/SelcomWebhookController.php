@@ -35,17 +35,32 @@ final class SelcomWebhookController extends Controller
         $rawTransid = is_scalar($payload['transid'] ?? null) ? trim((string) $payload['transid']) : '';
 
         $payment = PaymentTransaction::query()
-            ->whereHas('order', fn ($query) => $query->where('order_number', $orderId))
+            ->where('gateway_order_id', $orderId)
             ->with('order')
             ->first();
 
+        // Legacy attempts used the merchant order number. They must match an
+        // exact authenticated reference; never pick the first/latest attempt.
+        $payment ??= PaymentTransaction::query()
+            ->where('provider_reference', $reference)
+            ->whereHas('order', fn ($query) => $query->where('order_number', $orderId))
+            ->with('order')->first();
+
         if (! $payment) {
+            if ($reference !== null && PaymentTransaction::query()
+                ->whereHas('order', fn ($query) => $query->where('order_number', $orderId))
+                ->exists()) {
+                return response()->json(['verified' => true, 'error' => 'reference_mismatch'], 404);
+            }
             return response()->json(['verified' => true, 'error' => 'order_not_found'], 404);
         }
 
         // The Selcom merchant reference must match the reference stored at
         // initiation, so a callback can never settle a different order.
-        if ($reference !== null && (string) $payment->provider_reference !== (string) $reference) {
+        if ($reference === null || $reference === '') {
+            return response()->json(['verified' => true, 'error' => 'reference_missing'], 422);
+        }
+        if ((string) $payment->provider_reference !== (string) $reference) {
             return response()->json(['verified' => true, 'error' => 'reference_mismatch'], 404);
         }
 
@@ -58,6 +73,9 @@ final class SelcomWebhookController extends Controller
         // Replay protection: if this callback was already processed, answer OK again.
         $alreadyProcessed = SelcomWebhookLog::query()
             ->where('transid', $transid)
+            ->where('order_id', $orderId)
+            ->where('payment_transaction_id', $payment->id)
+            ->where('payment_status', (string) ($payload['payment_status'] ?? ''))
             ->where('processed_successfully', true)
             ->exists();
         if ($alreadyProcessed) {
@@ -65,19 +83,21 @@ final class SelcomWebhookController extends Controller
         }
 
         try {
+            $signed = array_map('trim', explode(',', (string) $request->header('Signed-Fields')));
             $providerState = [
                 'status' => (string) ($payload['payment_status'] ?? ''),
                 'transid' => $rawTransid !== '' ? $rawTransid : null,
-                'reference' => $payment->provider_reference,
+                'reference' => $reference,
                 'channel' => $payload['channel'] ?? null,
-                'amount' => $payload['amount'] ?? null,
-                'currency' => $payload['currency'] ?? null,
+                'amount' => in_array('amount', $signed, true) ? ($payload['amount'] ?? null) : null,
+                'currency' => in_array('currency', $signed, true) ? ($payload['currency'] ?? null) : null,
                 'payload' => $payload,
             ];
 
             $this->payments->applyProviderStatus($payment, $providerState);
 
-            $this->recordCallback($transid, $orderId, $payment, $payload, true, null);
+            $processed = ! ($payment->fresh()->payload['needs_review'] ?? false);
+            $this->recordCallback($transid, $orderId, $payment, $payload, $processed, $processed ? null : 'reconciliation_required');
 
             return response()->json(['verified' => true, 'result' => 'OK']);
         } catch (ValidationException $e) {
@@ -197,10 +217,14 @@ final class SelcomWebhookController extends Controller
 
         // The identity and the status of the payment must be covered by the signature,
         // otherwise an unsigned field could be altered on a captured, valid callback.
-        foreach (['order_id', 'payment_status'] as $required) {
+        foreach (['order_id', 'payment_status', 'reference'] as $required) {
             if (! in_array($required, $fields, true)) {
                 return false;
             }
+        }
+
+        if (isset($body['transid']) && ! in_array('transid', $fields, true)) {
+            return false;
         }
 
         foreach ($fields as $field) {

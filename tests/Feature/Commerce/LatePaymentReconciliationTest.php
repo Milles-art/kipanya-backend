@@ -103,7 +103,7 @@ class LatePaymentReconciliationTest extends TestCase
         config()->set('services.selcom.api_secret', self::API_SECRET);
 
         $timestamp = now()->format('Y-m-d\TH:i:sP');
-        $fields = ['transid', 'order_id', 'reference', 'result', 'resultcode', 'payment_status'];
+        $fields = ['transid', 'order_id', 'reference', 'result', 'resultcode', 'payment_status', 'amount'];
         $digest = $this->sign($timestamp, $fields, $body);
 
         return $this->postJson('/api/webhooks/selcom', $body, array_merge([

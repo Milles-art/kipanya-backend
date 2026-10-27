@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Api\V1\Auth;
 
-use App\Rules\ValidTanzanianPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
-class RequestRegistrationOtpRequest extends FormRequest
+class ResetPasswordRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,7 +14,8 @@ class RequestRegistrationOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'max:30', new ValidTanzanianPhoneNumber()],
+            'token' => ['required', 'string', 'max:128'],
+            'password' => ['required', 'string', 'min:8', 'max:200', 'confirmed'],
         ];
     }
 }

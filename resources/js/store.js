@@ -1698,8 +1698,7 @@ const bootHome = async () => {
       authError.textContent = message || 'Something went wrong. Please try again.';
       authError.classList.remove('hidden');
       authError.setAttribute('role', 'alert');
-      const activeStep = form.querySelector('[data-otp-step]:not(.hidden)') || form.querySelector('[data-primary-step]:not(.hidden)');
-      const input = activeStep?.querySelector('input:not([type=\"hidden\"]):not([disabled])');
+      const input = form.querySelector('input:not([type=\"hidden\"]):not([disabled])');
       if (input) {
         input.setAttribute('aria-invalid', 'true');
         input.setAttribute('aria-describedby', 'kp-auth-error');
@@ -1708,11 +1707,9 @@ const bootHome = async () => {
     };
     authError?.setAttribute('id', 'kp-auth-error');
 
-    // Auth is a two-step flow. Native browser validation must not block the
-    // submit handler while the OTP step is still hidden. Validation is handled
-    // by the API/FormRequest on each step instead.
-    form.noValidate = true;
-
+    // One-step phone + password flow: native validation (required,
+    // minlength) is helpful here, so it stays on; the API/FormRequest is
+    // still the authority on every rule.
     const authSubmitBtn = form.querySelector('.kp-auth-submit');
 
     form.addEventListener(
@@ -1728,6 +1725,9 @@ const bootHome = async () => {
         const phone =
           fd.get('phone');
 
+        const password =
+          fd.get('password');
+
         const originalAuthLabel = authSubmitBtn?.innerHTML;
         if (authSubmitBtn) {
           authSubmitBtn.dataset.kpBusy = '1';
@@ -1737,52 +1737,6 @@ const bootHome = async () => {
         }
 
         try {
-          const first =
-            form.dataset.step !==
-            'otp';
-
-          const requestPath =
-            login
-              ? '/auth/login/request-otp'
-              : '/auth/register/request-otp';
-
-          if (first) {
-            const otpResponse = await api(
-              requestPath,
-              {
-                method: 'POST',
-                body: { phone }
-              }
-            );
-
-            form.dataset.step =
-              'otp';
-
-            const otpStep = form.querySelector('[data-otp-step]');
-            const otpInput = otpStep?.querySelector('input[name="code"]');
-
-            otpStep?.classList.remove('hidden');
-            if (otpInput) otpInput.required = true;
-
-            form
-              .querySelector('[data-primary-step]')
-              ?.classList.add('hidden');
-
-            const primaryInputs = form.querySelectorAll('[data-primary-step] input, [data-primary-step] select, [data-primary-step] textarea');
-            primaryInputs.forEach(input => { input.required = false; });
-
-            toast(
-              otpResponse?.dev_otp
-                ? `Development OTP: ${otpResponse.dev_otp}`
-                : 'Verification code requested'
-            );
-
-            return;
-          }
-
-          const code =
-            fd.get('code');
-
           const path =
             login
               ? '/auth/login'
@@ -1791,13 +1745,20 @@ const bootHome = async () => {
           const body = login
             ? {
                 phone,
-                code
+                password
               }
             : {
                 phone,
-                code,
+                password,
+                password_confirmation:
+                  fd.get(
+                    'password_confirmation'
+                  ),
                 name:
                   fd.get('name'),
+                email:
+                  fd.get('email') ||
+                  null,
                 referral_code:
                   fd.get(
                     'referral_code'
@@ -1844,6 +1805,105 @@ const bootHome = async () => {
         }
       }
     );
+  };
+
+  const bootForgotPassword = () => {
+    const form = document.querySelector('[data-forgot-form]');
+    if (!form) return;
+
+    const success = document.querySelector('[data-forgot-success]');
+    const authError = form.querySelector('[data-auth-error]');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      authError?.classList.add('hidden');
+
+      const originalLabel = submitBtn?.innerHTML;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Please wait…';
+      }
+
+      try {
+        await api('/auth/forgot-password', {
+          method: 'POST',
+          body: { phone: new FormData(form).get('phone') }
+        });
+
+        // The API answer is identical whether or not the account exists, so
+        // the page simply explains both outcomes.
+        form.hidden = true;
+        if (success) success.hidden = false;
+      } catch (err) {
+        if (authError) {
+          authError.textContent = err.message || 'Something went wrong. Please try again.';
+          authError.classList.remove('hidden');
+          authError.setAttribute('role', 'alert');
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalLabel;
+        }
+      }
+    });
+  };
+
+  const bootResetPassword = () => {
+    const form = document.querySelector('[data-reset-form]');
+    if (!form) return;
+
+    const authError = form.querySelector('[data-auth-error]');
+    const showError = message => {
+      if (!authError) return;
+      authError.textContent = message;
+      authError.classList.remove('hidden');
+      authError.setAttribute('role', 'alert');
+    };
+
+    // A visit without a token cannot reset anything: say so immediately
+    // instead of failing on submit.
+    if (!form.dataset.resetToken) {
+      form.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
+      showError('This password reset link is invalid or has expired. Request a new one from the sign-in page.');
+      return;
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      authError?.classList.add('hidden');
+
+      const fd = new FormData(form);
+      const originalLabel = submitBtn?.innerHTML;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Please wait…';
+      }
+
+      try {
+        const payload = await api('/auth/reset-password', {
+          method: 'POST',
+          body: {
+            token: fd.get('token'),
+            password: fd.get('password'),
+            password_confirmation: fd.get('password_confirmation')
+          }
+        });
+
+        // The server revoked every old session and signed this one in.
+        setAuth(payload);
+        location.href = '/account';
+      } catch (err) {
+        showError(err.message || 'This password reset link is invalid or has expired.');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalLabel;
+        }
+      }
+    });
   };
 
   const bootWishlist =
@@ -2615,6 +2675,8 @@ const bootHome = async () => {
   bootProduct();
   bootCart();
   bootAuth();
+  bootForgotPassword();
+  bootResetPassword();
   bootWishlist();
   bootAccount();
   bootReturns();

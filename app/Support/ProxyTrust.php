@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Http\Middleware\EnsureDeviceCookie;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Http\Middleware\TrustProxies;
 
@@ -29,7 +30,11 @@ final class ProxyTrust
         }
 
         // The web-session cookie is an opaque bearer token validated server side, so
-        // Laravel's cookie encryption adds nothing for it.
-        EncryptCookies::except([(string) config('web_session.cookie', 'kp_web_session')]);
+        // Laravel's cookie encryption adds nothing for it. The device cookie is a
+        // random opaque id written and read by server-side middleware only.
+        EncryptCookies::except([
+            (string) config('web_session.cookie', 'kp_web_session'),
+            EnsureDeviceCookie::COOKIE,
+        ]);
     }
 }

@@ -54,6 +54,10 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
             Route::post('/inventory/{variant}/stock', [InventoryController::class, 'updateStock'])->name('inventory.stock');
             Route::resource('products.variants', VariantController::class)->except(['show']);
             Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+            // Anti-farm visibility: accounts sharing one signup browser, and
+            // the support path to give password-less legacy accounts a password.
+            Route::get('/customers/duplicates', [CustomerController::class, 'duplicates'])->name('customers.duplicates');
+            Route::post('/customers/{user}/password', [CustomerController::class, 'setPassword'])->name('customers.password');
             Route::resource('collections', CollectionController::class)->except(['show']);
             Route::get('/returns', [ReturnRequestController::class, 'index'])->name('returns.index');
             Route::get('/returns/{returnRequest}', [ReturnRequestController::class, 'show'])->name('returns.show');

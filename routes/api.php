@@ -20,22 +20,23 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::prefix('auth')->group(function () {
-        Route::post('/register/request-otp', [AuthenticationController::class, 'requestRegistrationOtp'])
-            ->middleware('throttle:otp-request');
-
+        // Account lifecycle. Rate limiting is layered: a coarse per-IP route
+        // throttle plus the per-phone/per-IP/per-device budgets inside the
+        // controller (sign-up caps, sign-in lockout, reset-link limits).
         Route::post('/register', [AuthenticationController::class, 'register'])
             ->middleware('throttle:10,1');
-
-        Route::post('/login/request-otp', [AuthenticationController::class, 'requestLoginOtp'])
-            ->middleware('throttle:otp-request');
 
         Route::post('/login', [AuthenticationController::class, 'login'])
             ->middleware('throttle:10,1');
 
-        Route::post('/checkout/request-code', [AuthenticationController::class, 'requestCheckoutCode'])
-            ->middleware('throttle:otp-request');
+        Route::post('/forgot-password', [AuthenticationController::class, 'forgotPassword'])
+            ->middleware('throttle:10,1');
 
-        Route::post('/checkout/verify', [AuthenticationController::class, 'verifyCheckoutCode'])
+        Route::post('/reset-password', [AuthenticationController::class, 'resetPassword'])
+            ->middleware('throttle:10,1');
+
+        // Guest checkout: one-step sign-in / account creation (no SMS codes).
+        Route::post('/checkout/signin', [AuthenticationController::class, 'checkoutSignin'])
             ->middleware('throttle:10,1');
 
         Route::middleware(['auth:sanctum', 'active', 'scoped.token:auth'])->group(function () {
@@ -85,9 +86,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::put('/payment-methods/{paymentMethod}/set-default', [PaymentMethodController::class, 'setDefault']);
             Route::delete('/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'destroy']);
             Route::put('/password', [AccountSecurityController::class, 'updatePassword']);
-            Route::post('/account/profile/phone/request', [ProfileContactController::class, 'requestPhoneChange']);
+            // The remaining OTP flows (phone/email change) still send SMS:
+            // keep the per-IP pump guard on their request endpoints.
+            Route::post('/account/profile/phone/request', [ProfileContactController::class, 'requestPhoneChange'])->middleware('throttle:otp-request');
             Route::post('/account/profile/phone/verify', [ProfileContactController::class, 'verifyPhoneChange']);
-            Route::post('/account/profile/email/request', [ProfileContactController::class, 'requestEmailChange']);
+            Route::post('/account/profile/email/request', [ProfileContactController::class, 'requestEmailChange'])->middleware('throttle:otp-request');
             Route::post('/account/profile/email/verify', [ProfileContactController::class, 'verifyEmailChange']);
             Route::get('/sessions', [AccountSecurityController::class, 'sessions']);
             Route::delete('/sessions/{session}', [AccountSecurityController::class, 'revokeSession'])->whereNumber('session');

@@ -17,7 +17,7 @@
 
         <div class="kp-auth-heading">
             <h1 id="login-title">Welcome back</h1>
-            <p>Sign in using your phone number and verification code.</p>
+            <p>Sign in with your phone number and password.</p>
         </div>
 
         <div class="kp-auth-switch" aria-label="Authentication">
@@ -29,19 +29,23 @@
             <input type="hidden" name="redirect" value="{{ request('redirect') }}">
             <div data-auth-error class="kp-form-error hidden" role="alert" aria-live="polite"></div>
 
-            <div data-primary-step>
-                <label class="kp-auth-label" for="login-phone">Phone number</label>
-                <input id="login-phone" name="phone" type="tel" class="field w-full kp-auth-field" required placeholder="07XXXXXXXX" autocomplete="tel">
+            <div class="kp-auth-register-fields">
+                <div>
+                    <label class="kp-auth-label" for="login-phone">Phone number</label>
+                    <input id="login-phone" name="phone" type="tel" class="field w-full kp-auth-field" required placeholder="07XXXXXXXX" autocomplete="tel">
+                </div>
+                <div>
+                    <label class="kp-auth-label" for="login-password">Password</label>
+                    <input id="login-password" name="password" type="password" class="field w-full kp-auth-field" required placeholder="Your password" autocomplete="current-password">
+                </div>
             </div>
 
-            <div data-otp-step class="hidden">
-                <label class="kp-auth-label" for="login-code">Verification code</label>
-                <input id="login-code" name="code" class="field w-full kp-auth-field kp-auth-otp" maxlength="6" inputmode="numeric" placeholder="000000" autocomplete="one-time-code">
-                <p class="kp-auth-help">We sent a 6-digit code to your phone.</p>
-            </div>
+            <p class="kp-auth-help" style="margin-top:-4px">
+                <a href="{{ route('password.forgot', ['redirect' => request('redirect')]) }}">Forgot your password?</a>
+            </p>
 
             <button class="button-dark kp-auth-submit" type="submit">
-                Continue <span aria-hidden="true">→</span>
+                Sign in <span aria-hidden="true">→</span>
             </button>
 
             <p class="kp-auth-switch-text">

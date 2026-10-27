@@ -100,7 +100,7 @@ class SelcomWebhookTest extends TestCase
         config()->set('services.selcom.api_secret', self::API_SECRET);
 
         $timestamp = now()->format('Y-m-d\TH:i:sP');
-        $fields = ['transid', 'order_id', 'reference', 'result', 'resultcode', 'payment_status'];
+        $fields = array_values(array_intersect(['transid', 'order_id', 'reference', 'result', 'resultcode', 'payment_status', 'amount', 'currency'], array_keys($body)));
         $digest = $this->sign($timestamp, $fields, $body);
 
         return $this->postJson('/api/webhooks/selcom', $body, array_merge([
@@ -465,8 +465,8 @@ class SelcomWebhookTest extends TestCase
         // Second order tries to use same transid - should be detected as replay
         $callback = $this->postWebhook($this->webhookBody($secondPayment, ['transid' => $sharedTransid]));
 
-        // Should be detected as replay and return duplicate=true
-        $callback->assertOk()->assertJsonPath('duplicate', true);
+        // A provider transaction ID cannot settle a second local order.
+        $callback->assertStatus(422)->assertJsonPath('error', 'invalid_callback');
         $secondPayment->refresh();
         $this->assertSame('pending', $secondPayment->status->value);
     }
@@ -565,8 +565,12 @@ class SelcomWebhookTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors('payment');
 
-        // No payment should have been created since the gateway threw before creation
-        $this->assertDatabaseCount('payment_transactions', 0);
+        // The local intent remains available for reconciliation. This avoids
+        // losing a provider-side payment if the network failed after acceptance.
+        $this->assertDatabaseHas('payment_transactions', [
+            'status' => 'reconciliation_required',
+            'idempotency_key' => 'webhook-gateway-timeout-0001',
+        ]);
     }
 
     // ------------------------------------------------------------------ F-09
@@ -594,7 +598,7 @@ class SelcomWebhookTest extends TestCase
         $body = $this->webhookBody($payment);
         unset($body['transid']);
 
-        $fields = ['order_id', 'reference', 'result', 'resultcode', 'payment_status'];
+        $fields = ['order_id', 'reference', 'result', 'resultcode', 'payment_status', 'amount'];
         $this->postWebhookSignedOver($body, $fields)->assertOk()->assertJsonMissingPath('duplicate');
         $this->postWebhookSignedOver($body, $fields)->assertOk()->assertJsonPath('duplicate', true);
 

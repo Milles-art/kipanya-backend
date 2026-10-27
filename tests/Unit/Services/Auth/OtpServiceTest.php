@@ -6,6 +6,7 @@ use App\Enums\Auth\OtpPurpose;
 use App\Integrations\Sms\SmsGateway;
 use App\Services\Auth\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Mockery;
@@ -24,7 +25,7 @@ class OtpServiceTest extends TestCase
             );
 
         $service = new OtpService($sms);
-        $otp = $service->send('0712345678', OtpPurpose::Registration);
+        $otp = $service->send('0712345678', OtpPurpose::PhoneChange);
 
         $this->assertNotEmpty($otp->code_hash);
         $this->assertNotSame('123456', $otp->code_hash);
@@ -37,10 +38,10 @@ class OtpServiceTest extends TestCase
         $sms->shouldReceive('send')->once();
 
         $service = new OtpService($sms);
-        $otp = $service->send('0712345678', OtpPurpose::Registration);
+        $otp = $service->send('0712345678', OtpPurpose::PhoneChange);
 
         $this->assertThrows(
-            fn () => $service->verify('0712345678', OtpPurpose::Registration, '000000'),
+            fn () => $service->verify('0712345678', OtpPurpose::PhoneChange, '000000'),
             ValidationException::class
         );
 
@@ -53,16 +54,16 @@ class OtpServiceTest extends TestCase
         $sms->shouldReceive('send')->once();
 
         $service = new OtpService($sms);
-        $otp = $service->send('0712345678', OtpPurpose::Registration);
+        $otp = $service->send('0712345678', OtpPurpose::PhoneChange);
 
         // The exact code is deliberately not exposed by the production service.
         // Verification behavior is covered through a controlled hash in this test.
         $otp->forceFill(['code_hash' => Hash::make('123456')])->save();
 
-        $service->verify('0712345678', OtpPurpose::Registration, '123456');
+        $service->verify('0712345678', OtpPurpose::PhoneChange, '123456');
 
         $this->assertThrows(
-            fn () => $service->verify('0712345678', OtpPurpose::Registration, '123456'),
+            fn () => $service->verify('0712345678', OtpPurpose::PhoneChange, '123456'),
             ValidationException::class
         );
     }
@@ -73,22 +74,22 @@ class OtpServiceTest extends TestCase
         $sms->shouldReceive('send')->times(OtpService::MAX_SENDS_PER_HOUR);
 
         $service = new OtpService($sms);
-        $purposes = [
-            OtpPurpose::Login,
-            OtpPurpose::Registration,
-            OtpPurpose::AdminLogin,
-            OtpPurpose::PasswordReset,
-            OtpPurpose::PhoneChange,
-        ];
 
-        // One send per flow fills the shared per-phone hourly budget.
-        foreach ($purposes as $purpose) {
-            $service->send('0712345678', $purpose);
+        // The remaining flows (phone change, email change) share one per-phone
+        // budget: alternate purposes and step past the resend cooldown until
+        // the shared hourly ceiling is spent.
+        $purposes = [OtpPurpose::PhoneChange, OtpPurpose::EmailChange];
+
+        for ($i = 0; $i < OtpService::MAX_SENDS_PER_HOUR; $i++) {
+            $service->send('0712345678', $purposes[$i % 2]);
+            Carbon::setTestNow(now()->addSeconds(OtpService::RESEND_COOLDOWN_SECONDS + 1));
         }
 
         $this->assertThrows(
-            fn () => $service->send('0712345678', OtpPurpose::AdminLogin),
+            fn () => $service->send('0712345678', OtpPurpose::PhoneChange),
             ValidationException::class
         );
+
+        Carbon::setTestNow();
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PaymentTransaction extends Model
 {
     protected $fillable = [
-        'wear_order_id', 'user_id', 'provider', 'provider_reference',
+        'wear_order_id', 'user_id', 'provider', 'provider_reference', 'gateway_order_id',
         'provider_transid', 'idempotency_key', 'amount', 'refunded_amount',
         'currency', 'status', 'payload', 'initiated_at', 'completed_at', 'failed_at',
     ];

@@ -18,11 +18,22 @@ final class RegisterUser
             $user = User::query()->create([
                 'name' => $data->name,
                 'phone' => $data->phone,
+                'email' => $data->email,
             ]);
 
+            // password/device_hash/signup_ip are intentionally not mass
+            // assignable; the hashed cast turns the plaintext password into a
+            // bcrypt hash here.
+            // phone_verified_at keeps its historical meaning of "this number is
+            // the account's confirmed contact channel" — no SMS proof exists in
+            // the password flow, so it is asserted at sign-up and gates
+            // downstream flows (e.g. adding an email in account settings).
             $user->forceFill([
                 'phone_verified_at' => now(),
                 'status' => UserStatus::Active->value,
+                'password' => $data->password,
+                'device_hash' => $data->deviceHash,
+                'signup_ip' => $data->signupIp,
             ])->save();
 
             $this->assignRole->execute($user, 'user');

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Foundation;
 
+use App\Enums\Auth\OtpPurpose;
 use App\Enums\Auth\UserStatus;
 use App\Integrations\Sms\SmsGateway;
 use App\Models\Cart\Cart;
@@ -11,7 +12,6 @@ use App\Models\Wear\WearOrder;
 use App\Models\Wear\WearProduct;
 use App\Models\Wear\WearProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -200,13 +200,14 @@ final class SecurityVerificationTest extends TestCase
 
     // ------------------------------------------------- OTP replay
 
-    public function test_a_consumed_login_code_cannot_be_used_again(): void
+    public function test_a_consumed_change_code_cannot_be_used_again(): void
     {
-        $this->withoutMiddleware(ThrottleRequests::class);
-        config(['auth.expose_otp_codes' => false]);
-
-        $test = $this;
-        $this->app->instance(SmsGateway::class, new class($test) implements SmsGateway
+        /*
+         * Phone/email change is the only OTP flow left after the password
+         * migration; a consumed code is single-use there exactly as login
+         * codes used to be.
+         */
+        $this->app->instance(SmsGateway::class, new class($this) implements SmsGateway
         {
             public function __construct(private object $test) {}
 
@@ -216,12 +217,16 @@ final class SecurityVerificationTest extends TestCase
             }
         });
 
-        $user = $this->user();
-        $this->postJson('/api/v1/auth/login/request-otp', ['phone' => $user->phone])->assertOk();
+        $service = $this->app->make(\App\Services\Auth\OtpService::class);
+        $service->send('+255712345678', OtpPurpose::PhoneChange);
         preg_match('/\b\d{6}\b/', end($this->sms)['message'], $m);
 
-        $this->postJson('/api/v1/auth/login', ['phone' => $user->phone, 'code' => $m[0]])->assertOk();
-        $this->postJson('/api/v1/auth/login', ['phone' => $user->phone, 'code' => $m[0]])->assertStatus(422);
+        $service->verify('+255712345678', OtpPurpose::PhoneChange, $m[0]);
+
+        $this->assertThrows(
+            fn () => $service->verify('+255712345678', OtpPurpose::PhoneChange, $m[0]),
+            \Illuminate\Validation\ValidationException::class,
+        );
     }
 
     // ------------------------------------------------- purchasability

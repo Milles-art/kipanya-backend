@@ -38,7 +38,7 @@ final class OrderService
         // request is an error instead of silently returning the earlier order.
         $fingerprint = hash('sha256', $data->addressId.'|'.($data->notes ?? '').'|'.$paymentMethod.'|'.($data->paymentProvider ?? '').'|'.($data->paymentPhone ?? ''));
 
-        return DB::transaction(function () use ($user, $data, $fingerprint, $paymentMethod): WearOrder {
+        $order = DB::transaction(function () use ($user, $data, $fingerprint, $paymentMethod): WearOrder {
             $existing = WearOrder::query()
                 ->where('checkout_idempotency_key', $data->idempotencyKey)
                 ->first();
@@ -130,7 +130,7 @@ final class OrderService
             }
 
             $this->inventoryReservationService->reserve($order, $cart);
-            $this->paymentService->createPending($order, $data->idempotencyKey, [
+            $this->paymentService->prepare($order, $data->idempotencyKey, [
                 'mobile_money_provider' => $data->paymentProvider,
                 'customer_mobile' => $data->paymentPhone,
             ]);
@@ -154,6 +154,13 @@ final class OrderService
 
             return $order->fresh(['items', 'payments', 'stockReservation.items.variant.product']);
         });
+
+        $this->paymentService->createPending($order, $data->idempotencyKey, [
+            'mobile_money_provider' => $data->paymentProvider,
+            'customer_mobile' => $data->paymentPhone,
+        ]);
+
+        return $order->fresh(['items', 'payments', 'stockReservation.items.variant.product']);
     }
 
     /**

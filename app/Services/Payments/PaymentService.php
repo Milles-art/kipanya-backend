@@ -8,6 +8,7 @@ use App\Integrations\Payments\PaymentGateway;
 use App\Models\Commerce\PaymentTransaction;
 use App\Models\Wear\WearOrder;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class PaymentService
@@ -19,47 +20,105 @@ final class PaymentService
 
     public function createPending(WearOrder $order, string $idempotencyKey, array $meta = []): PaymentTransaction
     {
-        $existing = PaymentTransaction::query()
-            ->with('order')
-            ->where('idempotency_key', $idempotencyKey)
-            ->first();
+        return $this->initiatePrepared($this->prepare($order, $idempotencyKey, $meta));
+    }
 
-        if ($existing) {
-            if ($existing->wear_order_id !== $order->id) {
-                throw ValidationException::withMessages([
-                    'idempotency_key' => 'This idempotency key has already been used for another order.',
-                ]);
+    public static function gatewayOrderId(string $idempotencyKey): string
+    {
+        return 'KP'.substr(hash('sha256', $idempotencyKey), 0, 30);
+    }
+
+    public function prepare(WearOrder $order, string $idempotencyKey, array $meta = []): PaymentTransaction
+    {
+        return DB::transaction(function () use ($order, $idempotencyKey, $meta) {
+            $order = WearOrder::query()->lockForUpdate()->findOrFail($order->id);
+            $existing = PaymentTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                if ($existing->wear_order_id !== $order->id) {
+                    throw ValidationException::withMessages(['idempotency_key' => 'This key is already in use.']);
+                }
+                return $existing;
             }
+            $this->stateMachine->assertPayable($order);
 
-            return $existing;
-        }
-
-        try {
-            $gatewayResponse = $this->gateway->initiate($order, $idempotencyKey);
-        } catch (SelcomGatewayException $e) {
-            throw $this->translateGatewayFailure($e);
-        }
-
-        try {
             return PaymentTransaction::create([
                 'wear_order_id' => $order->id,
                 'user_id' => $order->user_id,
-                'provider' => $gatewayResponse['provider'],
-                'provider_reference' => $gatewayResponse['reference'],
+                'provider' => 'selcom_checkout',
+                'gateway_order_id' => self::gatewayOrderId($idempotencyKey),
                 'idempotency_key' => $idempotencyKey,
                 'amount' => $order->total,
                 'currency' => 'TZS',
                 'status' => PaymentStatus::Pending,
-                'payload' => array_merge($gatewayResponse['payload'], $meta),
-                'initiated_at' => now(),
+                'payload' => array_merge($meta, ['gateway_order_id' => self::gatewayOrderId($idempotencyKey)]),
             ]);
-        } catch (QueryException $e) {
-            if (! str_contains($e->getMessage(), '1062') && ! str_contains(strtolower($e->getMessage()), 'unique')) {
-                throw $e;
-            }
+        });
+    }
 
-            return PaymentTransaction::query()->where('idempotency_key', $idempotencyKey)->firstOrFail();
+    public function initiatePrepared(PaymentTransaction $payment): PaymentTransaction
+    {
+        $claimed = DB::transaction(function () use ($payment) {
+            $order = WearOrder::query()->lockForUpdate()->findOrFail($payment->wear_order_id);
+            $locked = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+            if ($locked->initiated_at || ! $locked->status->isPendingLike()) {
+                return false;
+            }
+            $this->stateMachine->assertPayable($order);
+            $locked->update(['initiated_at' => now()]);
+            return true;
+        });
+
+        if (! $claimed) {
+            $payment->refresh();
+            if ($payment->status->isPendingLike() && empty($payment->payload['payment_gateway_url'])) {
+                throw ValidationException::withMessages(['payment' => 'This payment is being checked. Please check your order before trying again.']);
+            }
+            return $payment;
         }
+
+        try {
+            $response = $this->gateway->initiate($payment->order, $payment->idempotency_key);
+        } catch (\Throwable $exception) {
+            // A definitive 4xx rejection means the provider refused the request
+            // outright: no gateway order exists, so no money can ever land on
+            // this attempt. Release the claim so the same idempotency key can
+            // simply retry. Only an ambiguous outcome (timeout, 5xx, unknown
+            // error) may have created an order we never saw, so only those are
+            // flagged for reconciliation.
+            $definitiveRejection = $exception instanceof SelcomGatewayException
+                && ! $exception->isTimeout
+                && $exception->httpStatus !== null
+                && $exception->httpStatus < 500;
+
+            DB::transaction(function () use ($payment, $definitiveRejection) {
+                WearOrder::query()->lockForUpdate()->findOrFail($payment->wear_order_id);
+                $locked = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+                if (! $locked->status->isPendingLike()) {
+                    return;
+                }
+                if ($definitiveRejection) {
+                    $locked->update(['initiated_at' => null]);
+
+                    return;
+                }
+                $locked->update(['status' => PaymentStatus::ReconciliationRequired,
+                    'payload' => array_merge($locked->payload ?? [], ['needs_review' => true, 'initiation_uncertain' => true])]);
+            });
+            if ($exception instanceof SelcomGatewayException) {
+                throw $this->translateGatewayFailure($exception);
+            }
+            throw $exception;
+        }
+
+        return DB::transaction(function () use ($payment, $response) {
+            WearOrder::query()->lockForUpdate()->findOrFail($payment->wear_order_id);
+            $locked = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+            $locked->update([
+                'provider_reference' => $locked->provider_reference ?? $response['reference'],
+                'payload' => array_merge($response['payload'], $locked->payload ?? []),
+            ]);
+            return $locked->fresh('order');
+        });
     }
 
     /**
@@ -140,9 +199,12 @@ final class PaymentService
     public function refreshStatus(PaymentTransaction $payment): PaymentTransaction
     {
         $payment->loadMissing('order');
-        $orderId = $payment->payload['gateway_order_id'] ?? $payment->order->order_number;
+        $orderId = $payment->gateway_order_id ?? $payment->payload['gateway_order_id'] ?? $payment->order->order_number;
 
         $providerState = $this->gateway->status((string) $orderId);
+        if ($payment->gateway_order_id === null && $payment->provider_reference !== ($providerState['reference'] ?? null)) {
+            throw ValidationException::withMessages(['payment' => 'Provider response does not identify this payment attempt.']);
+        }
 
         return $this->applyProviderStatus($payment, $providerState);
     }
@@ -155,11 +217,7 @@ final class PaymentService
     public function reconcileAfterTimeout(PaymentTransaction $payment): PaymentTransaction
     {
         $payment->loadMissing('order');
-
-        // Do not mark as failed - instead query the provider for actual status
-        $providerState = $this->gateway->status((string) $payment->payload['gateway_order_id'] ?? $payment->order->order_number);
-
-        // Store the reconciliation attempt
+        $providerState = $this->gateway->status((string) ($payment->gateway_order_id ?? $payment->payload['gateway_order_id'] ?? $payment->order->order_number));
         $payment->update([
             'payload' => array_merge($payment->payload ?? [], [
                 'reconciliation_attempts' => ($payment->payload['reconciliation_attempts'] ?? 0) + 1,
@@ -167,17 +225,9 @@ final class PaymentService
                 'last_reconciliation_status' => $providerState['status'] ?? 'unknown',
             ]),
         ]);
-
-        // If reconciliation status is pending/in_progress, move to ReconciliationRequired
-        $status = $this->normalizeProviderStatus((string) ($providerState['status'] ?? ''));
-        if (in_array($status, ['pending', 'in_progress'])) {
-            return $this->stateMachine->transition(
-                $payment,
-                PaymentStatus::ReconciliationRequired,
-                $providerState
-            );
+        if (in_array($this->normalizeProviderStatus((string) ($providerState['status'] ?? '')), ['pending', 'in_progress'], true)) {
+            return $this->stateMachine->transition($payment, PaymentStatus::ReconciliationRequired, $providerState);
         }
-
         return $this->applyProviderStatus($payment, $providerState);
     }
 

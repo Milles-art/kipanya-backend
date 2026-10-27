@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
-final class AccountAccountEndpointsTest extends TestCase
+final class AccountEndpointsTest extends TestCase
 {
     use RefreshDatabase;
 

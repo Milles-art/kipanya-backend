@@ -5,95 +5,104 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Actions\Auth\IssueSanctumToken;
 use App\Actions\Auth\RegisterUser;
 use App\DTOs\Auth\RegisterUserData;
-use App\Enums\Auth\OtpPurpose;
-use App\Enums\Auth\UserStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Auth\CheckoutSigninRequest;
+use App\Http\Requests\Api\V1\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
-use App\Http\Requests\Api\V1\Auth\CheckoutVerifyRequest;
 use App\Http\Requests\Api\V1\Auth\RegisterRequest;
-use App\Http\Requests\Api\V1\Auth\RequestLoginOtpRequest;
-use App\Http\Requests\Api\V1\Auth\RequestRegistrationOtpRequest;
-use App\Jobs\SendOtpJob;
+use App\Http\Requests\Api\V1\Auth\ResetPasswordRequest;
 use App\Http\Resources\Api\V1\UserResource;
+use App\Mail\ResetPasswordLink;
 use App\Models\User;
-use App\Services\Auth\OtpService;
 use App\Support\AuditLogger;
+use App\Support\DeviceIdentity;
 use App\Support\PhoneNumber;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 
+/**
+ * Password-based storefront authentication.
+ *
+ * Phone number is the identifier; password grants access; recovery is a free
+ * email link (no SMS anywhere). All credential failures share one uniform
+ * message so the endpoints are not an account-existence oracle, and every
+ * rate-limit write happens OUTSIDE database transactions so a failed attempt
+ * can never be rolled back into "no attempt at all".
+ */
 final class AuthenticationController extends Controller
 {
-    public function requestRegistrationOtp(
-        RequestRegistrationOtpRequest $request,
-        OtpService $otpService,
-    ): JsonResponse {
-        $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
+    /** Password-reset link validity window. */
+    private const RESET_TOKEN_TTL_MINUTES = 60;
 
-        $this->limitOtpRequest('registration', $phone);
+    /** Failed sign-ins allowed per phone+IP before the lockout window. */
+    private const LOGIN_MAX_ATTEMPTS = 5;
 
-        // Production path: identical response for known/unknown numbers (no timing,
-        // status or cooldown oracle); the SMS is sent after the response.
-        if (! $this->exposesDevOtp()) {
-            SendOtpJob::dispatch($phone, OtpPurpose::Registration)->afterResponse();
+    /** Lockout window after LOGIN_MAX_ATTEMPTS failed sign-ins (seconds). */
+    private const LOGIN_LOCKOUT_SECONDS = 600;
 
-            return response()->json([
-                'message' => 'If the request is valid, a verification code has been sent.',
-            ]);
-        }
+    /** Reset requests allowed per phone+IP per window. */
+    private const FORGOT_MAX_ATTEMPTS = 5;
 
-        if (User::query()->wherePhone($phone)->exists()) {
-            return response()->json([
-                'message' => 'If the request is valid, a verification code has been sent.',
-            ]);
-        }
+    /** Reset requests allowed per IP per window — blocks rotating phones to
+     *  mail-bomb one victim's inbox. */
+    private const FORGOT_IP_MAX_ATTEMPTS = 20;
 
-        $otpService->send($phone, OtpPurpose::Registration);
+    private const FORGOT_WINDOW_SECONDS = 3600;
 
-        $response = [
-            'message' => 'If the request is valid, a verification code has been sent.',
-        ];
+    /** Reset-password submissions per IP (brute-force backstop; the token
+     *  itself is 32 random bytes, so this only narrows the window). */
+    private const RESET_MAX_ATTEMPTS = 10;
 
-        if (app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false)) {
-            $response['dev_otp'] = $otpService->lastPlainCode();
-        }
-
-        return response()->json($response);
-    }
+    private const RESET_WINDOW_SECONDS = 600;
 
     public function register(
         RegisterRequest $request,
-        OtpService $otpService,
         RegisterUser $registerUser,
         IssueSanctumToken $tokenIssuer,
         AuditLogger $auditLogger,
     ): JsonResponse {
+        $this->guardSignup($request);
+
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
+        $email = $request->string('email')->trim()->toString() ?: null;
 
-        $otpService->verify(
-            $phone,
-            OtpPurpose::Registration,
-            $request->string('code')->toString(),
-        );
-
+        // Deliberate exception to uniform responses: sign-up has to say
+        // "already registered" so the customer is sent to sign in instead of
+        // silently creating an account they can never access again. The
+        // per-IP/device caps in guardSignup() bound how fast this can be
+        // probed.
         if (User::query()->wherePhone($phone)->exists()) {
             throw ValidationException::withMessages([
-                'phone' => ['This phone number is already registered.'],
+                'phone' => ['This phone number is already registered. Sign in instead.'],
             ]);
         }
 
-        $user = $registerUser->execute(new RegisterUserData(
-            name: $request->string('name')->toString(),
+        if ($email !== null && User::query()->whereEmail($email)->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['This email address is already in use.'],
+            ]);
+        }
+
+        $user = $this->createAccount($registerUser, new RegisterUserData(
+            name: $request->string('name')->trim()->toString(),
             phone: $phone,
             referralCode: $request->string('referral_code')->trim()->toString() ?: null,
+            password: $request->string('password')->toString(),
+            email: $email,
+            deviceHash: DeviceIdentity::hash(DeviceIdentity::id($request)),
+            signupIp: $request->ip(),
         ));
 
+        // A brand-new account owns no sessions yet, so no revocation is needed.
         $token = $tokenIssuer->execute($user);
 
         $auditLogger->log($request, 'auth.registered', $user, ['user_id' => $user->id], $user);
@@ -104,74 +113,38 @@ final class AuthenticationController extends Controller
         ], 201), $token);
     }
 
-    public function requestLoginOtp(
-        RequestLoginOtpRequest $request,
-        OtpService $otpService,
-    ): JsonResponse {
-        $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
-
-        $this->limitOtpRequest('login', $phone);
-
-        if (! $this->exposesDevOtp()) {
-            SendOtpJob::dispatch($phone, OtpPurpose::Login)->afterResponse();
-
-            return response()->json([
-                'message' => 'If the request is valid, a verification code has been sent.',
-            ]);
-        }
-
-        if (! User::query()->wherePhone($phone)->where('status', UserStatus::Active->value)->exists()) {
-            return response()->json([
-                'message' => 'If the request is valid, a verification code has been sent.',
-            ]);
-        }
-
-        $otpService->send($phone, OtpPurpose::Login);
-
-        $response = [
-            'message' => 'If the request is valid, a verification code has been sent.',
-        ];
-
-        if (app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false)) {
-            $response['dev_otp'] = $otpService->lastPlainCode();
-        }
-
-        return response()->json($response);
-    }
-
     public function login(
         LoginRequest $request,
-        OtpService $otpService,
         IssueSanctumToken $tokenIssuer,
         AuditLogger $auditLogger,
     ): JsonResponse {
         $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
+        $key = $this->loginRateKey($phone, (string) $request->ip());
 
-        // SECURITY: verify() must NEVER run inside a database transaction. A wrong
-        // code makes it throw after recording the failure (per-code attempts and
-        // the lockout counter). Wrapping it in a transaction rolled those writes
-        // back, silently disabling brute-force protection on this endpoint.
-        $otpService->verify(
-            $phone,
-            OtpPurpose::Login,
-            $request->string('code')->toString(),
-        );
+        if (RateLimiter::tooManyAttempts($key, self::LOGIN_MAX_ATTEMPTS)) {
+            throw ValidationException::withMessages([
+                'phone' => ['Too many attempts. Please try again in a few minutes.'],
+            ]);
+        }
 
-        $user = DB::transaction(function () use ($phone): User {
-            $user = User::query()->wherePhone($phone)->lockForUpdate()->first();
+        $user = User::query()->wherePhone($phone)->first();
 
-            if (! $user || ! $user->isActive()) {
-                throw ValidationException::withMessages([
-                    'phone' => ['Unable to authenticate this account.'],
-                ]);
-            }
+        /*
+         * One uniform failure for unknown numbers, wrong passwords, inactive
+         * accounts and legacy accounts that have no password yet — this
+         * endpoint never confirms that a number has an account.
+         */
+        if (! $this->canPasswordAuthenticate($user, $request->string('password')->toString())) {
+            RateLimiter::hit($key, self::LOGIN_LOCKOUT_SECONDS);
 
-            $user->tokens()->delete();
+            throw ValidationException::withMessages([
+                'phone' => ['The phone number or password you entered is incorrect.'],
+            ]);
+        }
 
-            return $user;
-        });
+        RateLimiter::clear($key);
 
-        $token = $tokenIssuer->execute($user);
+        $token = $this->issueSession($user, $tokenIssuer);
 
         $auditLogger->log($request, 'auth.login', $user, ['user_id' => $user->id], $user);
 
@@ -179,6 +152,243 @@ final class AuthenticationController extends Controller
             'message' => 'Login successful.',
             'user' => new UserResource($user),
         ]), $token);
+    }
+
+    /**
+     * Step 1 of recovery: accept a phone number and, when the account has an
+     * email address on file, send a single-use reset link to it.
+     *
+     * The response is identical whether or not the account exists (or has an
+     * email), so the endpoint cannot be used to enumerate customers; the page
+     * copy explains both outcomes instead.
+     */
+    public function forgotPassword(ForgotPasswordRequest $request, AuditLogger $auditLogger): JsonResponse
+    {
+        $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
+
+        $key = 'auth-forgot:'.sha1($phone.'|'.$request->ip());
+        $ipKey = 'auth-forgot-ip:'.sha1((string) $request->ip());
+
+        if (RateLimiter::tooManyAttempts($key, self::FORGOT_MAX_ATTEMPTS)
+            || RateLimiter::tooManyAttempts($ipKey, self::FORGOT_IP_MAX_ATTEMPTS)) {
+            throw ValidationException::withMessages([
+                'phone' => ['Too many requests. Please try again later.'],
+            ]);
+        }
+
+        RateLimiter::hit($key, self::FORGOT_WINDOW_SECONDS);
+        RateLimiter::hit($ipKey, self::FORGOT_WINDOW_SECONDS);
+
+        $user = User::query()->wherePhone($phone)->first();
+
+        if ($user !== null && $user->isActive() && $user->email !== null) {
+            $token = bin2hex(random_bytes(32));
+
+            // The plaintext token only ever exists in the emailed link; this
+            // row stores its sha256 plus a single-use expiry window.
+            $user->forceFill([
+                'reset_token_hash' => hash('sha256', $token),
+                'reset_expires_at' => now()->addMinutes(self::RESET_TOKEN_TTL_MINUTES),
+            ])->save();
+
+            try {
+                Mail::to($user->email)->send(
+                    new ResetPasswordLink($user->name, $token, self::RESET_TOKEN_TTL_MINUTES),
+                );
+            } catch (\Throwable $exception) {
+                // Transport problems must not change the response: the same
+                // "if this account has an email" message goes out either way.
+                report($exception);
+            }
+
+            $auditLogger->log($request, 'auth.password_forgot', $user, ['user_id' => $user->id]);
+        }
+
+        return response()->json([
+            'message' => 'If this account has an email address on file, a password reset link has been sent. '
+                .'Check your inbox and spam folder. Accounts without an email address on file need '
+                .'support to set a password.',
+        ]);
+    }
+
+    /**
+     * Step 2 of recovery: consume the emailed token and set a new password.
+     *
+     * On success every existing session is revoked (a reset usually means "I
+     * lost control of this account") and the requester is signed in fresh, so
+     * the customer lands back in their account with no further steps.
+     */
+    public function resetPassword(
+        ResetPasswordRequest $request,
+        IssueSanctumToken $tokenIssuer,
+        AuditLogger $auditLogger,
+    ): JsonResponse {
+        $key = 'auth-reset-ip:'.sha1((string) $request->ip());
+
+        if (RateLimiter::tooManyAttempts($key, self::RESET_MAX_ATTEMPTS)) {
+            throw ValidationException::withMessages([
+                'token' => ['Too many attempts. Please try again later.'],
+            ]);
+        }
+
+        RateLimiter::hit($key, self::RESET_WINDOW_SECONDS);
+
+        $hash = hash('sha256', $request->string('token')->toString());
+
+        $user = User::query()
+            ->where('reset_token_hash', $hash)
+            ->whereNotNull('reset_expires_at')
+            ->where('reset_expires_at', '>', now())
+            ->first();
+
+        if ($user === null || ! $user->isActive()) {
+            throw ValidationException::withMessages([
+                'token' => ['This password reset link is invalid or has expired.'],
+            ]);
+        }
+
+        $user = DB::transaction(function () use ($user, $hash, $request): User {
+            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->first();
+
+            // Re-check under the row lock: a parallel request may have already
+            // consumed this token between the lookup above and here.
+            if ($locked === null
+                || ! $locked->isActive()
+                || $locked->reset_token_hash === null
+                || ! hash_equals($locked->reset_token_hash, $hash)
+                || $locked->reset_expires_at === null
+                || $locked->reset_expires_at->isPast()) {
+                throw ValidationException::withMessages([
+                    'token' => ['This password reset link is invalid or has expired.'],
+                ]);
+            }
+
+            // password / reset_token_hash are force-filled: not mass
+            // assignable, and the hashed cast bcrypts the plaintext on save.
+            $locked->forceFill([
+                'password' => $request->string('password')->toString(),
+                'reset_token_hash' => null,
+                'reset_expires_at' => null,
+            ])->save();
+
+            $locked->tokens()->delete();
+
+            return $locked;
+        });
+
+        $auditLogger->log($request, 'auth.password_reset', $user, ['user_id' => $user->id], $user);
+
+        $token = $tokenIssuer->execute($user);
+
+        return $this->withWebSessionCookie(response()->json([
+            'message' => 'Password updated.',
+            'user' => new UserResource($user),
+        ]), $token);
+    }
+
+    /**
+     * Guest checkout, one step: phone + password (+ name when the number is
+     * new). Replaces the old SMS code exchange — no verification code exists
+     * anywhere in this flow. Known numbers are verified against the same
+     * lockout budget as /auth/login; new numbers create a lightweight account
+     * (name + phone + password) so order ownership, status polling, repay and
+     * My orders work unchanged. `registered` tells the UI which path ran.
+     */
+    public function checkoutSignin(
+        CheckoutSigninRequest $request,
+        RegisterUser $registerUser,
+        IssueSanctumToken $tokenIssuer,
+        AuditLogger $auditLogger,
+    ): JsonResponse {
+        $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
+        $password = $request->string('password')->toString();
+
+        $existing = User::query()->wherePhone($phone)->first();
+
+        if ($existing !== null) {
+            if (! $existing->isActive()) {
+                throw ValidationException::withMessages([
+                    'phone' => ['Unable to authenticate this account.'],
+                ]);
+            }
+
+            $key = $this->loginRateKey($phone, (string) $request->ip());
+
+            if (RateLimiter::tooManyAttempts($key, self::LOGIN_MAX_ATTEMPTS)) {
+                throw ValidationException::withMessages([
+                    'phone' => ['Too many attempts. Please try again in a few minutes.'],
+                ]);
+            }
+
+            if ($existing->password === null) {
+                RateLimiter::hit($key, self::LOGIN_LOCKOUT_SECONDS);
+
+                /*
+                 * Legacy accounts created in the SMS-code era have no password.
+                 * They cannot be claimed here (that would let anyone who knows
+                 * the number take over), so point at the reset flow instead of
+                 * failing with a mysterious "incorrect password". This is the
+                 * one deliberate account-existence exception, bounded by the
+                 * lockout above.
+                 */
+                throw ValidationException::withMessages([
+                    'phone' => ['This account does not have a password yet. Use "Forgot password" on the sign-in page to set one, then come back.'],
+                ]);
+            }
+
+            if (! Hash::check($password, (string) $existing->password)) {
+                RateLimiter::hit($key, self::LOGIN_LOCKOUT_SECONDS);
+
+                throw ValidationException::withMessages([
+                    'phone' => ['The phone number or password you entered is incorrect.'],
+                ]);
+            }
+
+            RateLimiter::clear($key);
+
+            $token = $this->issueSession($existing, $tokenIssuer);
+
+            $auditLogger->log($request, 'auth.login', $existing, ['user_id' => $existing->id, 'via' => 'checkout'], $existing);
+
+            return $this->withWebSessionCookie(response()->json([
+                'message' => 'Login successful.',
+                'user' => new UserResource($existing),
+                'registered' => false,
+            ]), $token);
+        }
+
+        // Brand-new account at checkout: same anti-farm budget as /auth/register.
+        $this->guardSignup($request);
+
+        $name = $request->string('name')->trim()->toString();
+
+        if (mb_strlen($name) < 2) {
+            throw ValidationException::withMessages([
+                'name' => ['Please tell us your name to create your account.'],
+            ]);
+        }
+
+        // Race: the number registered between lookup and here (another tab).
+        // createAccount() maps the unique-index violation to a clean error.
+        $user = $this->createAccount($registerUser, new RegisterUserData(
+            name: $name,
+            phone: $phone,
+            referralCode: null,
+            password: $password,
+            email: null,
+            deviceHash: DeviceIdentity::hash(DeviceIdentity::id($request)),
+            signupIp: $request->ip(),
+        ));
+
+        $token = $tokenIssuer->execute($user);
+
+        $auditLogger->log($request, 'auth.registered', $user, ['user_id' => $user->id, 'via' => 'checkout'], $user);
+
+        return $this->withWebSessionCookie(response()->json([
+            'message' => 'Registration successful.',
+            'user' => new UserResource($user),
+            'registered' => true,
+        ], 201), $token);
     }
 
     public function logout(Request $request, AuditLogger $auditLogger): JsonResponse
@@ -223,158 +433,95 @@ final class AuthenticationController extends Controller
         return new UserResource($request->user());
     }
 
+    private function canPasswordAuthenticate(?User $user, string $password): bool
+    {
+        return $user !== null
+            && $user->isActive()
+            && $user->password !== null
+            && Hash::check($password, (string) $user->password);
+    }
+
     /**
-     * Guest checkout, step 1: send a one-time code to the buyer's phone.
-     *
-     * New numbers get a registration code, known numbers a login code, but
-     * the response is identical either way so the endpoint never reveals
-     * whether a phone is registered. Per-phone budgets are shared with the
-     * other OTP flows inside OtpService, so checkout cannot be used to
-     * multiply SMS to one number.
+     * Anti-farm cap on account creation: per connection (loose — mobile
+     * carriers put many real customers behind one public IP) and per device
+     * cookie (tight — unique per browser). Attempt-based and run before any
+     * database work so the counters are never rolled back with a transaction.
      */
-    public function requestCheckoutCode(
-        RequestLoginOtpRequest $request,
-        OtpService $otpService,
-    ): JsonResponse {
-        $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
+    private function guardSignup(Request $request): void
+    {
+        $ip = sha1((string) $request->ip());
+        $device = DeviceIdentity::id($request);
 
-        $this->limitOtpRequest('checkout', $phone);
-
-        $known = User::query()->wherePhone($phone)->where('status', UserStatus::Active->value)->exists();
-        $purpose = $known ? OtpPurpose::Login : OtpPurpose::Registration;
-
-        if (! $this->exposesDevOtp()) {
-            SendOtpJob::dispatch($phone, $purpose)->afterResponse();
-
-            return response()->json([
-                'message' => 'If the request is valid, a verification code has been sent.',
-            ]);
-        }
-
-        $otpService->send($phone, $purpose);
-
-        $response = [
-            'message' => 'If the request is valid, a verification code has been sent.',
+        $limits = [
+            'auth-signup-ip-m:'.$ip => [(int) config('security.signup_ip_per_minute'), 60],
+            'auth-signup-ip-h:'.$ip => [(int) config('security.signup_ip_per_hour'), 3600],
+            'auth-signup-ip-d:'.$ip => [(int) config('security.signup_ip_per_day'), 86400],
         ];
 
-        if (app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false)) {
-            $response['dev_otp'] = $otpService->lastPlainCode();
+        if ($device !== null) {
+            $limits['auth-signup-dev-d:'.sha1($device)] = [(int) config('security.signup_device_per_day'), 86400];
         }
 
-        return response()->json($response);
+        foreach ($limits as $key => [$max, $decay]) {
+            if (RateLimiter::tooManyAttempts($key, $max)) {
+                throw ValidationException::withMessages([
+                    'phone' => ['Too many accounts have been created from this connection. Please try again later.'],
+                ]);
+            }
+        }
+
+        foreach ($limits as $key => [$max, $decay]) {
+            RateLimiter::hit($key, $decay);
+        }
+    }
+
+    private function loginRateKey(string $phone, string $ip): string
+    {
+        return 'auth-login:'.sha1($phone.'|'.$ip);
     }
 
     /**
-     * Guest checkout, step 2: verify the code and sign the buyer in.
-     *
-     * Known numbers are logged in; new numbers get a lightweight account
-     * (name + verified phone) so every downstream contract — order
-     * ownership, status polling, repay, My orders — works unchanged.
-     * `registered` tells the UI which path was taken.
+     * Create the account, mapping a unique blind-index collision (the number
+     * or email registered in the race window after our existence checks) to a
+     * clean validation error instead of a 500.
      */
-    public function verifyCheckoutCode(
-        CheckoutVerifyRequest $request,
-        OtpService $otpService,
-        RegisterUser $registerUser,
-        IssueSanctumToken $tokenIssuer,
-        AuditLogger $auditLogger,
-    ): JsonResponse {
-        $phone = PhoneNumber::normalize($request->string('phone')->toString())->value();
-        $code = $request->string('code')->toString();
+    private function createAccount(RegisterUser $registerUser, RegisterUserData $data): User
+    {
+        try {
+            return $registerUser->execute($data);
+        } catch (QueryException $exception) {
+            if (! ($exception instanceof \Illuminate\Database\UniqueConstraintViolationException)) {
+                throw $exception;
+            }
+            $emailRace = str_contains($exception->getMessage(), 'email_hash');
 
-        $existing = User::query()->wherePhone($phone)->first();
-
-        if ($existing !== null && $existing->isActive()) {
-            // SECURITY: verify() must NEVER run inside a database transaction
-            // (see login()).
-            $otpService->verify($phone, OtpPurpose::Login, $code);
-
-            $user = DB::transaction(function () use ($phone): User {
-                $locked = User::query()->wherePhone($phone)->lockForUpdate()->first();
-
-                if (! $locked || ! $locked->isActive()) {
-                    throw ValidationException::withMessages([
-                        'phone' => ['Unable to authenticate this account.'],
-                    ]);
-                }
-
-                $locked->tokens()->delete();
-
-                return $locked;
-            });
-
-            $token = $tokenIssuer->execute($user);
-
-            $auditLogger->log($request, 'auth.login', $user, ['user_id' => $user->id, 'via' => 'checkout'], $user);
-
-            return $this->withWebSessionCookie(response()->json([
-                'message' => 'Login successful.',
-                'user' => new UserResource($user),
-                'registered' => false,
-            ]), $token);
-        }
-
-        if ($existing !== null) {
             throw ValidationException::withMessages([
-                'phone' => ['Unable to authenticate this account.'],
+                $emailRace ? 'email' : 'phone' => [$emailRace
+                    ? 'This email address is already in use.'
+                    : 'This phone number is already registered. Sign in instead.'],
             ]);
         }
-
-        $name = $request->string('name')->trim()->toString();
-
-        if (mb_strlen($name) < 2) {
-            throw ValidationException::withMessages([
-                'name' => ['Please tell us your name to create your account.'],
-            ]);
-        }
-
-        $otpService->verify($phone, OtpPurpose::Registration, $code);
-
-        // Race: the number registered between lookup and verify (another
-        // tab). Fall back to an error instead of 500ing on the unique index.
-        if (User::query()->wherePhone($phone)->exists()) {
-            throw ValidationException::withMessages([
-                'phone' => ['This phone number is already registered. Please request a new code.'],
-            ]);
-        }
-
-        $user = $registerUser->execute(new RegisterUserData(
-            name: $name,
-            phone: $phone,
-            referralCode: null,
-        ));
-
-        $token = $tokenIssuer->execute($user);
-
-        $auditLogger->log($request, 'auth.registered', $user, ['user_id' => $user->id, 'via' => 'checkout'], $user);
-
-        return $this->withWebSessionCookie(response()->json([
-            'message' => 'Registration successful.',
-            'user' => new UserResource($user),
-            'registered' => true,
-        ], 201), $token);
     }
 
     /**
-     * Local/testing only: return the OTP in the response for browser testing. This
-     * needs the code synchronously, so it bypasses the constant-response path.
+     * Revoke every existing session and mint a fresh token under a row lock,
+     * so concurrent sign-ins cannot interleave revocation with issuance.
      */
-    private function exposesDevOtp(): bool
+    private function issueSession(User $user, IssueSanctumToken $tokenIssuer): string
     {
-        return app()->environment(['local', 'testing']) && config('auth.expose_otp_codes', false);
-    }
+        return DB::transaction(function () use ($user, $tokenIssuer): string {
+            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->first();
 
-    private function limitOtpRequest(string $purpose, string $phone): void
-    {
-        $key = sprintf('auth-otp:%s:%s', $purpose, sha1($phone));
+            if (! $locked || ! $locked->isActive()) {
+                throw ValidationException::withMessages([
+                    'phone' => ['Unable to authenticate this account.'],
+                ]);
+            }
 
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages([
-                'phone' => ['Too many requests. Please try again later.'],
-            ]);
-        }
+            $locked->tokens()->delete();
 
-        RateLimiter::hit($key, 3600);
+            return $tokenIssuer->execute($locked);
+        });
     }
 
     private function withWebSessionCookie(JsonResponse $response, string $plainTextToken): JsonResponse

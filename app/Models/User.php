@@ -55,6 +55,7 @@ class User extends Authenticatable
         return [
             'phone_verified_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
+            'reset_expires_at' => 'datetime',
             'two_factor_enabled_at' => 'datetime',
             'two_factor_secret' => 'encrypted',
             'password' => 'hashed',

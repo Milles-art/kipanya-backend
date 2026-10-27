@@ -45,7 +45,7 @@ final class SelcomCheckoutGateway implements PaymentGateway
             );
         }
 
-        $orderId = $order->order_number;
+        $orderId = \App\Services\Payments\PaymentService::gatewayOrderId($idempotencyKey);
         $webhook = $this->webhookUrl ?: (string) url()->route('selcom.webhook');
 
         $payload = [
@@ -58,8 +58,8 @@ final class SelcomCheckoutGateway implements PaymentGateway
             'currency' => $this->currency,
             // "{order}" in SELCOM_REDIRECT_URL / SELCOM_CANCEL_URL becomes this order's number,
             // so the buyer returns to THEIR order's status page (e.g. https://shop.example/orders/{order}).
-            'redirect_url' => base64_encode($this->forOrder($this->redirectUrl, $orderId)),
-            'cancel_url' => base64_encode($this->forOrder($this->cancelUrl, $orderId)),
+            'redirect_url' => base64_encode($this->forOrder($this->redirectUrl, $order->order_number)),
+            'cancel_url' => base64_encode($this->forOrder($this->cancelUrl, $order->order_number)),
             'webhook' => base64_encode($webhook),
             'buyer_remarks' => 'Kipanya order '.$orderId,
             'merchant_remarks' => 'Kipanya order '.$orderId,
@@ -140,7 +140,7 @@ final class SelcomCheckoutGateway implements PaymentGateway
         }
 
         $body = $response->json();
-        $record = $this->statusRecord($body);
+        $record = $this->statusRecord($body, $orderId);
 
         return [
             'status' => $this->normalizeStatus((string) ($record['payment_status'] ?? 'PENDING')),
@@ -149,6 +149,7 @@ final class SelcomCheckoutGateway implements PaymentGateway
             'reference' => $record['reference'] ?? null,
             'channel' => $record['channel'] ?? null,
             'amount' => $record['amount'] ?? null,
+            'currency' => $record['currency'] ?? $this->currency,
             'payload' => $record,
         ];
     }
@@ -204,19 +205,26 @@ final class SelcomCheckoutGateway implements PaymentGateway
         return now()->format('Y-m-d\TH:i:sP');
     }
 
-    private function statusRecord(array $body): array
+    private function statusRecord(array $body, string $orderId): array
     {
         $data = $body['data'] ?? $body;
 
         if (is_array($data) && array_key_exists(0, $data) && is_array($data[0])) {
-            return $data[0];
+            $matches = array_values(array_filter($data, fn ($row) => is_array($row) && (string) ($row['order_id'] ?? '') === $orderId));
+            if (count($matches) !== 1) {
+                throw new RuntimeException('Provider status did not uniquely identify the requested payment attempt.');
+            }
+            return $matches[0];
         }
 
         if (is_array($data) && isset($data['order']) && is_array($data['order'])) {
-            return $data['order'];
+            $data = $data['order'];
         }
 
-        return is_array($data) ? $data : [];
+        if (! is_array($data) || (string) ($data['order_id'] ?? '') !== $orderId) {
+            throw new RuntimeException('Provider status returned a mismatched order identifier.');
+        }
+        return $data;
     }
 
     private function normalizeStatus(string $status): string

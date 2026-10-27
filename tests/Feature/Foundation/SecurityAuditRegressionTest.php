@@ -254,15 +254,17 @@ class SecurityAuditRegressionTest extends TestCase
         };
         $this->app->instance(SmsGateway::class, $gateway);
 
+        // Phone change is the OTP flow that remains after the password
+        // migration; its codes are locked out exactly as login codes were.
         $service = $this->app->make(OtpService::class);
-        $service->send('+255712345678', OtpPurpose::Login);
+        $service->send('+255712345678', OtpPurpose::PhoneChange);
         preg_match('/\b\d{6}\b/', $gateway->messages[0], $matches);
         $code = $matches[0];
         $wrong = $code === '000000' ? '111111' : '000000';
 
         for ($i = 0; $i < OtpService::MAX_VERIFY_FAILURES; $i++) {
             try {
-                $service->verify('+255712345678', OtpPurpose::Login, $wrong);
+                $service->verify('+255712345678', OtpPurpose::PhoneChange, $wrong);
             } catch (ValidationException) {
                 // Expected per failed attempt.
             }
@@ -270,7 +272,7 @@ class SecurityAuditRegressionTest extends TestCase
 
         // The correct code must now be rejected: the account is temporarily locked.
         $this->expectException(ValidationException::class);
-        $service->verify('+255712345678', OtpPurpose::Login, $code);
+        $service->verify('+255712345678', OtpPurpose::PhoneChange, $code);
     }
 
     public function test_expired_guest_cart_is_rotated_instead_of_reused(): void
@@ -321,31 +323,16 @@ class SecurityAuditRegressionTest extends TestCase
 
     public function test_login_sets_an_http_only_same_site_lax_web_session_cookie(): void
     {
-        $user = User::factory()->create([
+        User::factory()->create([
             'phone' => '+255712345678',
             'phone_verified_at' => now(),
             'status' => 'active',
+            'password' => 'correct-horse',
         ]);
-
-        $sent = [];
-        $this->app->bind(SmsGateway::class, function () use (&$sent) {
-            return new class($sent) implements SmsGateway
-            {
-                public function __construct(public array &$sent) {}
-
-                public function send(string $phone, string $message): void
-                {
-                    $this->sent[] = compact('phone', 'message');
-                }
-            };
-        });
-
-        $this->postJson('/api/v1/auth/login/request-otp', ['phone' => '+255712345678'])->assertOk();
-        preg_match('/\b\d{6}\b/', $sent[0]['message'], $matches);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'phone' => '0712345678',
-            'code' => $matches[0],
+            'password' => 'correct-horse',
         ])->assertOk();
 
         $cookieHeader = $response->headers->get('set-cookie');
@@ -371,31 +358,16 @@ class SecurityAuditRegressionTest extends TestCase
 
     public function test_logout_forgets_the_web_session_cookie(): void
     {
-        $user = User::factory()->create([
+        User::factory()->create([
             'phone' => '+255712345678',
             'phone_verified_at' => now(),
             'status' => 'active',
+            'password' => 'correct-horse',
         ]);
-
-        $sent = [];
-        $this->app->bind(SmsGateway::class, function () use (&$sent) {
-            return new class($sent) implements SmsGateway
-            {
-                public function __construct(public array &$sent) {}
-
-                public function send(string $phone, string $message): void
-                {
-                    $this->sent[] = compact('phone', 'message');
-                }
-            };
-        });
-
-        $this->postJson('/api/v1/auth/login/request-otp', ['phone' => '+255712345678'])->assertOk();
-        preg_match('/\b\d{6}\b/', $sent[0]['message'], $matches);
 
         $login = $this->postJson('/api/v1/auth/login', [
             'phone' => '0712345678',
-            'code' => $matches[0],
+            'password' => 'correct-horse',
         ])->assertOk();
 
         preg_match('/kp_web_session=([^;]+)/', $login->headers->get('set-cookie'), $cookieMatch);

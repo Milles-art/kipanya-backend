@@ -34,6 +34,16 @@ final class PaymentStateMachine
         PaymentStatus $toStatus,
         array $providerPayload = []
     ): PaymentTransaction {
+        return DB::transaction(function () use ($payment, $toStatus, $providerPayload) {
+            WearOrder::query()->lockForUpdate()->findOrFail($payment->wear_order_id);
+            $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
+
+            return $this->transitionLocked($payment, $toStatus, $providerPayload);
+        });
+    }
+
+    private function transitionLocked(PaymentTransaction $payment, PaymentStatus $toStatus, array $providerPayload): PaymentTransaction
+    {
         $providerPayload = PaymentPayloadSanitizer::redact($providerPayload);
 
         $currentStatus = $payment->status;
@@ -48,9 +58,17 @@ final class PaymentStateMachine
         }
 
         // The provider says the money was captured, but locally the payment was
-        // already cancelled/rejected/failed. Never throw and never lose it:
-        // record it for refund/reconciliation instead.
+        // already closed (superseded by repay, cancelled, rejected, failed).
+        // Never throw and never lose it: if the parent order is still payable,
+        // settle it with this capture; otherwise preserve the money as a
+        // refund/reconciliation decision instead.
         if ($toStatus === PaymentStatus::Paid && $this->isTerminalUnpaid($currentStatus)) {
+            $order = WearOrder::query()->find($payment->wear_order_id);
+
+            if ($order !== null && $order->status === OrderStatus::PendingPayment) {
+                return $this->completePayment($payment, $providerPayload, fromClosedAttempt: true);
+            }
+
             return $this->flagLatePayment($payment, $providerPayload, 'confirmed_after_'.$currentStatus->value);
         }
 
@@ -79,11 +97,36 @@ final class PaymentStateMachine
      * Atomically complete a payment with all order/inventory effects.
      * Uses row locks to prevent race conditions.
      */
+    public function assertPayable(WearOrder $order): void
+    {
+        if ($order->status !== OrderStatus::PendingPayment) {
+            throw ValidationException::withMessages(['payment' => 'This order can no longer be paid.']);
+        }
+
+        $reservation = $order->stockReservation()->lockForUpdate()->first();
+        if (! $reservation || $reservation->status !== ReservationStatus::Active
+            || ! $reservation->expires_at || $reservation->expires_at->isPast()) {
+            throw ValidationException::withMessages(['payment' => 'The stock reservation has expired. Please place a new order.']);
+        }
+    }
+
+    public function supersede(PaymentTransaction $payment): void
+    {
+        // Caller holds the parent order lock. Supersession never releases stock.
+        if ($payment->status->isPendingLike()) {
+            $payment->update([
+                'status' => PaymentStatus::Cancelled,
+                'payload' => array_merge($payment->payload ?? [], ['superseded' => true]),
+            ]);
+        }
+    }
+
     private function completePayment(
         PaymentTransaction $payment,
-        array $providerPayload
+        array $providerPayload,
+        bool $fromClosedAttempt = false,
     ): PaymentTransaction {
-        return DB::transaction(function () use ($payment, $providerPayload): PaymentTransaction {
+        return DB::transaction(function () use ($payment, $providerPayload, $fromClosedAttempt): PaymentTransaction {
             $payment = PaymentTransaction::query()->lockForUpdate()->findOrFail($payment->id);
 
             // Double-check current state after acquiring lock
@@ -92,7 +135,8 @@ final class PaymentStateMachine
             }
 
             // Verify transition is still legal
-            if (! $payment->status->canTransitionTo(PaymentStatus::Paid)) {
+            if (! $payment->status->canTransitionTo(PaymentStatus::Paid)
+                && ! ($fromClosedAttempt && $this->isTerminalUnpaid($payment->status))) {
                 throw ValidationException::withMessages([
                     'payment' => "Cannot complete payment from status {$payment->status->value}.",
                 ]);
@@ -116,6 +160,12 @@ final class PaymentStateMachine
 
             // Verify order and reservation are still valid
             $order = $payment->order()->lockForUpdate()->firstOrFail();
+
+            if ($order->status !== OrderStatus::PendingPayment || ($payment->payload['needs_refund'] ?? false)) {
+                $this->markNeedsRefund($payment, $order, $providerPayload, 'order_already_closed');
+
+                return $payment->fresh('order');
+            }
 
             // Check if the reservation is still valid. If not, the provider has ALREADY
             // captured the customer's money, so this must never be recorded as a plain
@@ -235,7 +285,9 @@ final class PaymentStateMachine
                 ]),
             ]);
 
-            WearOrder::query()->whereKey($payment->wear_order_id)->update(['payment_status' => PaymentStatus::Refunded->value]);
+            WearOrder::query()->whereKey($payment->wear_order_id)
+                ->where('payment_status', '!=', PaymentStatus::Paid->value)
+                ->update(['payment_status' => PaymentStatus::Refunded->value]);
 
             app(AuditLogger::class)->log(null, 'payment.refund_recorded', $payment, [
                 'refund_reference' => $reference,
@@ -315,10 +367,12 @@ final class PaymentStateMachine
 
         // Money was captured but no goods are reserved: the order stays cancelled,
         // and its payment status tells staff that a refund decision is pending.
-        $order->update([
-            'status' => OrderStatus::Cancelled,
-            'payment_status' => PaymentStatus::ReconciliationRequired,
-        ]);
+        if ($order->payment_status !== PaymentStatus::Paid) {
+            $order->update([
+                'status' => OrderStatus::Cancelled,
+                'payment_status' => PaymentStatus::ReconciliationRequired,
+            ]);
+        }
 
         if ($alreadyFlagged) {
             return;
@@ -434,6 +488,14 @@ final class PaymentStateMachine
             ]);
 
             $order = WearOrder::query()->lockForUpdate()->findOrFail($payment->wear_order_id);
+            if ($order->payment_status === PaymentStatus::Paid
+                || ($payment->payload['superseded'] ?? false)
+                || $order->payments()->whereKeyNot($payment->id)->whereIn('status', [
+                    PaymentStatus::Pending->value, PaymentStatus::Processing->value,
+                    PaymentStatus::InProgress->value, PaymentStatus::ReconciliationRequired->value,
+                ])->exists()) {
+                return $payment->fresh('order');
+            }
             if ($order->payment_status !== PaymentStatus::Paid) {
                 $order->update([
                     'status' => OrderStatus::Cancelled,

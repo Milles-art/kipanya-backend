@@ -5,7 +5,7 @@ namespace App\Http\Requests\Api\V1\Auth;
 use App\Rules\ValidTanzanianPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
-class RequestLoginOtpRequest extends FormRequest
+class ForgotPasswordRequest extends FormRequest
 {
     public function authorize(): bool
     {

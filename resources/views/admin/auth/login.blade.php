@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login — KP Wear</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
-<body>
+<body class="kp-admin-login">
 <div class="kp-auth-page" style="--kp-auth-bg: url('{{ asset('images/kp-wear-auth-bg.png') }}');">
     <div class="kp-auth-backdrop" aria-hidden="true"></div>
     <div class="kp-auth-content">
