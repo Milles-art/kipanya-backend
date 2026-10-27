@@ -24,6 +24,7 @@
                     ['admin.wear.orders.index', 'Orders', 'clipboard-list', 'commerce.manage'],
                     ['admin.wear.payments.index', 'Payments', 'credit-card', 'payments.manage'],
                     ['admin.wear.customers.index', 'Customers', 'users', 'commerce.manage'],
+                    ['admin.wear.customers.duplicates', 'Duplicate Accounts', 'alert-triangle', 'commerce.manage'],
                     ['admin.wear.enquiries.index', 'Enquiries', 'message-circle-2', 'commerce.manage'],
                     ['admin.wear.returns.index', 'Returns', 'rotate-clockwise-2', 'commerce.manage'],
                 ];
@@ -44,7 +45,6 @@
                 $adminLinks = [
                     ['admin.users.index', 'Admin Users', 'users', 'users.manage'],
                     ['admin.wear.analytics.index', 'Analytics', 'chart-bar', 'analytics.view'],
-                    ['admin.storefront.index', 'Content', 'layout-dashboard', 'settings.manage'],
                     ['admin.settings.index', 'Settings', 'settings', 'settings.manage'],
                     ['admin.audit.index', 'Audit Log', 'shield-check', 'admin.dashboard.view'],
                     ['admin.security.two-factor.index', 'Two-Factor Auth', 'lock', null],
