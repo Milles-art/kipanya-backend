@@ -1,224 +1,167 @@
-@extends('admin.layouts.app', ['title' => 'Dashboard', 'heading' => 'Wear Dashboard'])
+@extends('admin.layouts.app', ['title' => 'Dashboard', 'heading' => 'Dashboard'])
 
 @section('content')
-<div class="kp-admin-dashboard mx-auto max-w-[1450px] space-y-5">
+@php
+    $periodRevenue = collect($salesChart)->sum('revenue');
+    $maxRevenue = max((float) collect($salesChart)->max('revenue'), 1);
+    $averageOrder = $metrics['orders_paid'] > 0 ? $metrics['total_revenue'] / $metrics['orders_paid'] : 0;
+@endphp
+<div>
+    <x-admin.page-header title="Dashboard" subtitle="Welcome back, {{ auth()->user()->name }} — here is what is happening today.">
+        <x-slot name="action">
+            @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))
+                <a href="{{ route('admin.wear.products.create') }}" class="kp-admin-primary-button"><x-tabler-plus size="17" stroke-width="2" />Add product</a>
+            @endif
+        </x-slot>
+    </x-admin.page-header>
+
     @if(session('success'))
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
     @endif
 
-    <section class="kp-admin-hero overflow-hidden">
-        <div class="kp-admin-hero-glow" aria-hidden="true"></div>
-        <div class="relative z-10 flex flex-col gap-7 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between lg:p-10">
-            <div class="max-w-2xl">
-                <p class="kp-admin-hero-eyebrow">Kipanya Wear · Private operations</p>
-                <h2 class="kp-admin-display mt-3 text-[clamp(2.35rem,5vw,4.5rem)] leading-[.92] text-white">The store, at a glance.</h2>
-                <p class="mt-4 max-w-lg text-sm leading-6 text-emerald-50/85 sm:text-base">Welcome back, {{ auth()->user()->name }}. Review today’s movement, keep stock in rhythm, and take action with confidence.</p>
-            </div>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div class="kp-admin-hero-date">
-                    <x-tabler-calendar size="19" stroke-width="1.8" />
-                    <div><p>{{ now()->format('l, d F Y') }}</p><span>Kipanya Wear Admin</span></div>
-                </div>
-                @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))
-                    <a href="{{ route('admin.wear.products.create') }}" class="kp-admin-hero-action"><x-tabler-plus size="17" /> Add product</a>
-                @endif
-            </div>
-        </div>
-    </section>
+    {{-- Stat tiles --}}
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
+        <x-admin.stat label="Revenue ({{ now()->format('M') }})" value="TZS {{ number_format($metrics['month_revenue'], 0) }}" icon="currency-dollar" detail="Paid sales this month" />
+        <x-admin.stat label="Orders" value="{{ number_format($metrics['orders_total']) }}" icon="shopping-cart" tone="sky" detail="{{ number_format($metrics['orders_paid_today']) }} paid today" />
+        <x-admin.stat label="Customers" value="{{ number_format($metrics['customers']) }}" icon="users" tone="violet" detail="{{ number_format($metrics['customers_today']) }} new today" />
+        <x-admin.stat label="Avg. order" value="TZS {{ number_format($averageOrder, 0) }}" icon="trending-up" tone="amber" detail="{{ number_format($metrics['products_active']) }} active products" />
+    </div>
 
-    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        @php
-            $summaryCards = [
-                ['Revenue', 'TZS '.number_format($metrics['today_revenue'], 0), 'Today', 'chart-bar', 'emerald', $metrics['orders_paid_today'] > 0 ? $metrics['orders_paid_today'].' paid today' : 'No paid sales today'],
-                ['Orders', number_format($metrics['orders_total']), 'Total', 'shopping-cart', 'blue', $metrics['orders_paid_today'].' paid today'],
-                ['Customers', number_format($metrics['customers']), 'Total', 'users', 'violet', '+ '.$metrics['customers_today'].' new today'],
-                ['Products', number_format($metrics['products_total']), 'Total', 'box', 'amber', number_format($metrics['variants_total']).' variants'],
-            ];
-        @endphp
-        @foreach($summaryCards as [$label, $value, $sub, $icon, $tone, $foot])
-            <div class="kp-summary-card tone-{{ $tone }}">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs font-semibold text-black/50">{{ $label }}</p>
-                    <span class="kp-summary-icon"><x-dynamic-component :component="'tabler-'.$icon" size="20" stroke-width="1.8" /></span>
-                </div>
-                <div class="min-w-0">
-                    <p class="kp-admin-display mt-5 truncate text-[31px] leading-none text-black">{{ $value }}</p>
-                    <div class="mt-4 flex items-center justify-between gap-2 border-t border-black/5 pt-3"><p class="text-[11px] text-black/40">{{ $sub }}</p><p class="text-[11px] font-medium text-black/60">{{ $foot }}</p></div>
-                </div>
-            </div>
-        @endforeach
-    </section>
-
-    <section class="kp-admin-card p-4 sm:p-5">
-        <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <span class="kp-section-icon"><x-tabler-truck size="22" stroke-width="1.8" /></span>
+    {{-- Revenue chart + low stock --}}
+    <div class="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <x-admin.card class="p-6 lg:col-span-2">
+            <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <h3 class="text-[15px] font-extrabold text-black">Order pipeline</h3>
-                    <p class="text-xs text-black/45">Track your orders from purchase to delivery.</p>
+                    <h3 class="kp-admin-display text-lg">Revenue Overview</h3>
+                    <p class="mt-1.5 text-xs text-slate-400">Paid revenue over the selected period (TZS)</p>
                 </div>
-            </div>
-            @if(Route::has('admin.wear.orders.index'))
-                <a href="{{ route('admin.wear.orders.index') }}" class="kp-admin-link">View all orders <x-tabler-arrow-right size="16" /></a>
-            @endif
-        </div>
-        <div class="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-            @foreach([
-                ['Pending payment', $metrics['orders_pending_payment'], 'clock', 'amber'],
-                ['Processing', $metrics['orders_processing'], 'settings', 'blue'],
-                ['Shipped', $metrics['orders_shipped'], 'truck-delivery', 'violet'],
-                ['Delivered', $metrics['orders_delivered'], 'circle-check', 'emerald'],
-            ] as [$label, $value, $icon, $tone])
-                <div class="kp-pipeline-item tone-{{ $tone }}">
-                    <div><p class="text-[11px] font-semibold text-black/50">{{ $label }}</p><p class="mt-2 text-[21px] font-black text-black">{{ $value }}</p></div>
-                    <span class="kp-pipeline-icon"><x-dynamic-component :component="'tabler-'.$icon" size="22" stroke-width="1.8" /></span>
-                </div>
-            @endforeach
-        </div>
-    </section>
-
-    <section class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(310px,0.8fr)]">
-        <div class="kp-admin-card p-4 sm:p-5">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="kp-section-icon"><x-tabler-chart-bar size="21" stroke-width="1.8" /></span>
-                    <div>
-                        <h3 class="text-[15px] font-extrabold text-black">Sales overview</h3>
-                        <p class="text-xs text-black/45">Paid revenue over the selected period.</p>
-                    </div>
-                </div>
-                <div class="kp-admin-period flex rounded-lg border p-0.5" role="group" aria-label="Sales chart period">
+                <div class="flex flex-wrap gap-2">
                     @foreach([7, 30, 365] as $period)
-                        <a href="{{ route('admin.dashboard', ['days' => $period]) }}"
-                           class="rounded-md px-3 py-1.5 text-[11px] font-bold {{ isset($chartDays) && $chartDays === $period ? 'is-active' : '' }}">
-                            {{ $period === 365 ? 'All time' : $period.' days' }}
-                        </a>
+                        <x-admin.pill :href="route('admin.dashboard', ['days' => $period])" :active="$chartDays === $period">{{ $period === 365 ? 'All time' : $period.' days' }}</x-admin.pill>
                     @endforeach
                 </div>
             </div>
-            <div class="kp-admin-chart-panel mt-4 overflow-hidden rounded-xl">
-                <div class="relative h-60 w-full">
-                    <svg id="sales-chart" viewBox="0 0 1000 320" preserveAspectRatio="none" class="h-full w-full text-emerald-600" role="img" aria-label="Sales revenue chart">
-                        <defs><linearGradient id="sales-area-gradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity="0.14"></stop><stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop></linearGradient></defs>
-                        <g id="sales-grid"></g><path id="sales-area" fill="url(#sales-area-gradient)" stroke="none"></path><path id="sales-line" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><g id="sales-points"></g>
-                    </svg>
-                    <div id="sales-empty" class="pointer-events-none absolute inset-0 hidden items-center justify-center text-xs font-medium text-black/40">No paid sales in this period.</div>
+
+            <div class="flex h-48 items-end justify-between gap-1.5 sm:gap-2">
+                @forelse($salesChart as $point)
+                    <div class="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                        <div class="relative flex h-full w-full items-end">
+                            <span class="pointer-events-none absolute -top-5 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-950 px-1.5 py-0.5 text-[10px] font-semibold text-white group-hover:block">TZS {{ number_format($point['revenue'], 0) }}</span>
+                            <div class="w-full rounded-t-lg bg-emerald-500/80 transition-colors group-hover:bg-emerald-600" style="height: {{ max(2, (($point['revenue'] / $maxRevenue) * 100)) }}%"></div>
+                        </div>
+                        <span class="text-[10px] text-slate-400">{{ $point['label'] }}</span>
+                    </div>
+                @empty
+                    <p class="m-auto text-sm text-slate-400">No paid sales in this period.</p>
+                @endforelse
+            </div>
+
+            <div class="mt-5 border-t border-slate-100 pt-4">
+                <p class="text-xs uppercase tracking-wider text-slate-400">Period revenue</p>
+                <p class="mt-1 font-display text-xl text-slate-950">TZS {{ number_format($periodRevenue, 0) }}</p>
+            </div>
+        </x-admin.card>
+
+        <x-admin.card class="p-6">
+            <div class="mb-5 flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="kp-admin-display text-lg">Low Stock</h3>
+                    <p class="mt-1.5 text-xs text-slate-400">{{ number_format($metrics['variants_total']) }} variants · {{ number_format($metrics['stock_units_total']) }} units in stock</p>
                 </div>
-                <div id="sales-labels" class="grid grid-cols-7 gap-1 px-3 pb-3 text-[10px] text-black/40"></div>
+                <a href="{{ route('admin.wear.inventory.index') }}" class="kp-admin-link">View all <x-tabler-arrow-right size="13" /></a>
             </div>
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div><strong id="sales-chart-total" class="text-xl font-black text-black">TZS 0</strong><p class="text-[11px] text-black/40">Period revenue</p></div>
-                <span class="text-[10px] font-medium text-black/40">Paid orders only</span>
+            <div class="space-y-3">
+                @forelse($lowStockVariants->take(4) as $variant)
+                    <div class="flex items-center gap-3">
+                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-600"><x-tabler-alert-triangle size="18" stroke-width="1.8" /></span>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-medium text-slate-800">{{ $variant->product?->name ?? $variant->sku }}</p>
+                            <p class="mt-0.5 truncate text-xs text-slate-400">{{ $variant->sku }}</p>
+                        </div>
+                        <x-admin.badge :status="$variant->stock <= 0 ? 'out' : 'low'" :label="$variant->stock.' left'" />
+                    </div>
+                @empty
+                    <div class="rounded-xl bg-emerald-50 px-4 py-4 text-sm text-emerald-800">Everything is well stocked.</div>
+                @endforelse
             </div>
-        </div>
+        </x-admin.card>
+    </div>
 
-        <div class="kp-admin-card p-4 sm:p-5">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-stack-2 size="21" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Inventory status</h3><p class="text-xs text-black/45">Current stock overview.</p></div></div>
-                @if(Route::has('admin.wear.inventory.index'))<a href="{{ route('admin.wear.inventory.index') }}" class="kp-admin-link">View inventory <x-tabler-arrow-right size="16" /></a>@endif
-            </div>
-            <div class="mt-4 space-y-2">
-                @foreach([
-                    ['Variants', number_format($metrics['variants_total']), 'box', 'blue'],
-                    ['Stock units', number_format($metrics['stock_units_total']), 'database', 'emerald'],
-                    ['Low stock', number_format($metrics['low_stock']), 'alert-triangle', 'amber'],
-                    ['Out of stock', number_format($metrics['out_of_stock']), 'circle-x', 'red'],
-                ] as [$label, $value, $icon, $tone])
-                    <div class="kp-inventory-row tone-{{ $tone }}"><span class="kp-inventory-icon"><x-dynamic-component :component="'tabler-'.$icon" size="21" stroke-width="1.8" /></span><div class="min-w-0"><p class="text-[16px] font-black text-black">{{ $value }}</p><p class="text-[10px] text-black/40">{{ $label }}</p></div>@if($label === 'Variants')<x-tabler-chevron-right size="17" class="ml-auto text-black/35" />@endif</div>
-                @endforeach
-            </div>
-        </div>
-    </section>
-
-    <section class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.65fr)]">
-        <div class="kp-admin-card overflow-hidden">
-            <div class="flex items-center justify-between border-b border-black/5 px-4 py-4 sm:px-5">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-file-invoice size="21" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Recent orders</h3><p class="text-xs text-black/45">Latest orders from your store.</p></div></div>
-                @if(Route::has('admin.wear.orders.index'))<a href="{{ route('admin.wear.orders.index') }}" class="kp-admin-link">View all orders <x-tabler-arrow-right size="16" /></a>@endif
+    {{-- Recent orders + top products --}}
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <x-admin.card class="overflow-hidden lg:col-span-2">
+            <div class="flex items-center justify-between gap-3 px-6 pb-4 pt-6">
+                <div>
+                    <h3 class="kp-admin-display text-lg">Recent Orders</h3>
+                    <p class="mt-1.5 text-xs text-slate-400">Latest activity from your store</p>
+                </div>
+                <a href="{{ route('admin.wear.orders.index') }}" class="kp-admin-link">View all <x-tabler-arrow-right size="13" /></a>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full text-left text-sm">
-                    <thead class="bg-white text-[10px] uppercase tracking-wider"><tr><th class="px-4 py-3 sm:px-5">Order</th><th class="px-4 py-3">Customer</th><th class="px-4 py-3">Items</th><th class="px-4 py-3">Total</th><th class="px-4 py-3">Payment</th><th class="px-4 py-3">Status</th></tr></thead>
-                    <tbody class="divide-y divide-black/5">
-                    @forelse($recentOrders->take(5) as $order)
-                        @php
-                            $status = $order->status;
-                            $payment = $order->payment_status;
-                            $statusClasses = match($status?->value) { 'processing' => 'bg-blue-50 text-blue-700', 'shipped' => 'bg-violet-50 text-violet-700', 'delivered' => 'bg-emerald-50 text-emerald-700', 'cancelled' => 'bg-red-50 text-red-700', 'refunded' => 'bg-violet-50 text-violet-700', default => 'bg-amber-50 text-amber-700' };
-                            $paymentClasses = match($payment?->value) { 'paid' => 'bg-emerald-50 text-emerald-700', 'failed' => 'bg-red-50 text-red-700', 'refunded' => 'bg-violet-50 text-violet-700', default => 'bg-amber-50 text-amber-700' };
-                        @endphp
-                        <tr class="hover:bg-emerald-50/40">
-                            <td class="whitespace-nowrap px-4 py-3.5 font-bold text-black sm:px-5">#{{ $order->order_number }}</td>
-                            <td class="max-w-[180px] px-4 py-3.5"><p class="truncate font-semibold text-black/80">{{ $order->customer_name ?: $order->user?->name ?: 'Guest' }}</p><p class="mt-0.5 text-[10px] text-black/40">{{ $order->delivery_address ?: '—' }}</p></td>
-                            <td class="px-4 py-3.5 font-semibold text-black/80">{{ $order->items->sum('quantity') }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-black">TZS {{ number_format((float) $order->total, 0) }}</td>
-                            <td class="px-4 py-3.5"><span class="rounded-full px-2.5 py-1 text-[10px] font-bold {{ $paymentClasses }}">{{ $payment?->value ? str_replace('_', ' ', ucfirst($payment->value)) : 'Unknown' }}</span></td>
-                            <td class="px-4 py-3.5"><span class="rounded-full px-2.5 py-1 text-[10px] font-bold {{ $statusClasses }}">{{ $status?->value ? str_replace('_', ' ', ucfirst($status->value)) : 'Unknown' }}</span></td>
+                <table class="min-w-[720px] text-sm">
+                    <thead>
+                        <tr class="text-xs uppercase tracking-wider text-slate-400">
+                            <th class="px-6 py-3 text-left font-medium">Order</th>
+                            <th class="px-3 py-3 text-left font-medium">Customer</th>
+                            <th class="hidden px-3 py-3 text-left font-medium sm:table-cell">Date</th>
+                            <th class="px-3 py-3 text-right font-medium">Total</th>
+                            <th class="px-6 py-3 text-left font-medium">Status</th>
                         </tr>
-                    @empty
-                        <tr><td colspan="6" class="px-5 py-12 text-center text-sm text-black/45">No orders yet.</td></tr>
-                    @endforelse
+                    </thead>
+                    <tbody>
+                        @forelse($recentOrders->take(5) as $order)
+                            @php $status = $order->status?->value ?? ''; @endphp
+                            <tr class="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/60">
+                                <td class="px-6 py-3.5 font-medium text-slate-900">
+                                    <a href="{{ route('admin.wear.orders.show', $order) }}" class="hover:text-emerald-600">{{ $order->order_number }}</a>
+                                </td>
+                                <td class="px-3 py-3.5">
+                                    <p class="font-medium text-slate-800">{{ $order->customer_name ?: $order->user?->name ?: 'Guest' }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-400">{{ $order->items->sum('quantity') }} items</p>
+                                </td>
+                                <td class="hidden px-3 py-3.5 text-slate-500 sm:table-cell">{{ $order->placed_at?->format('d M Y') }}</td>
+                                <td class="px-3 py-3.5 text-right font-medium text-slate-900">TZS {{ number_format((float) $order->total, 0) }}</td>
+                                <td class="px-6 py-3.5"><x-admin.badge :status="$status ?: 'pending'" :label="str_replace('_', ' ', ucfirst($status ?: 'pending'))" /></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5"><x-admin.empty message="No orders yet." /></td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
-        </div>
+        </x-admin.card>
 
-        <div class="space-y-4">
-            <div class="kp-admin-card p-4 sm:p-5">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-bell size="20" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Attention</h3><p class="text-xs text-black/45">Items that need your attention.</p></div></div>
-                @if(($metrics['low_stock'] + $metrics['out_of_stock']) > 0)
-                    <div class="mt-4 rounded-xl bg-amber-50 p-3"><p class="text-sm font-bold text-amber-800">Inventory needs attention</p><p class="mt-1 text-xs text-amber-700">{{ $metrics['low_stock'] }} low-stock and {{ $metrics['out_of_stock'] }} out-of-stock variants.</p></div>
-                @else
-                    <div class="mt-4 flex items-center gap-3 rounded-xl bg-emerald-50 p-3"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-white"><x-tabler-check size="20" /></span><div><p class="text-sm font-bold text-emerald-800">All good!</p><p class="mt-0.5 text-xs text-emerald-700">No low-stock variants. Nice.</p></div></div>
-                @endif
+        <x-admin.card class="p-6">
+            <h3 class="kp-admin-display mb-5 text-lg">Top Products</h3>
+            <div class="space-y-4">
+                @forelse($topProducts as $index => $product)
+                    <div class="flex items-center gap-3">
+                        <span class="font-display text-lg text-slate-300 w-5">{{ $index + 1 }}</span>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-medium text-slate-800">{{ $product->product_name }}</p>
+                            <p class="text-xs text-slate-400">{{ number_format((int) $product->units_sold) }} sold</p>
+                        </div>
+                        <span class="text-sm font-medium text-slate-700">TZS {{ number_format((float) $product->revenue, 0) }}</span>
+                    </div>
+                @empty
+                    <p class="py-4 text-center text-sm text-slate-400">No paid sales yet.</p>
+                @endforelse
             </div>
-            <div class="kp-admin-card p-4 sm:p-5">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-bolt size="20" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Quick actions</h3><p class="text-xs text-black/45">Common tasks.</p></div></div>
-                <div class="mt-3 space-y-1.5">
-                    @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))<a class="kp-quick-action" href="{{ route('admin.wear.products.create') }}"><x-tabler-plus size="17" /> Add product <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
-                    @if(Route::has('admin.wear.orders.index'))<a class="kp-quick-action" href="{{ route('admin.wear.orders.index') }}"><x-tabler-file-invoice size="17" /> View orders <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
-                    @if(Route::has('admin.wear.inventory.index'))<a class="kp-quick-action" href="{{ route('admin.wear.inventory.index') }}"><x-tabler-box size="17" /> Manage inventory <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
-                    @if(Route::has('admin.wear.enquiries.index'))<a class="kp-quick-action" href="{{ route('admin.wear.enquiries.index') }}"><x-tabler-message-circle-2 size="17" /> View enquiries <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
-                </div>
+
+            <div class="mt-6 space-y-2 border-t border-slate-100 pt-5">
+                @foreach([
+                    ['Pending payment', $metrics['orders_pending_payment'], 'amber'],
+                    ['Processing', $metrics['orders_processing'], 'blue'],
+                    ['Shipped', $metrics['orders_shipped'], 'blue'],
+                    ['Delivered', $metrics['orders_delivered'], 'green'],
+                ] as [$label, $count, $tone])
+                    <div class="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+                        <span class="text-slate-600">{{ $label }}</span>
+                        <x-admin.badge :status="$tone" :label="number_format($count)" />
+                    </div>
+                @endforeach
             </div>
-        </div>
-    </section>
+        </x-admin.card>
+    </div>
 </div>
-
-<script nonce="{{ Vite::cspNonce() }}">
-document.addEventListener('DOMContentLoaded', () => {
-    const salesData = @json($salesChart);
-    const chart = document.getElementById('sales-chart');
-    const grid = document.getElementById('sales-grid');
-    const area = document.getElementById('sales-area');
-    const line = document.getElementById('sales-line');
-    const pointsGroup = document.getElementById('sales-points');
-    const labels = document.getElementById('sales-labels');
-    const empty = document.getElementById('sales-empty');
-    const total = document.getElementById('sales-chart-total');
-
-    const renderSalesChart = (days) => {
-        const source = days >= salesData.length ? salesData : salesData.slice(-days);
-        const data = source.length ? source : [{ revenue: 0, label: '' }];
-        const width = 1000, height = 320, padX = 34, padTop = 22, padBottom = 28;
-        const plotHeight = height - padTop - padBottom, plotWidth = width - (padX * 2);
-        const max = Math.max(...data.map(item => Number(item.revenue)), 1);
-        const step = data.length > 1 ? plotWidth / (data.length - 1) : plotWidth;
-        const coords = data.map((item, index) => ({ x: data.length > 1 ? padX + (step * index) : width / 2, y: padTop + plotHeight - ((Number(item.revenue) / max) * plotHeight), revenue: Number(item.revenue), label: item.label }));
-        const points = coords.map(point => `${point.x},${point.y}`).join(' ');
-        const areaPoints = `${padX},${height - padBottom} ${points} ${coords.at(-1)?.x ?? padX},${height - padBottom}`;
-        line.setAttribute('d', `M ${points.replaceAll(' ', ' L ')}`);
-        area.setAttribute('d', `M ${areaPoints.replaceAll(' ', ' L ')} Z`);
-        grid.innerHTML = [0,1,2,3].map(level => { const y = padTop + ((plotHeight / 3) * level); return `<line x1="${padX}" y1="${y}" x2="${width-padX}" y2="${y}" stroke="currentColor" stroke-opacity="0.08" stroke-width="1" />`; }).join('');
-        pointsGroup.innerHTML = coords.map(point => `<circle cx="${point.x}" cy="${point.y}" r="4" fill="currentColor" stroke="white" stroke-width="2" />`).join('');
-        const labelIndexes = data.length <= 7 ? data.map((_, index) => index) : [0,5,10,15,20,25,29].filter(index => index < data.length);
-        labels.innerHTML = labelIndexes.map(index => `<span class="text-center">${data[index].label}</span>`).join('');
-        const revenue = data.reduce((sum, item) => sum + Number(item.revenue), 0);
-        total.textContent = `TZS ${Math.round(revenue).toLocaleString()}`;
-        empty.classList.toggle('hidden', revenue > 0); empty.classList.toggle('flex', revenue <= 0);
-        chart.setAttribute('aria-label', `Sales revenue for the selected period. Total TZS ${Math.round(revenue).toLocaleString()}.`);
-    };
-    renderSalesChart({{ $chartDays ?? 7 }});
-});
-</script>
 @endsection

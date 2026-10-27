@@ -1,96 +1,144 @@
-@extends('admin.layouts.app', ['title' => 'Inventory'])
+@extends('admin.layouts.app', ['title' => 'Inventory', 'heading' => 'Inventory'])
 
 @section('content')
-<div class="space-y-6">
-    <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear</p>
-            <h2 class="mt-1 text-2xl font-black tracking-tight">Inventory</h2>
-            <p class="mt-1 text-sm text-black">Manage variant stock and see units currently reserved by active orders.</p>
-        </div>
-        <a href="{{ route('admin.wear.products.index') }}" class="inline-flex items-center justify-center rounded-xl border border-black bg-white px-4 py-2.5 text-sm font-semibold hover:bg-white">Manage products →</a>
-    </div>
+<div>
+    <x-admin.page-header title="Inventory" subtitle="Manage variant stock and see units currently reserved by active orders.">
+        <x-slot name="action">
+            <a href="{{ route('admin.wear.products.index') }}" class="kp-admin-secondary-button"><x-tabler-package size="15" stroke-width="1.8" />Manage products</a>
+        </x-slot>
+    </x-admin.page-header>
 
     @if(session('success'))
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
     @endif
     @if($errors->any())
-        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ $errors->first() }}</div>
+        <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>
     @endif
 
-    <form method="GET" class="grid gap-3 rounded-2xl border border-black bg-white p-4 sm:grid-cols-[1fr_auto_auto_auto]">
-        <input name="q" value="{{ request('q') }}" placeholder="Search product, SKU, size or color" class="w-full rounded-xl border border-black px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
-        <select name="category" class="rounded-xl border border-black px-4 py-2.5 text-sm bg-white">
-            <option value="">All categories</option>
-            @foreach($categories as $category)
-                <option value="{{ $category }}" @selected(request('category') === $category)>{{ $category }}</option>
-            @endforeach
-        </select>
-        <select name="status" class="rounded-xl border border-black px-4 py-2.5 text-sm bg-white">
-            <option value="">All stock</option>
-            <option value="in" @selected(request('status') === 'in')>In stock</option>
-            <option value="low" @selected(request('status') === 'low')>Low stock</option>
-            <option value="out" @selected(request('status') === 'out')>Out of stock</option>
-        </select>
-        <button class="rounded-xl bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">Filter</button>
+    {{-- Toolbar --}}
+    <form method="GET" class="mb-5 flex flex-wrap items-center gap-3">
+        <label class="sr-only" for="inventory-search">Search inventory</label>
+        <input id="inventory-search" type="search" name="q" value="{{ request('q') }}" placeholder="Search product, SKU, size or color…" class="kp-admin-input w-full sm:w-64" />
+
+        <div class="ml-auto flex flex-wrap items-center gap-3">
+            <label class="sr-only" for="inventory-category">Category</label>
+            <select id="inventory-category" name="category" class="kp-admin-input w-auto">
+                <option value="">All categories</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category }}" @selected(request('category') === $category)>{{ $category }}</option>
+                @endforeach
+            </select>
+
+            <label class="sr-only" for="inventory-status">Stock status</label>
+            <select id="inventory-status" name="status" class="kp-admin-input w-auto">
+                <option value="">All stock</option>
+                <option value="in" @selected(request('status') === 'in')>In stock</option>
+                <option value="low" @selected(request('status') === 'low')>Low stock</option>
+                <option value="out" @selected(request('status') === 'out')>Out of stock</option>
+            </select>
+
+            <button type="submit" class="kp-admin-secondary-button"><x-tabler-filter size="15" stroke-width="1.8" />Filter</button>
+        </div>
     </form>
 
-    <div class="overflow-hidden rounded-2xl border border-black bg-white">
+    {{-- Variant stock table --}}
+    <x-admin.card class="mb-6 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-[900px] w-full text-left">
-                <thead class="border-b border-black bg-white text-[11px] font-bold uppercase tracking-wider text-black">
-                    <tr>
-                        <th class="px-5 py-3">Product</th>
-                        <th class="px-4 py-3">SKU</th>
-                        <th class="px-4 py-3">Size</th>
-                        <th class="px-4 py-3">Color</th>
-                        <th class="px-4 py-3">Stock</th>
-                        <th class="px-4 py-3">Reserved</th>
-                        <th class="px-4 py-3">Available</th>
-                        <th class="px-5 py-3 text-right">Action</th>
+            <table class="w-full min-w-[820px] text-sm">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-slate-400">
+                        <th class="px-6 py-3.5 text-left font-medium">Product</th>
+                        <th class="px-3 py-3.5 text-left font-medium">SKU</th>
+                        <th class="hidden px-3 py-3.5 text-left font-medium sm:table-cell">Size</th>
+                        <th class="hidden px-3 py-3.5 text-left font-medium sm:table-cell">Color</th>
+                        <th class="px-3 py-3.5 text-right font-medium">Stock</th>
+                        <th class="hidden px-3 py-3.5 text-right font-medium md:table-cell">Reserved</th>
+                        <th class="px-3 py-3.5 text-right font-medium">Available</th>
+                        <th class="px-6 py-3.5 text-right font-medium">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-black">
+                <tbody>
                     @forelse($variants as $variant)
                         @php
                             $available = (int) $variant->available_quantity;
-                            $badge = $available <= 0 ? 'bg-red-50 text-red-700' : ($available <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700');
                         @endphp
-                        <tr class="align-middle hover:bg-white/70">
-                            <td class="px-5 py-4">
-                                <div class="font-semibold text-black">{{ $variant->product->name }}</div>
-                                <div class="text-xs text-black">{{ $variant->product->category }}{{ !$variant->product->is_active ? ' · Inactive' : '' }}</div>
+                        <tr class="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/60">
+                            <td class="px-6 py-3.5">
+                                <p class="truncate font-medium text-slate-900">{{ $variant->product->name }}</p>
+                                <p class="mt-0.5 truncate text-xs text-slate-400">{{ $variant->product->category }}{{ !$variant->product->is_active ? ' · Inactive' : '' }}</p>
                             </td>
-                            <td class="px-4 py-4 font-mono text-xs text-black">{{ $variant->sku }}</td>
-                            <td class="px-4 py-4 text-sm">{{ $variant->size }}</td>
-                            <td class="px-4 py-4 text-sm">{{ $variant->color }}</td>
-                            <td class="px-4 py-4 text-sm font-semibold">{{ (int) $variant->stock }}</td>
-                            <td class="px-4 py-4 text-sm text-black">{{ (int) $variant->reserved_quantity }}</td>
-                            <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $badge }}">{{ $available }}</span></td>
-                            <td class="px-5 py-4 text-right">
-                                <details class="relative inline-block text-left">
-                                    <summary class="cursor-pointer list-none rounded-lg border border-black px-3 py-2 text-xs font-semibold hover:bg-white">Update stock</summary>
-                                    <form method="POST" action="{{ route('admin.wear.inventory.stock', $variant) }}" class="absolute right-0 z-10 mt-2 w-72 rounded-xl border border-black bg-white p-4 text-left shadow-xl">
-                                        @csrf
-                                        <label class="text-xs font-bold uppercase tracking-wide text-black">New stock</label>
-                                        <input type="number" min="0" max="2147483647" name="stock" value="{{ (int) $variant->stock }}" required class="mt-2 w-full rounded-lg border border-black px-3 py-2 text-sm">
-                                        <label class="mt-3 block text-xs font-bold uppercase tracking-wide text-black">Reason <span class="font-normal normal-case">(optional)</span></label>
-                                        <input name="reason" maxlength="500" placeholder="e.g. Physical count" class="mt-2 w-full rounded-lg border border-black px-3 py-2 text-sm">
-                                        <button class="mt-3 w-full rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white">Save stock</button>
-                                    </form>
-                                </details>
+                            <td class="px-3 py-3.5 font-mono text-xs text-slate-600">{{ $variant->sku }}</td>
+                            <td class="hidden px-3 py-3.5 text-slate-600 sm:table-cell">{{ $variant->size }}</td>
+                            <td class="hidden px-3 py-3.5 text-slate-600 sm:table-cell">{{ $variant->color }}</td>
+                            <td class="px-3 py-3.5 text-right font-medium text-slate-900">{{ (int) $variant->stock }}</td>
+                            <td class="hidden px-3 py-3.5 text-right text-slate-600 md:table-cell">{{ (int) $variant->reserved_quantity }}</td>
+                            <td class="px-3 py-3.5 text-right">
+                                <x-admin.badge :status="$available <= 0 ? 'out' : ($available <= 5 ? 'low' : 'green')" :label="(string) $available" />
+                            </td>
+                            <td class="px-6 py-3.5">
+                                <div class="flex items-center justify-end">
+                                    <details class="relative inline-block text-left">
+                                        <summary class="kp-admin-secondary-button cursor-pointer list-none">Update stock</summary>
+                                        <form method="POST" action="{{ route('admin.wear.inventory.stock', $variant) }}" class="absolute right-0 z-10 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xl">
+                                            @csrf
+                                            <label class="block text-xs uppercase tracking-wider text-slate-400" for="stock-{{ $variant->id }}">New stock</label>
+                                            <input id="stock-{{ $variant->id }}" type="number" min="0" max="2147483647" name="stock" value="{{ (int) $variant->stock }}" required class="field mt-2">
+                                            <label class="mt-3 block text-xs uppercase tracking-wider text-slate-400" for="reason-{{ $variant->id }}">Reason <span class="normal-case font-normal text-slate-400">(optional)</span></label>
+                                            <input id="reason-{{ $variant->id }}" name="reason" maxlength="500" placeholder="e.g. Physical count" class="field mt-2">
+                                            <button type="submit" class="kp-admin-primary-button mt-3 w-full">Save stock</button>
+                                        </form>
+                                    </details>
+                                </div>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="px-5 py-16 text-center text-sm text-black">No inventory variants match your filters.</td></tr>
+                        <tr><td colspan="8"><x-admin.empty message="No inventory variants match your filters." /></td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         @if($variants->hasPages())
-            <div class="border-t border-black px-5 py-4">{{ $variants->links() }}</div>
+            <div class="border-t border-slate-100 px-6 py-4">{{ $variants->links() }}</div>
         @endif
-    </div>
+    </x-admin.card>
+
+    {{-- Recent stock movements --}}
+    <x-admin.card class="overflow-hidden">
+        <div class="border-b border-slate-100 px-6 pb-4 pt-6">
+            <h3 class="kp-admin-display text-lg">Recent Stock Movements</h3>
+            <p class="mt-1.5 text-xs text-slate-400">Last 50 adjustments</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[720px] text-sm">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-slate-400">
+                        <th class="px-6 py-3.5 text-left font-medium">Variant</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Change</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Stock</th>
+                        <th class="hidden px-3 py-3.5 text-left font-medium md:table-cell">Reason</th>
+                        <th class="hidden px-3 py-3.5 text-left font-medium sm:table-cell">Admin</th>
+                        <th class="px-6 py-3.5 text-right font-medium">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($movements as $movement)
+                        <tr class="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/60">
+                            <td class="px-6 py-3.5">
+                                <p class="truncate font-medium text-slate-900">{{ $movement->variant->product->name ?? '—' }}</p>
+                                <p class="mt-0.5 truncate text-xs text-slate-400">{{ $movement->variant->sku ?? '' }}</p>
+                            </td>
+                            <td class="px-3 py-3.5 font-medium {{ $movement->quantity > 0 ? 'text-emerald-600' : 'text-rose-600' }}">{{ $movement->quantity > 0 ? '+' : '' }}{{ $movement->quantity }}</td>
+                            <td class="px-3 py-3.5 text-slate-600">{{ $movement->stock_before }} → {{ $movement->stock_after }}</td>
+                            <td class="hidden px-3 py-3.5 text-slate-600 md:table-cell">{{ ucwords(str_replace('_', ' ', $movement->reason)) }}</td>
+                            <td class="hidden px-3 py-3.5 text-slate-600 sm:table-cell">{{ $movement->creator->name ?? 'System' }}</td>
+                            <td class="px-6 py-3.5 text-right text-slate-500">{{ $movement->created_at->format('d M H:i') }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6"><x-admin.empty message="No stock movements yet." /></td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </x-admin.card>
 </div>
-<div class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm"><div class="border-b border-black px-5 py-4"><p class="text-xs font-bold uppercase tracking-widest text-black">Recent stock movements</p><h3 class="mt-1 text-lg font-bold">Last 50 adjustments</h3></div><div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-white text-xs font-bold uppercase tracking-wider text-black"><tr><th class="px-5 py-3">Variant</th><th class="px-5 py-3">Change</th><th class="px-5 py-3">Stock</th><th class="px-5 py-3">Reason</th><th class="px-5 py-3">Admin</th><th class="px-5 py-3">Date</th></tr></thead><tbody class="divide-y divide-black">@forelse($movements as $movement)<tr><td class="px-5 py-4"><p class="font-semibold">{{ $movement->variant->product->name ?? '—' }}</p><p class="text-xs text-black">{{ $movement->variant->sku ?? '' }}</p></td><td class="px-5 py-4 font-bold">{{ $movement->quantity > 0 ? '+' : '' }}{{ $movement->quantity }}</td><td class="px-5 py-4">{{ $movement->stock_before }} → {{ $movement->stock_after }}</td><td class="px-5 py-4">{{ ucwords(str_replace('_',' ',$movement->reason)) }}</td><td class="px-5 py-4">{{ $movement->creator->name ?? 'System' }}</td><td class="px-5 py-4 text-black">{{ $movement->created_at->format('d M H:i') }}</td></tr>@empty<tr><td colspan="6" class="px-5 py-10 text-center text-black">No stock movements yet.</td></tr>@endforelse</tbody></table></div></div>
 @endsection

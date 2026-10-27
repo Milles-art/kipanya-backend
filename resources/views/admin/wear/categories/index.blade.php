@@ -1,48 +1,34 @@
-@extends('admin.layouts.app')
+@extends('admin.layouts.app', ['title' => 'Categories', 'heading' => 'Categories'])
 
 @section('content')
-<div class="space-y-6">
-    <div>
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear</p>
-        <h2 class="mt-1 text-2xl font-black tracking-tight">Categories</h2>
-        <p class="mt-1 max-w-2xl text-sm text-black">
-            The Wear catalog uses five approved product categories. They are kept fixed so storefront filters,
-            product validation, and existing catalog data cannot drift apart.
-        </p>
-    </div>
+<div>
+    <x-admin.page-header title="Categories" subtitle="The Wear catalog uses five approved product categories. They are kept fixed so storefront filters, product validation, and existing catalog data cannot drift apart." />
 
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         @foreach($categories as $category)
-            <article class="rounded-2xl border border-black bg-white p-5">
+            <x-admin.card class="p-5">
                 <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="text-base font-black">{{ $category['name'] }}</p>
-                        <p class="mt-1 text-xs text-black">Approved Wear category</p>
+                    <div class="min-w-0">
+                        <h3 class="kp-admin-display text-lg">{{ $category['name'] }}</h3>
+                        <p class="mt-1.5 text-xs text-slate-400">Approved Wear category</p>
                     </div>
-                    <span class="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-black">
-                        {{ $category['total'] }} products
-                    </span>
+                    <x-admin.badge status="gray" :label="$category['total'].' products'" />
                 </div>
 
-                <div class="mt-6 flex items-end justify-between">
+                <div class="mt-6 flex items-end justify-between gap-3">
                     <div>
-                        <p class="text-2xl font-black">{{ $category['active'] }}</p>
-                        <p class="text-xs text-black">active</p>
+                        <p class="font-display text-2xl leading-none text-slate-950">{{ $category['active'] }}</p>
+                        <p class="mt-1 text-xs uppercase tracking-wider text-slate-400">active</p>
                         <span class="sr-only">{{ $category['active'] }} active</span>
                     </div>
-                    <a
-                        href="{{ route('admin.wear.products.index', ['category' => $category['name']]) }}"
-                        class="text-sm font-bold text-black hover:text-emerald-700"
-                    >
-                        View products →
-                    </a>
+                    <a href="{{ route('admin.wear.products.index', ['category' => $category['name']]) }}" class="kp-admin-link">View products <x-tabler-arrow-right size="13" /></a>
                 </div>
-            </article>
+            </x-admin.card>
         @endforeach
     </div>
 
     <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-        <p class="font-bold">Category integrity</p>
+        <p class="font-semibold">Category integrity</p>
         <p class="mt-1">
             New categories are intentionally not created from this screen. The current Wear storefront is defined
             around these five categories, and product creation already validates against the same list.

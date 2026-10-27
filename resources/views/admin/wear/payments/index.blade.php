@@ -1,79 +1,78 @@
-@extends('admin.layouts.app')
+@extends('admin.layouts.app', ['title' => 'Payments', 'heading' => 'Payments'])
 
 @section('content')
-<div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear</p>
-            <h2 class="mt-1 text-2xl font-black tracking-tight">Payments</h2>
-            <p class="mt-1 text-sm text-black">Review payment transactions without changing gateway state from the admin panel.</p>
-        </div>
-    </div>
+<div>
+    <x-admin.page-header title="Payments" subtitle="Review payment transactions without changing gateway state from the admin panel." />
 
     @if(($attentionCount ?? 0) > 0)
-        <a href="{{ route('admin.wear.payments.index', ['status' => 'reconciliation_required']) }}" class="flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-800 hover:bg-red-100">
+        <a href="{{ route('admin.wear.payments.index', ['status' => 'reconciliation_required']) }}" class="mb-6 flex items-center justify-between gap-4 rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800 transition-colors hover:bg-rose-100">
             <span>{{ $attentionCount }} payment{{ $attentionCount === 1 ? '' : 's' }} need attention: money captured that cannot be fulfilled, or a payment awaiting review.</span>
-            <span aria-hidden="true">Review →</span>
+            <span class="shrink-0 font-semibold">Review <x-tabler-arrow-right size="13" /></span>
         </a>
     @endif
 
-    <form method="GET" class="rounded-2xl border border-black bg-white p-4">
-        <div class="grid gap-3 md:grid-cols-[1fr_220px_auto]">
-            <input name="q" value="{{ $search }}" placeholder="Search order, customer, phone, provider or reference..." class="w-full rounded-xl border border-black px-4 py-3 text-sm outline-none focus:border-black">
-            <select name="status" class="rounded-xl border border-black px-4 py-3 text-sm outline-none focus:border-black">
-                <option value="all">All statuses</option>
-                @foreach($statuses as $paymentStatus)
-                    <option value="{{ $paymentStatus->value }}" @selected($status === $paymentStatus->value)>{{ str_replace('_', ' ', ucfirst($paymentStatus->value)) }}</option>
-                @endforeach
-            </select>
-            <button class="rounded-xl bg-black px-5 py-3 text-sm font-bold text-white hover:bg-black">Filter</button>
-        </div>
+    <form method="GET" class="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+        <input type="search" name="q" value="{{ $search }}" placeholder="Search order, customer, phone, provider or reference…" class="kp-admin-input" />
+        <select name="status" class="kp-admin-input">
+            <option value="all">All statuses</option>
+            @foreach($statuses as $paymentStatus)
+                <option value="{{ $paymentStatus->value }}" @selected($status === $paymentStatus->value)>{{ str_replace('_', ' ', ucfirst($paymentStatus->value)) }}</option>
+            @endforeach
+        </select>
+        <button type="submit" class="kp-admin-primary-button">Filter</button>
     </form>
 
-    <div class="overflow-hidden rounded-2xl border border-black bg-white">
+    <x-admin.card class="overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead class="border-b border-black bg-white text-xs uppercase tracking-wider text-black">
-                    <tr>
-                        <th class="px-5 py-4 font-bold">Order</th>
-                        <th class="px-5 py-4 font-bold">Customer</th>
-                        <th class="px-5 py-4 font-bold">Amount</th>
-                        <th class="px-5 py-4 font-bold">Provider</th>
-                        <th class="px-5 py-4 font-bold">Reference</th>
-                        <th class="px-5 py-4 font-bold">Status</th>
-                        <th class="px-5 py-4"></th>
+            <table class="min-w-[880px] text-sm">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-slate-400">
+                        <th class="px-6 py-3.5 text-left font-medium">Order</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Customer</th>
+                        <th class="px-3 py-3.5 text-right font-medium">Amount</th>
+                        <th class="hidden px-3 py-3.5 text-left font-medium sm:table-cell">Provider</th>
+                        <th class="hidden px-3 py-3.5 text-left font-medium md:table-cell">Reference</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Status</th>
+                        <th class="px-6 py-3.5 text-right font-medium">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-black">
+                <tbody>
                     @forelse($payments as $payment)
-                        <tr class="{{ $payment->status->value === 'reconciliation_required' ? 'bg-red-50/60' : '' }} hover:bg-white">
-                            <td class="px-5 py-4">
-                                <a href="{{ route('admin.wear.orders.show', $payment->order) }}" class="font-bold hover:text-emerald-700">#{{ $payment->order?->order_number ?? '—' }}</a>
-                                <p class="mt-1 text-xs text-black">{{ $payment->created_at?->format('d M Y, H:i') }}</p>
+                        @php
+                            $paymentStatusValue = $payment->status->value;
+                            $paymentTone = match ($paymentStatusValue) {
+                                'paid' => 'green',
+                                'failed', 'cancelled', 'user_cancelled', 'rejected' => 'red',
+                                'pending', 'reconciliation_required' => 'amber',
+                                'processing', 'in_progress' => 'blue',
+                                'refunded' => 'purple',
+                                default => 'gray',
+                            };
+                        @endphp
+                        <tr class="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/60 {{ $paymentStatusValue === 'reconciliation_required' ? 'bg-rose-50/60' : '' }}">
+                            <td class="px-6 py-3.5">
+                                <a href="{{ route('admin.wear.orders.show', $payment->order) }}" class="font-medium text-slate-900 hover:text-emerald-600">#{{ $payment->order?->order_number ?? '—' }}</a>
+                                <p class="mt-0.5 text-xs text-slate-400">{{ $payment->created_at?->format('d M Y, H:i') }}</p>
                             </td>
-                            <td class="px-5 py-4">
-                                <p class="font-semibold">{{ $payment->order?->customer_name ?: $payment->user?->name ?: 'Guest' }}</p>
-                                <p class="mt-1 text-xs text-black">{{ $payment->order?->customer_phone ?: $payment->user?->phone ?: '—' }}</p>
+                            <td class="px-3 py-3.5">
+                                <p class="font-medium text-slate-800">{{ $payment->order?->customer_name ?: $payment->user?->name ?: 'Guest' }}</p>
+                                <p class="mt-0.5 text-xs text-slate-400">{{ $payment->order?->customer_phone ?: $payment->user?->phone ?: '—' }}</p>
                             </td>
-                            <td class="px-5 py-4 font-black">{{ number_format((float) $payment->amount, 0) }} {{ $payment->currency }}</td>
-                            <td class="px-5 py-4">{{ $payment->provider }}</td>
-                            <td class="px-5 py-4 font-mono text-xs">{{ $payment->provider_reference ?: '—' }}</td>
-                            <td class="px-5 py-4">
-                                <span class="inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-bold text-black">{{ ucfirst($payment->status->value) }}</span>
-                            </td>
-                            <td class="px-5 py-4 text-right">
-                                <a href="{{ route('admin.wear.payments.show', $payment) }}" class="font-bold text-black hover:text-emerald-700">View →</a>
-                            </td>
+                            <td class="px-3 py-3.5 text-right font-medium text-slate-900">{{ $payment->currency }} {{ number_format((float) $payment->amount, 0) }}</td>
+                            <td class="hidden px-3 py-3.5 text-slate-600 sm:table-cell">{{ $payment->provider }}</td>
+                            <td class="hidden px-3 py-3.5 font-mono text-xs text-slate-500 md:table-cell">{{ $payment->provider_reference ?: '—' }}</td>
+                            <td class="px-3 py-3.5"><x-admin.badge :status="$paymentTone" :label="str_replace('_', ' ', ucfirst($paymentStatusValue))" /></td>
+                            <td class="px-6 py-3.5 text-right"><a href="{{ route('admin.wear.payments.show', $payment) }}" class="kp-admin-link">View <x-tabler-arrow-right size="13" /></a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-5 py-14 text-center text-sm text-black">No payment transactions found.</td></tr>
+                        <tr><td colspan="7"><x-admin.empty message="No payment transactions found." /></td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         @if($payments->hasPages())
-            <div class="border-t border-black px-5 py-4">{{ $payments->links() }}</div>
+            <div class="border-t border-slate-100 px-6 py-4">{{ $payments->links() }}</div>
         @endif
-    </div>
+    </x-admin.card>
 </div>
 @endsection

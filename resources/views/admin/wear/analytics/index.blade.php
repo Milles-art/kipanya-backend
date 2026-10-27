@@ -1,100 +1,94 @@
 @extends('admin.layouts.app', ['title' => 'Analytics', 'heading' => 'Analytics'])
 
 @section('content')
-<div class="space-y-6">
-    <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear</p>
-            <h2 class="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Store analytics</h2>
-            <p class="mt-2 text-sm leading-6 text-black">Track paid sales, order volume and product performance.</p>
-        </div>
-        <form method="GET" class="flex items-center gap-2">
-            <label for="period" class="sr-only">Period</label>
-            <select id="period" name="period" data-submit-on-change class="rounded-xl border border-black bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-black">
-                @foreach([7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 90 days'] as $value => $label)
-                    <option value="{{ $value }}" @selected($period === $value)>{{ $label }}</option>
-                @endforeach
-            </select>
-        </form>
-    </section>
+<div>
+    <x-admin.page-header title="Store analytics" subtitle="Track paid sales, order volume and product performance.">
+        <x-slot name="action">
+            <form method="GET" class="flex items-center gap-2">
+                <label for="period" class="sr-only">Period</label>
+                <select id="period" name="period" data-submit-on-change class="kp-admin-input w-full sm:w-48" aria-label="Analytics period">
+                    @foreach([7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 90 days'] as $value => $label)
+                        <option value="{{ $value }}" @selected($period === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </form>
+        </x-slot>
+    </x-admin.page-header>
 
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        @foreach([
-            ['Revenue', 'TZS '.number_format($metrics['revenue'], 0)],
-            ['Paid orders', number_format($metrics['orders'])],
-            ['Units sold', number_format($metrics['items_sold'])],
-            ['Average order', 'TZS '.number_format($metrics['average_order_value'], 0)],
-        ] as [$label, $value])
-            <div class="rounded-2xl border border-black bg-white p-5 shadow-sm">
-                <p class="text-sm text-black">{{ $label }}</p>
-                <p class="mt-2 text-2xl font-black tracking-tight">{{ $value }}</p>
-            </div>
-        @endforeach
-    </section>
+    {{-- Stat tiles --}}
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
+        <x-admin.stat label="Revenue" value="TZS {{ number_format($metrics['revenue'], 0) }}" icon="currency-dollar" detail="Paid sales in this period" />
+        <x-admin.stat label="Paid orders" value="{{ number_format($metrics['orders']) }}" icon="shopping-cart" tone="sky" detail="Payment completed" />
+        <x-admin.stat label="Units sold" value="{{ number_format($metrics['items_sold']) }}" icon="package" tone="violet" detail="Across all paid orders" />
+        <x-admin.stat label="Average order" value="TZS {{ number_format($metrics['average_order_value'], 0) }}" icon="trending-up" tone="amber" detail="Revenue per paid order" />
+    </div>
 
-    <section class="rounded-2xl border border-black bg-white p-5 shadow-sm sm:p-6">
-        <div class="flex items-center justify-between gap-4">
+    {{-- Sales trend --}}
+    <x-admin.card class="mb-6 p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-                <p class="text-xs font-bold uppercase tracking-widest text-black">Sales trend</p>
-                <h3 class="mt-1 text-lg font-bold">Paid revenue</h3>
+                <h3 class="kp-admin-display text-lg">Paid revenue</h3>
+                <p class="mt-1.5 text-xs text-slate-400">{{ $start->format('d M Y') }} — {{ $end->format('d M Y') }}</p>
             </div>
-            <span class="text-xs font-semibold text-black">{{ $start->format('d M Y') }} — {{ $end->format('d M Y') }}</span>
+            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">TZS</span>
         </div>
+
         <div class="mt-6 overflow-hidden">
             <div class="relative h-72">
                 <svg id="analytics-chart" viewBox="0 0 1000 320" class="h-full w-full" role="img" aria-label="Paid revenue chart">
-                    <g id="analytics-grid" class="text-black"></g>
+                    <g id="analytics-grid" class="text-slate-950"></g>
                     <path id="analytics-area" fill="currentColor" fill-opacity="0.05"></path>
                     <path id="analytics-line" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
                     <g id="analytics-points" class="text-emerald-600"></g>
                 </svg>
-                <div id="analytics-empty" class="pointer-events-none absolute inset-0 hidden items-center justify-center text-sm font-medium text-black">No paid sales in this period.</div>
+                <div id="analytics-empty" class="pointer-events-none absolute inset-0 hidden items-center justify-center text-sm text-slate-400">No paid sales in this period.</div>
             </div>
-            <div id="analytics-labels" class="mt-2 grid grid-cols-7 gap-1 text-[10px] text-black"></div>
+            <div id="analytics-labels" class="mt-2 grid grid-cols-7 gap-1 text-[10px] text-slate-400"></div>
         </div>
-    </section>
+    </x-admin.card>
 
-    <section class="grid gap-6 xl:grid-cols-2">
-        <div class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm">
-            <div class="border-b border-black px-5 py-4">
-                <p class="text-xs font-bold uppercase tracking-widest text-black">Product performance</p>
-                <h3 class="mt-1 text-lg font-bold">Top products</h3>
+    {{-- Product + category performance --}}
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <x-admin.card class="overflow-hidden">
+            <div class="px-6 pb-4 pt-6">
+                <p class="text-xs uppercase tracking-wider text-slate-400">Product performance</p>
+                <h3 class="kp-admin-display mt-1.5 text-lg">Top products</h3>
             </div>
-            <div class="divide-y divide-black">
+            <div class="divide-y divide-slate-50">
                 @forelse($topProducts as $product)
-                    <div class="flex items-center justify-between gap-4 px-5 py-4">
+                    <div class="flex items-center justify-between gap-4 px-6 py-4">
                         <div class="min-w-0">
-                            <p class="truncate font-semibold">{{ $product->product_name }}</p>
-                            <p class="mt-1 text-xs text-black">{{ number_format((int) $product->units_sold) }} unit(s)</p>
+                            <p class="truncate text-sm font-medium text-slate-900">{{ $product->product_name }}</p>
+                            <p class="mt-0.5 text-xs text-slate-400">{{ number_format((int) $product->units_sold) }} unit(s)</p>
                         </div>
-                        <p class="shrink-0 font-bold">TZS {{ number_format((float) $product->revenue, 0) }}</p>
+                        <p class="shrink-0 text-sm font-semibold text-slate-800">TZS {{ number_format((float) $product->revenue, 0) }}</p>
                     </div>
                 @empty
-                    <div class="px-5 py-12 text-center text-sm text-black">No paid product sales in this period.</div>
+                    <x-admin.empty message="No paid product sales in this period." />
                 @endforelse
             </div>
-        </div>
+        </x-admin.card>
 
-        <div class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm">
-            <div class="border-b border-black px-5 py-4">
-                <p class="text-xs font-bold uppercase tracking-widest text-black">Merchandising</p>
-                <h3 class="mt-1 text-lg font-bold">Sales by category</h3>
+        <x-admin.card class="overflow-hidden">
+            <div class="px-6 pb-4 pt-6">
+                <p class="text-xs uppercase tracking-wider text-slate-400">Merchandising</p>
+                <h3 class="kp-admin-display mt-1.5 text-lg">Sales by category</h3>
             </div>
-            <div class="divide-y divide-black">
+            <div class="divide-y divide-slate-50">
                 @forelse($categorySales as $category)
-                    <div class="flex items-center justify-between gap-4 px-5 py-4">
-                        <div>
-                            <p class="font-semibold">{{ $category->category ?: 'Uncategorised' }}</p>
-                            <p class="mt-1 text-xs text-black">{{ number_format((int) $category->units_sold) }} unit(s)</p>
+                    <div class="flex items-center justify-between gap-4 px-6 py-4">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-medium text-slate-900">{{ $category->category ?: 'Uncategorised' }}</p>
+                            <p class="mt-0.5 text-xs text-slate-400">{{ number_format((int) $category->units_sold) }} unit(s)</p>
                         </div>
-                        <p class="font-bold">TZS {{ number_format((float) $category->revenue, 0) }}</p>
+                        <p class="shrink-0 text-sm font-semibold text-slate-800">TZS {{ number_format((float) $category->revenue, 0) }}</p>
                     </div>
                 @empty
-                    <div class="px-5 py-12 text-center text-sm text-black">No category sales in this period.</div>
+                    <x-admin.empty message="No category sales in this period." />
                 @endforelse
             </div>
-        </div>
-    </section>
+        </x-admin.card>
+    </div>
 </div>
 
 <script nonce="{{ Vite::cspNonce() }}">

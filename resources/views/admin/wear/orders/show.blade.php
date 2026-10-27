@@ -6,121 +6,147 @@
     $payment = $order->payment_status?->value ?? (string) $order->payment_status;
     $statusLabel = str_replace('_', ' ', ucfirst($status));
     $paymentLabel = ucfirst($payment);
+    $statusTone = match ($status) {
+        'pending_payment' => 'amber',
+        'confirmed' => 'green',
+        'processing', 'shipped' => 'blue',
+        'delivered' => 'green',
+        'cancelled' => 'red',
+        default => 'gray',
+    };
+    $paymentTone = match ($payment) {
+        'paid' => 'green',
+        'failed', 'cancelled', 'user_cancelled', 'rejected' => 'red',
+        'pending', 'reconciliation_required' => 'amber',
+        'processing', 'in_progress' => 'blue',
+        'refunded' => 'purple',
+        default => 'gray',
+    };
 @endphp
 
-<div class="space-y-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <a href="{{ route('admin.wear.orders.index') }}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">← Back to orders</a>
-            <p class="mt-2 text-sm text-black">Placed {{ $order->placed_at?->format('d M Y, H:i') ?? 'Not placed' }}</p>
-        </div>
-        <div class="flex gap-2">
-            <span class="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black">{{ $statusLabel }}</span>
-            <span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Payment: {{ $paymentLabel }}</span>
-        </div>
-    </div>
+<div>
+    <x-admin.page-header :title="'Order '.$order->order_number" :subtitle="'Placed '.($order->placed_at?->format('d M Y, H:i') ?? 'Not placed')">
+        <x-slot name="action">
+            <a href="{{ route('admin.wear.orders.index') }}" class="kp-admin-secondary-button"><x-tabler-arrow-left size="16" />Back to orders</a>
+            <x-admin.badge :status="$statusTone" :label="$statusLabel" />
+            <x-admin.badge :status="$paymentTone" :label="'Payment: '.$paymentLabel" />
+        </x-slot>
+    </x-admin.page-header>
 
     @if(session('success'))
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{{ session('success') }}</div>
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
     @endif
     @if($errors->any())
-        <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><p class="font-bold">Could not update the order.</p><ul class="mt-1 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+        <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <p class="font-semibold">Could not update the order.</p>
+            <ul class="mt-1 list-disc pl-5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
     @endif
 
     <div class="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div class="space-y-6">
-            <section class="overflow-hidden rounded-2xl border border-black bg-white">
-                <div class="border-b border-black px-5 py-4"><h2 class="font-bold">Items</h2></div>
-                <div class="divide-y divide-black">
+            <x-admin.card class="overflow-hidden">
+                <div class="px-6 pb-4 pt-6">
+                    <h3 class="kp-admin-display text-lg">Items</h3>
+                    <p class="mt-1.5 text-xs text-slate-400">{{ $order->items->sum('quantity') }} item{{ $order->items->sum('quantity') === 1 ? '' : 's' }} on this order</p>
+                </div>
+                <div class="divide-y divide-slate-100 border-t border-slate-100">
                     @foreach($order->items as $item)
-                        <div class="flex gap-4 px-5 py-5">
-                            <div class="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white">
+                        <div class="flex gap-4 px-6 py-5">
+                            <div class="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
                                 @if($item->product?->image_url)
                                     <img src="{{ $item->product->image_url }}" alt="{{ $item->product_name }}" class="h-full w-full object-cover">
                                 @endif
                             </div>
                             <div class="min-w-0 flex-1">
-                                <h3 class="font-bold text-black">{{ $item->product_name }}</h3>
-                                <p class="mt-1 text-sm text-black">{{ $item->sku ?: 'No SKU' }} · {{ $item->size ?: 'One size' }} · {{ $item->color ?: 'Default color' }}</p>
-                                <p class="mt-2 text-sm text-black">Qty {{ $item->quantity }} × {{ number_format((float) $item->unit_price, 0) }} TZS</p>
+                                <h4 class="text-sm font-medium text-slate-900">{{ $item->product_name }}</h4>
+                                <p class="mt-1 text-xs text-slate-400">{{ $item->sku ?: 'No SKU' }} · {{ $item->size ?: 'One size' }} · {{ $item->color ?: 'Default color' }}</p>
+                                <p class="mt-2 text-sm text-slate-500">Qty {{ $item->quantity }} × TZS {{ number_format((float) $item->unit_price, 0) }}</p>
                             </div>
-                            <div class="font-bold text-black">{{ number_format((float) $item->line_total, 0) }} TZS</div>
+                            <div class="font-display text-lg text-slate-950">TZS {{ number_format((float) $item->line_total, 0) }}</div>
                         </div>
                     @endforeach
                 </div>
-                <div class="border-t border-black bg-white px-5 py-5">
+                <div class="border-t border-slate-100 px-6 py-5">
                     <div class="ml-auto max-w-xs space-y-2 text-sm">
-                        <div class="flex justify-between"><span class="text-black">Subtotal</span><span>{{ number_format((float) $order->subtotal, 0) }} TZS</span></div>
-                        <div class="flex justify-between"><span class="text-black">Delivery</span><span>{{ number_format((float) $order->delivery_fee, 0) }} TZS</span></div>
-                        <div class="flex justify-between border-t border-black pt-2 text-base font-bold"><span>Total</span><span>{{ number_format((float) $order->total, 0) }} TZS</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Subtotal</span><span class="font-medium text-slate-800">TZS {{ number_format((float) $order->subtotal, 0) }}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Delivery</span><span class="font-medium text-slate-800">TZS {{ number_format((float) $order->delivery_fee, 0) }}</span></div>
+                        <div class="flex justify-between border-t border-slate-100 pt-2 text-base"><span class="font-medium text-slate-900">Total</span><span class="font-display text-lg text-slate-950">TZS {{ number_format((float) $order->total, 0) }}</span></div>
                     </div>
                 </div>
-            </section>
+            </x-admin.card>
 
-            <section class="rounded-2xl border border-black bg-white p-5">
-                <h2 class="font-bold">Order history</h2>
+            <x-admin.card class="p-6">
+                <h3 class="kp-admin-display text-lg">Order History</h3>
                 <div class="mt-5 space-y-4">
                     @forelse($order->statusHistory->sortByDesc('created_at') as $history)
                         <div class="flex gap-3">
-                            <div class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500"></div>
+                            <div class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500"></div>
                             <div>
-                                <p class="text-sm font-semibold">{{ str_replace('_', ' ', ucfirst($history->to_status)) }}</p>
-                                <p class="mt-1 text-xs text-black">{{ $history->created_at?->format('d M Y, H:i') }} · {{ $history->changedBy?->name ?? 'System' }}</p>
-                                @if($history->reason)<p class="mt-1 text-sm text-black">{{ $history->reason }}</p>@endif
+                                <p class="text-sm font-medium text-slate-800">{{ str_replace('_', ' ', ucfirst($history->to_status)) }}</p>
+                                <p class="mt-1 text-xs text-slate-400">{{ $history->created_at?->format('d M Y, H:i') }} · {{ $history->changedBy?->name ?? 'System' }}</p>
+                                @if($history->reason)<p class="mt-1 text-sm text-slate-600">{{ $history->reason }}</p>@endif
                             </div>
                         </div>
                     @empty
-                        <p class="text-sm text-black">No status history recorded.</p>
+                        <p class="text-sm text-slate-400">No status history recorded.</p>
                     @endforelse
                 </div>
-            </section>
+            </x-admin.card>
         </div>
 
         <div class="space-y-6">
-            <section class="rounded-2xl border border-black bg-white p-5">
-                <h2 class="font-bold">Customer</h2>
+            <x-admin.card class="p-6">
+                <h3 class="kp-admin-display text-lg">Customer</h3>
                 <div class="mt-4 space-y-3 text-sm">
-                    <div><p class="text-xs uppercase tracking-wide text-black">Name</p><p class="mt-1 font-semibold">{{ $order->customer_name }}</p></div>
-                    <div><p class="text-xs uppercase tracking-wide text-black">Phone</p><p class="mt-1 font-semibold">{{ $order->customer_phone }}</p></div>
-                    @if($order->customer_email)<div><p class="text-xs uppercase tracking-wide text-black">Email</p><p class="mt-1 font-semibold break-all">{{ $order->customer_email }}</p></div>@endif
+                    <div><p class="text-xs uppercase tracking-wider text-slate-400">Name</p><p class="mt-1 font-medium text-slate-800">{{ $order->customer_name }}</p></div>
+                    <div><p class="text-xs uppercase tracking-wider text-slate-400">Phone</p><p class="mt-1 font-medium text-slate-800">{{ $order->customer_phone }}</p></div>
+                    @if($order->customer_email)<div><p class="text-xs uppercase tracking-wider text-slate-400">Email</p><p class="mt-1 font-medium break-all text-slate-800">{{ $order->customer_email }}</p></div>@endif
                 </div>
-            </section>
+            </x-admin.card>
 
-            <section class="rounded-2xl border border-black bg-white p-5">
-                <h2 class="font-bold">Delivery</h2>
-                <div class="mt-4 text-sm text-black">
+            <x-admin.card class="p-6">
+                <h3 class="kp-admin-display text-lg">Delivery</h3>
+                <div class="mt-4 text-sm text-slate-600">
                     <p class="whitespace-pre-line">{{ $order->delivery_address }}</p>
-                    @if($order->delivery_city)<p class="mt-2 font-semibold">{{ $order->delivery_city }}</p>@endif
+                    @if($order->delivery_city)<p class="mt-2 font-medium text-slate-800">{{ $order->delivery_city }}</p>@endif
                     @if($order->delivery_provider || $order->tracking_number)
-                        <div class="mt-4 rounded-xl bg-white p-3 text-sm">
-                            @if($order->delivery_provider)<p><span class="font-semibold">Provider:</span> {{ $order->delivery_provider }}</p>@endif
-                            @if($order->tracking_number)<p class="mt-1"><span class="font-semibold">Tracking:</span> {{ $order->tracking_number }}</p>@endif
+                        <div class="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm">
+                            @if($order->delivery_provider)<p><span class="font-medium text-slate-700">Provider:</span> {{ $order->delivery_provider }}</p>@endif
+                            @if($order->tracking_number)<p class="mt-1"><span class="font-medium text-slate-700">Tracking:</span> {{ $order->tracking_number }}</p>@endif
                         </div>
                     @endif
-                    @if($order->notes)<p class="mt-4 rounded-xl bg-white p-3"><span class="font-semibold">Note:</span> {{ $order->notes }}</p>@endif
+                    @if($order->notes)<p class="mt-4 rounded-xl bg-slate-50 px-4 py-3"><span class="font-medium text-slate-700">Note:</span> {{ $order->notes }}</p>@endif
                 </div>
-            </section>
+            </x-admin.card>
 
-            <section class="rounded-2xl border border-black bg-white p-5">
-                <h2 class="font-bold">Fulfillment</h2>
-                <p class="mt-1 text-sm text-black">Internal handover note without changing payment state.</p>
+            <x-admin.card class="p-6">
+                <h3 class="kp-admin-display text-lg">Fulfillment</h3>
+                <p class="mt-1.5 text-xs text-slate-400">Internal handover note without changing payment state.</p>
                 <form method="POST" action="{{ route('admin.wear.orders.delivery', $order) }}" class="mt-5 space-y-4">
                     @csrf
-                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-black">Fulfillment note</span><textarea name="fulfillment_notes" rows="3" class="mt-2 w-full rounded-xl border border-black px-3 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Internal handover note">{{ old('fulfillment_notes', $order->fulfillment_notes) }}</textarea></label>
-                    <div class="grid gap-3 text-xs text-black sm:grid-cols-2">
-                        <div class="rounded-xl bg-white p-3"><span class="font-semibold text-black">Shipped:</span> {{ $order->shipped_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
-                        <div class="rounded-xl bg-white p-3"><span class="font-semibold text-black">Delivered:</span> {{ $order->delivered_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
+                    <label class="block">
+                        <span class="mb-2 block text-xs uppercase tracking-wider text-slate-400">Fulfillment note</span>
+                        <textarea name="fulfillment_notes" rows="3" class="kp-admin-input" placeholder="Internal handover note">{{ old('fulfillment_notes', $order->fulfillment_notes) }}</textarea>
+                    </label>
+                    <div class="grid gap-3 text-xs text-slate-600 sm:grid-cols-2">
+                        <div class="rounded-xl bg-slate-50 px-3 py-2.5"><span class="font-medium text-slate-700">Shipped:</span> {{ $order->shipped_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
+                        <div class="rounded-xl bg-slate-50 px-3 py-2.5"><span class="font-medium text-slate-700">Delivered:</span> {{ $order->delivered_at?->format('d M Y, H:i') ?? 'Not yet' }}</div>
                     </div>
-                    <button class="w-full rounded-xl border border-black bg-white px-4 py-3 text-sm font-bold text-black hover:bg-white">Save fulfillment details</button>
+                    <button class="kp-admin-secondary-button w-full">Save fulfillment details</button>
                 </form>
-            </section>
+            </x-admin.card>
 
-            <section class="rounded-2xl border border-black bg-white p-5">
-                <h2 class="font-bold">Update order status</h2>
-                <p class="mt-1 text-sm text-black">Payment status is managed separately from fulfillment status.</p>
+            <x-admin.card class="p-6">
+                <h3 class="kp-admin-display text-lg">Update Order Status</h3>
+                <p class="mt-1.5 text-xs text-slate-400">Payment status is managed separately from fulfillment status.</p>
                 <form method="POST" action="{{ route('admin.wear.orders.status', $order) }}" class="mt-5 space-y-4">
                     @csrf
-                    <select name="status" class="w-full rounded-xl border border-black px-3 py-3 text-sm font-semibold outline-none focus:border-emerald-500">
+                    <select name="status" class="kp-admin-input">
                         <option value="{{ $status }}" selected>{{ $statusLabel }}</option>
                         @forelse($allowedStatuses as $option)
                             <option value="{{ $option->value }}">{{ str_replace('_', ' ', ucfirst($option->value)) }}</option>
@@ -128,32 +154,32 @@
                             <option value="" disabled>No further status changes allowed</option>
                         @endforelse
                     </select>
-                    <textarea name="reason" rows="3" placeholder="Optional reason or internal note" class="w-full rounded-xl border border-black px-3 py-3 text-sm outline-none focus:border-emerald-500">{{ old('reason') }}</textarea>
-                    <button class="w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white hover:bg-black">Update status</button>
+                    <textarea name="reason" rows="3" placeholder="Optional reason or internal note" class="kp-admin-input">{{ old('reason') }}</textarea>
+                    <button class="kp-admin-primary-button w-full">Update status</button>
                 </form>
-            </section>
+            </x-admin.card>
 
-            <section class="rounded-2xl border border-black bg-white p-5">
-                <h2 class="font-bold">Payment</h2>
+            <x-admin.card class="p-6">
+                <h3 class="kp-admin-display text-lg">Payment</h3>
                 <div class="mt-4 space-y-3 text-sm">
-                    <div class="flex justify-between"><span class="text-black">Status</span><span class="font-bold">{{ $paymentLabel }}</span></div>
-                    <div class="flex justify-between"><span class="text-black">Method</span><span class="font-semibold">{{ $order->payment_method ?: 'Not selected' }}</span></div>
+                    <div class="flex justify-between gap-4"><span class="text-slate-500">Status</span><span class="font-medium text-slate-800">{{ $paymentLabel }}</span></div>
+                    <div class="flex justify-between gap-4"><span class="text-slate-500">Method</span><span class="font-medium text-slate-800">{{ $order->payment_method ?: 'Not selected' }}</span></div>
                 </div>
                 @if($order->payments->isNotEmpty())
-                    <div class="mt-5 border-t border-black pt-4">
-                        <p class="text-xs font-bold uppercase tracking-wide text-black">Transactions</p>
+                    <div class="mt-5 border-t border-slate-100 pt-4">
+                        <p class="text-xs uppercase tracking-wider text-slate-400">Transactions</p>
                         <div class="mt-3 space-y-3">
                             @foreach($order->payments as $paymentTransaction)
-                                <div class="rounded-xl bg-white p-3 text-xs">
-                                    <div class="flex justify-between font-semibold"><span>{{ $paymentTransaction->provider }}</span><span>{{ ucfirst($paymentTransaction->status?->value ?? $paymentTransaction->status) }}</span></div>
-                                    <p class="mt-1 text-black">{{ $paymentTransaction->provider_reference ?: 'No provider reference' }}</p>
-                                    <p class="mt-1 text-black">{{ number_format((float) $paymentTransaction->amount, 0) }} {{ $paymentTransaction->currency }}</p>
+                                <div class="rounded-xl bg-slate-50 px-4 py-3 text-xs">
+                                    <div class="flex justify-between font-medium text-slate-700"><span>{{ $paymentTransaction->provider }}</span><span>{{ str_replace('_', ' ', ucfirst($paymentTransaction->status?->value ?? $paymentTransaction->status)) }}</span></div>
+                                    <p class="mt-1 text-slate-500">{{ $paymentTransaction->provider_reference ?: 'No provider reference' }}</p>
+                                    <p class="mt-1 font-medium text-slate-800">{{ $paymentTransaction->currency }} {{ number_format((float) $paymentTransaction->amount, 0) }}</p>
                                 </div>
                             @endforeach
                         </div>
                     </div>
                 @endif
-            </section>
+            </x-admin.card>
         </div>
     </div>
 </div>

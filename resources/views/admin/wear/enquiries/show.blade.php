@@ -1,2 +1,46 @@
-@extends('admin.layouts.app',['title'=>'Enquiry','heading'=>'Customer Enquiry'])
-@section('content')<div class="grid gap-6 lg:grid-cols-[1fr_360px]"><section class="rounded-2xl border border-black bg-white p-6"><p class="text-xs font-bold uppercase tracking-widest text-emerald-600">{{ $message->type }}</p><h2 class="mt-2 text-2xl font-black">{{ $message->name }}</h2><p class="mt-1 text-sm text-black">{{ $message->email }}</p><div class="mt-8 border-t border-black pt-6"><p class="whitespace-pre-wrap text-sm leading-7 text-black">{{ $message->message }}</p></div></section><aside class="rounded-2xl border border-black bg-white p-6 h-fit"><h3 class="font-bold">Update status</h3><form method="POST" action="{{ route('admin.wear.enquiries.status',$message) }}" class="mt-5 space-y-4">@csrf<select name="status" class="w-full rounded-xl border border-black px-4 py-3 text-sm">@foreach(['new','read','in_progress','resolved','closed'] as $s)<option value="{{ $s }}" @selected($message->status===$s)>{{ ucwords(str_replace('_',' ',$s)) }}</option>@endforeach</select><button class="w-full rounded-xl bg-black px-5 py-3 text-sm font-bold text-white">Save status</button></form></aside></div>@endsection
+@extends('admin.layouts.app', ['title' => 'Enquiry', 'heading' => 'Customer Enquiry'])
+
+@section('content')
+@php
+    $statusTone = match (strtolower((string) $message->status)) {
+        'new' => 'amber',
+        'resolved' => 'green',
+        'closed' => 'purple',
+        default => 'blue',
+    };
+@endphp
+<div>
+    <x-admin.page-header :title="$message->name" :subtitle="$message->type.' · '.$message->email">
+        <x-slot name="action">
+            <a href="{{ route('admin.wear.enquiries.index') }}" class="kp-admin-secondary-button"><x-tabler-arrow-left size="16" />All enquiries</a>
+            <x-admin.badge :status="$statusTone" :label="ucwords(str_replace('_', ' ', (string) $message->status))" />
+        </x-slot>
+    </x-admin.page-header>
+
+    @if(session('success'))
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
+    @endif
+
+    <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <x-admin.card class="p-6">
+            <h3 class="kp-admin-display text-lg">Message</h3>
+            <div class="mt-5 rounded-xl bg-slate-50 px-5 py-5">
+                <p class="whitespace-pre-wrap text-sm leading-7 text-slate-700">{{ $message->message }}</p>
+            </div>
+        </x-admin.card>
+
+        <x-admin.card class="h-fit p-6">
+            <h3 class="kp-admin-display text-lg">Update Status</h3>
+            <form method="POST" action="{{ route('admin.wear.enquiries.status', $message) }}" class="mt-5 space-y-4">
+                @csrf
+                <select name="status" class="kp-admin-input">
+                    @foreach(['new','read','in_progress','resolved','closed'] as $s)
+                        <option value="{{ $s }}" @selected($message->status===$s)>{{ ucwords(str_replace('_', ' ', $s)) }}</option>
+                    @endforeach
+                </select>
+                <button class="kp-admin-primary-button w-full">Save status</button>
+            </form>
+        </x-admin.card>
+    </div>
+</div>
+@endsection

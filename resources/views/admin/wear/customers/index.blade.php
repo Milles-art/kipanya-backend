@@ -1,80 +1,67 @@
 @extends('admin.layouts.app', ['title' => 'Customers', 'heading' => 'Customers'])
 
 @section('content')
-<div class="space-y-6">
-    <section>
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear</p>
-        <div class="mt-1 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <h2 class="text-2xl font-black tracking-tight sm:text-3xl">Customers</h2>
-                <p class="mt-2 text-sm leading-6 text-black">View registered customers who have placed KP Wear orders.</p>
-            </div>
-            @if(Route::has('admin.wear.customers.duplicates'))
-                <a href="{{ route('admin.wear.customers.duplicates') }}"
-                   class="inline-flex items-center justify-center rounded-xl border border-black bg-white px-5 py-3 text-sm font-bold hover:bg-black hover:text-white">
-                    Duplicate devices
-                </a>
-            @endif
-        </div>
-    </section>
+@php
+    $totalSpent = $customers->sum('total_spent');
+    $averageSpent = $customers->count() > 0 ? $totalSpent / $customers->count() : 0;
+    $repeatCustomers = $customers->filter(fn ($customer) => (int) $customer->orders_count > 1)->count();
+@endphp
+<div>
+    <x-admin.page-header title="Customers" subtitle="Registered customers who have placed KP Wear orders." />
 
-    <form method="GET" class="rounded-2xl border border-black bg-white p-4 shadow-sm">
-        <div class="flex flex-col gap-3 sm:flex-row">
-            <input type="search" name="search" value="{{ $search }}" placeholder="Search name, email or phone"
-                   class="min-w-0 flex-1 rounded-xl border border-black px-4 py-3 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black">
-            <button class="rounded-xl bg-black px-5 py-3 text-sm font-bold text-white hover:bg-black">Search</button>
-            @if($search !== '')
-                <a href="{{ route('admin.wear.customers.index') }}" class="rounded-xl border border-black px-5 py-3 text-center text-sm font-bold text-black hover:bg-white">Clear</a>
-            @endif
-        </div>
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
+        <x-admin.stat label="Customers" :value="number_format($customers->total())" icon="users" detail="With order history" />
+        <x-admin.stat label="Total spend" value="TZS {{ number_format($totalSpent, 0) }}" icon="wallet" tone="sky" detail="Shown on this page" />
+        <x-admin.stat label="Avg. spend" value="TZS {{ number_format($averageSpent, 0) }}" icon="trending-up" tone="violet" detail="Per customer on this page" />
+        <x-admin.stat label="Repeat customers" :value="number_format($repeatCustomers)" icon="refresh" tone="amber" detail="More than one order" />
+    </div>
+
+    <form method="GET" class="mb-5 flex flex-col gap-3 sm:flex-row">
+        <input type="search" name="search" value="{{ $search }}" placeholder="Search customers" class="kp-admin-input min-w-0 flex-1" />
+        <button type="submit" class="kp-admin-primary-button">Search</button>
+        @if($search !== '')
+            <a href="{{ route('admin.wear.customers.index') }}" class="kp-admin-secondary-button">Clear</a>
+        @endif
     </form>
 
-    <div class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm">
-        <div class="border-b border-black px-5 py-4">
-            <p class="text-xs font-bold uppercase tracking-widest text-black">Customer directory</p>
-            <h3 class="mt-1 text-lg font-bold">{{ $customers->total() }} customer(s)</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead class="bg-white text-xs font-bold uppercase tracking-wider text-black">
-                    <tr>
-                        <th class="px-5 py-3">Customer</th>
-                        <th class="px-5 py-3">Contact</th>
-                        <th class="px-5 py-3">Orders</th>
-                        <th class="px-5 py-3">Total spent</th>
-                        <th class="px-5 py-3">Last order</th>
-                        <th class="px-5 py-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-black">
-                @forelse($customers as $customer)
-                    <tr class="hover:bg-white/70">
-                        <td class="px-5 py-4">
-                            <p class="font-bold">{{ $customer->name ?: 'Unnamed customer' }}</p>
-                            <p class="mt-1 text-xs text-black">#{{ $customer->id }}</p>
-                        </td>
-                        <td class="px-5 py-4">
-                            <p class="font-medium">{{ $customer->phone ?: '—' }}</p>
-                            <p class="mt-1 text-xs text-black">{{ $customer->email ?: '—' }}</p>
-                        </td>
-                        <td class="px-5 py-4 font-bold">{{ $customer->orders_count }}</td>
-                        <td class="px-5 py-4 font-bold">TZS {{ number_format((float) $customer->total_spent, 0) }}</td>
-                        <td class="px-5 py-4 text-black">
-                            {{ $customer->last_order_at ? \Illuminate\Support\Carbon::parse($customer->last_order_at)->format('d M Y, H:i') : '—' }}
-                        </td>
-                        <td class="px-5 py-4">
-                            <span class="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-black">{{ ucfirst($customer->status ?? 'unknown') }}</span>
-                        </td>
-                    </tr>
-                @empty
-                    <tr><td colspan="6" class="px-5 py-12 text-center text-sm text-black">No customers found.</td></tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
-        @if($customers->hasPages())
-            <div class="border-t border-black px-5 py-4">{{ $customers->links() }}</div>
-        @endif
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        @forelse($customers as $customer)
+            @php
+                $initials = collect(explode(' ', trim($customer->name ?: 'Customer')))->filter()->map(fn ($part) => strtoupper(substr($part, 0, 1)))->take(2)->implode('');
+            @endphp
+            <x-admin.card class="p-5 transition-shadow hover:shadow-md">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-100 font-display text-lg text-emerald-700">{{ $initials ?: 'C' }}</span>
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-medium text-slate-900">{{ $customer->name ?: 'Unnamed customer' }}</p>
+                            <p class="mt-0.5 truncate text-xs text-slate-400">{{ $customer->email ?: $customer->phone ?: 'No contact details' }}</p>
+                        </div>
+                    </div>
+                    <x-admin.badge :status="$customer->status ?: 'unknown'" :label="ucfirst($customer->status ?? 'unknown')" />
+                </div>
+                <div class="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-400">Orders</p>
+                        <p class="mt-1 font-display text-lg text-slate-950">{{ number_format($customer->orders_count) }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs uppercase tracking-wider text-slate-400">Total spent</p>
+                        <p class="mt-1 font-display text-lg text-slate-950">TZS {{ number_format((float) $customer->total_spent, 0) }}</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-xs uppercase tracking-wider text-slate-400">Last order</p>
+                        <p class="mt-1 text-sm text-slate-600">{{ $customer->last_order_at ? \Illuminate\Support\Carbon::parse($customer->last_order_at)->format('d M Y, H:i') : '—' }}</p>
+                    </div>
+                </div>
+            </x-admin.card>
+        @empty
+            <div class="col-span-full"><x-admin.empty message="No customers found — customers with orders will appear here." /></div>
+        @endforelse
     </div>
+
+    @if($customers->hasPages())
+        <div class="mt-6">{{ $customers->links() }}</div>
+    @endif
 </div>
 @endsection

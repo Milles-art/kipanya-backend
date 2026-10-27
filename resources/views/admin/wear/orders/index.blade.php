@@ -1,95 +1,93 @@
 @extends('admin.layouts.app', ['title' => 'Orders', 'heading' => 'Orders'])
 
 @section('content')
-<div class="space-y-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="text-sm text-black">Manage customer orders and track their fulfillment status.</p>
-        </div>
-    </div>
+<div>
+    <x-admin.page-header title="Orders" subtitle="Track customer orders, fulfilment, and payment status from one workspace — {{ number_format($orders->total()) }} order{{ $orders->total() === 1 ? '' : 's' }} in total." />
 
     @if(session('success'))
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{{ session('success') }}</div>
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
     @endif
 
-    <form method="GET" class="grid gap-3 rounded-2xl border border-black bg-white p-4 md:grid-cols-4">
-        <input name="q" value="{{ request('q') }}" placeholder="Search order, customer, phone..." class="rounded-xl border border-black px-3 py-2.5 text-sm outline-none focus:border-emerald-500">
-        <select name="status" class="rounded-xl border border-black px-3 py-2.5 text-sm outline-none focus:border-emerald-500">
+    <form method="GET" class="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_200px_200px_auto]">
+        <input type="search" name="q" value="{{ request('q') }}" placeholder="Search order, customer, or phone" class="kp-admin-input" />
+        <select name="status" class="kp-admin-input">
             <option value="">All order statuses</option>
             @foreach($statuses as $status)
                 <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ str_replace('_', ' ', ucfirst($status->value)) }}</option>
             @endforeach
         </select>
-        <select name="payment_status" class="rounded-xl border border-black px-3 py-2.5 text-sm outline-none focus:border-emerald-500">
+        <select name="payment_status" class="kp-admin-input">
             <option value="">All payment statuses</option>
             @foreach($paymentStatuses as $status)
                 <option value="{{ $status->value }}" @selected(request('payment_status') === $status->value)>{{ ucfirst($status->value) }}</option>
             @endforeach
         </select>
-        <div class="flex gap-2">
-            <button class="flex-1 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-black">Filter</button>
-            <a href="{{ route('admin.wear.orders.index') }}" class="rounded-xl border border-black px-4 py-2.5 text-sm font-semibold text-black hover:bg-white">Reset</a>
+        <div class="flex items-center gap-2">
+            <button type="submit" class="kp-admin-primary-button">Filter</button>
+            <a href="{{ route('admin.wear.orders.index') }}" class="kp-admin-secondary-button">Reset</a>
         </div>
     </form>
 
-    <div class="overflow-hidden rounded-2xl border border-black bg-white">
+    <x-admin.card class="overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead class="border-b border-black bg-white text-xs uppercase tracking-wider text-black">
-                    <tr>
-                        <th class="px-5 py-4">Order</th>
-                        <th class="px-5 py-4">Customer</th>
-                        <th class="px-5 py-4">Items</th>
-                        <th class="px-5 py-4">Total</th>
-                        <th class="px-5 py-4">Payment</th>
-                        <th class="px-5 py-4">Status</th>
-                        <th class="px-5 py-4"></th>
+            <table class="min-w-[900px] text-sm">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-slate-400">
+                        <th class="px-6 py-3.5 text-left font-medium">Order</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Customer</th>
+                        <th class="hidden px-3 py-3.5 text-center font-medium md:table-cell">Items</th>
+                        <th class="px-3 py-3.5 text-right font-medium">Total</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Payment</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Fulfilment</th>
+                        <th class="px-6 py-3.5 text-right font-medium">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-black">
+                <tbody>
                     @forelse($orders as $order)
                         @php
                             $status = $order->status?->value ?? (string) $order->status;
                             $payment = $order->payment_status?->value ?? (string) $order->payment_status;
-                            $statusClasses = match($status) {
-                                'delivered' => 'bg-emerald-50 text-emerald-700',
-                                'shipped' => 'bg-blue-50 text-blue-700',
-                                'processing' => 'bg-amber-50 text-amber-700',
-                                'confirmed' => 'bg-violet-50 text-violet-700',
-                                'cancelled' => 'bg-red-50 text-red-700',
-                                default => 'bg-white text-black',
+                            $statusTone = match ($status) {
+                                'pending_payment' => 'amber',
+                                'confirmed' => 'green',
+                                'processing', 'shipped' => 'blue',
+                                'delivered' => 'green',
+                                'cancelled' => 'red',
+                                default => 'gray',
                             };
-                            $paymentClasses = match($payment) {
-                                'paid' => 'bg-emerald-50 text-emerald-700',
-                                'failed', 'cancelled' => 'bg-red-50 text-red-700',
-                                'refunded' => 'bg-violet-50 text-violet-700',
-                                default => 'bg-white text-black',
+                            $paymentTone = match ($payment) {
+                                'paid' => 'green',
+                                'failed', 'cancelled', 'user_cancelled', 'rejected' => 'red',
+                                'pending', 'reconciliation_required' => 'amber',
+                                'processing', 'in_progress' => 'blue',
+                                'refunded' => 'purple',
+                                default => 'gray',
                             };
                         @endphp
-                        <tr class="hover:bg-white/70">
-                            <td class="px-5 py-4">
-                                <a href="{{ route('admin.wear.orders.show', $order) }}" class="font-bold text-black hover:text-emerald-700">{{ $order->order_number }}</a>
-                                <div class="mt-1 text-xs text-black">{{ $order->placed_at?->format('d M Y, H:i') ?? 'Not placed' }}</div>
+                        <tr class="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/60">
+                            <td class="px-6 py-3.5">
+                                <a href="{{ route('admin.wear.orders.show', $order) }}" class="font-medium text-slate-900 hover:text-emerald-600">{{ $order->order_number }}</a>
+                                <p class="mt-0.5 text-xs text-slate-400">{{ $order->placed_at?->format('d M Y, H:i') ?? 'Not placed' }}</p>
                             </td>
-                            <td class="px-5 py-4">
-                                <div class="font-semibold text-black">{{ $order->customer_name }}</div>
-                                <div class="mt-1 text-xs text-black">{{ $order->customer_phone }}</div>
+                            <td class="px-3 py-3.5">
+                                <p class="font-medium text-slate-800">{{ $order->customer_name }}</p>
+                                <p class="mt-0.5 text-xs text-slate-400">{{ $order->customer_phone }}</p>
                             </td>
-                            <td class="px-5 py-4 text-black">{{ $order->items_count }}</td>
-                            <td class="px-5 py-4 font-bold text-black">{{ number_format((float) $order->total, 0) }} TZS</td>
-                            <td class="px-5 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold {{ $paymentClasses }}">{{ ucfirst($payment) }}</span></td>
-                            <td class="px-5 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold {{ $statusClasses }}">{{ str_replace('_', ' ', ucfirst($status)) }}</span></td>
-                            <td class="px-5 py-4 text-right"><a href="{{ route('admin.wear.orders.show', $order) }}" class="font-semibold text-emerald-700 hover:text-emerald-800">View →</a></td>
+                            <td class="hidden px-3 py-3.5 text-center text-slate-600 md:table-cell">{{ $order->items_count }}</td>
+                            <td class="px-3 py-3.5 text-right font-medium text-slate-900">TZS {{ number_format((float) $order->total, 0) }}</td>
+                            <td class="px-3 py-3.5"><x-admin.badge :status="$paymentTone" :label="str_replace('_', ' ', ucfirst($payment ?: 'pending'))" /></td>
+                            <td class="px-3 py-3.5"><x-admin.badge :status="$statusTone" :label="str_replace('_', ' ', ucfirst($status ?: 'pending'))" /></td>
+                            <td class="px-6 py-3.5 text-right"><a href="{{ route('admin.wear.orders.show', $order) }}" class="kp-admin-link">View <x-tabler-arrow-right size="13" /></a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-5 py-14 text-center"><p class="font-bold text-black">No orders found</p><p class="mt-1 text-sm text-black">Try changing your filters or wait for the next customer order.</p></td></tr>
+                        <tr><td colspan="7"><x-admin.empty message="No orders match your filters." /></td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         @if($orders->hasPages())
-            <div class="border-t border-black px-5 py-4">{{ $orders->links() }}</div>
+            <div class="border-t border-slate-100 px-6 py-4">{{ $orders->links() }}</div>
         @endif
-    </div>
+    </x-admin.card>
 </div>
 @endsection

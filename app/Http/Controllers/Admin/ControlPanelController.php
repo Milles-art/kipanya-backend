@@ -7,9 +7,11 @@ use App\Enums\Commerce\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Wear\WearOrder;
+use App\Models\Wear\WearOrderItem;
 use App\Models\Wear\WearProduct;
 use App\Models\Wear\WearProductVariant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 final class ControlPanelController extends Controller
@@ -57,6 +59,19 @@ final class ControlPanelController extends Controller
             ];
         })->values()->all();
 
+        $topProducts = WearOrderItem::query()
+            ->select([
+                'wear_product_id',
+                'product_name',
+                DB::raw('SUM(quantity) as units_sold'),
+                DB::raw('SUM(line_total) as revenue'),
+            ])
+            ->whereHas('order', fn ($query) => $query->where('payment_status', PaymentStatus::Paid->value))
+            ->groupBy('wear_product_id', 'product_name')
+            ->orderByDesc('revenue')
+            ->limit(4)
+            ->get();
+
         return view('admin.dashboard', [
             'metrics' => [
                 'today_revenue' => $todayRevenue,
@@ -89,6 +104,7 @@ final class ControlPanelController extends Controller
             ],
             'recentOrders' => $recentOrders,
             'lowStockVariants' => $lowStockVariants,
+            'topProducts' => $topProducts,
             'salesChart' => $salesChart,
             'chartDays' => $chartDays,
         ]);

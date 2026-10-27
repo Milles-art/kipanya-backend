@@ -1,8 +1,14 @@
-@extends('admin.layouts.app')
+@extends('admin.layouts.app', ['title' => 'Add variant', 'heading' => 'Add variant'])
 
 @section('content')
-<div class="mx-auto max-w-3xl space-y-6">
-    <div><p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Kipanya Wear · {{ $product->name }}</p><h2 class="mt-1 text-2xl font-black tracking-tight">Add variant</h2></div>
-    <form method="POST" action="{{ route('admin.wear.products.variants.store', $product) }}" class="space-y-5 rounded-2xl border border-black bg-white p-6">@csrf @include('admin.wear.variants.form', ['submitLabel' => 'Create variant'])</form>
+<div class="mx-auto max-w-3xl">
+    <x-admin.page-header title="Add variant" subtitle="{{ $product->name }}" />
+
+    <x-admin.card class="p-6">
+        <form method="POST" action="{{ route('admin.wear.products.variants.store', $product) }}" class="space-y-5">
+            @csrf
+            @include('admin.wear.variants.form', ['submitLabel' => 'Create variant'])
+        </form>
+    </x-admin.card>
 </div>
 @endsection

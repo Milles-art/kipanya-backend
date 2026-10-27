@@ -1,61 +1,84 @@
 @extends('admin.layouts.app', ['title' => 'Admin Users', 'heading' => 'Admin Users'])
 
 @section('content')
-<div class="space-y-6">
+<div>
+    <x-admin.page-header title="Admin Users" subtitle="Manage the people who can access and operate the KP Wear control panel.">
+        <x-slot name="action">
+            <a href="{{ route('admin.users.create') }}" class="kp-admin-primary-button"><x-tabler-user-plus size="17" stroke-width="2" />Add admin</a>
+        </x-slot>
+    </x-admin.page-header>
+
     @if(session('success'))
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{{ session('success') }}</div>
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
     @endif
     @if($errors->any())
-        <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ $errors->first() }}</div>
+        <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{{ $errors->first() }}</div>
     @endif
 
-    <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Administration</p>
-            <h2 class="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Admin Users</h2>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-black">Manage the people who can access and operate the KP Wear control panel.</p>
-        </div>
-        <a href="{{ route('admin.users.create') }}" class="inline-flex items-center justify-center rounded-xl bg-black px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-black">+ Add admin</a>
-    </section>
-
-    <form method="GET" class="rounded-2xl border border-black bg-white p-4 shadow-sm">
-        <div class="grid gap-3 sm:grid-cols-[1fr_180px_auto_auto]">
-            <input type="search" name="search" value="{{ $search }}" placeholder="Search name, email or phone" class="rounded-xl border border-black px-4 py-3 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black">
-            <select name="status" class="rounded-xl border border-black px-4 py-3 text-sm outline-none focus:border-black">
-                <option value="">All statuses</option>
-                <option value="active" @selected($status === 'active')>Active</option>
-                <option value="inactive" @selected($status === 'inactive')>Inactive</option>
-            </select>
-            <button class="rounded-xl bg-black px-5 py-3 text-sm font-bold text-white hover:bg-black">Filter</button>
-            @if($search !== '' || $status !== '')<a href="{{ route('admin.users.index') }}" class="rounded-xl border border-black px-5 py-3 text-center text-sm font-bold text-black hover:bg-white">Clear</a>@endif
+    <form method="GET" action="{{ route('admin.users.index') }}" class="mb-5 flex flex-wrap items-center gap-3">
+        <input type="search" name="search" value="{{ $search }}" placeholder="Search name, email or phone"
+               class="kp-admin-input w-full sm:w-64" aria-label="Search administrators" />
+        <select name="status" class="kp-admin-input w-full sm:w-44" aria-label="Filter by status">
+            <option value="">All statuses</option>
+            <option value="active" @selected($status === 'active')>Active</option>
+            <option value="inactive" @selected($status === 'inactive')>Inactive</option>
+        </select>
+        <div class="ml-auto flex flex-wrap items-center gap-2">
+            <button type="submit" class="kp-admin-primary-button">Filter</button>
+            @if($search !== '' || $status !== '')
+                <a href="{{ route('admin.users.index') }}" class="kp-admin-secondary-button">Clear</a>
+            @endif
         </div>
     </form>
 
-    <div class="overflow-hidden rounded-2xl border border-black bg-white shadow-sm">
-        <div class="border-b border-black px-5 py-4">
-            <p class="text-xs font-bold uppercase tracking-widest text-black">Administrator directory</p>
-            <h3 class="mt-1 text-lg font-bold">{{ $users->total() }} administrator(s)</h3>
+    <x-admin.card class="overflow-hidden">
+        <div class="px-6 pb-4 pt-6">
+            <h3 class="kp-admin-display text-lg">Administrator directory</h3>
+            <p class="mt-1.5 text-xs text-slate-400">{{ $users->total() }} administrator(s) with control panel access</p>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead class="bg-white text-xs font-bold uppercase tracking-wider text-black"><tr><th class="px-5 py-3">Administrator</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Contact</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Action</th></tr></thead>
-                <tbody class="divide-y divide-black">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-slate-400">
+                        <th class="px-6 py-3.5 text-left font-medium">Administrator</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Role</th>
+                        <th class="hidden px-3 py-3.5 text-left font-medium sm:table-cell">Contact</th>
+                        <th class="px-3 py-3.5 text-left font-medium">Status</th>
+                        <th class="px-6 py-3.5 text-right font-medium">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
                 @forelse($users as $admin)
                     @php($role = $admin->roles->first())
-                    <tr class="hover:bg-white/70">
-                        <td class="px-5 py-4"><p class="font-bold">{{ $admin->name ?: 'Unnamed administrator' }}</p><p class="mt-1 text-xs text-black">#{{ $admin->id }}</p></td>
-                        <td class="px-5 py-4"><p class="font-semibold">{{ $role?->name ?? 'Administrator' }}</p><p class="mt-1 text-xs text-black">{{ $role?->description }}</p></td>
-                        <td class="px-5 py-4"><p class="font-medium">{{ $admin->phone ?: '—' }}</p><p class="mt-1 text-xs text-black">{{ $admin->email ?: '—' }}</p></td>
-                        <td class="px-5 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $admin->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-black' }}">{{ ucfirst($admin->status) }}</span></td>
-                        <td class="px-5 py-4 text-right"><a href="{{ route('admin.users.edit', $admin) }}" class="font-bold text-black hover:underline">Edit</a></td>
+                    <tr class="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/60">
+                        <td class="px-6 py-3.5">
+                            <p class="font-medium text-slate-900">{{ $admin->name ?: 'Unnamed administrator' }}</p>
+                            <p class="mt-0.5 text-xs text-slate-400">#{{ $admin->id }}</p>
+                        </td>
+                        <td class="px-3 py-3.5">
+                            <p class="font-medium text-slate-800">{{ $role?->name ?? 'Administrator' }}</p>
+                            <p class="mt-0.5 text-xs text-slate-400">{{ $role?->description }}</p>
+                        </td>
+                        <td class="hidden px-3 py-3.5 sm:table-cell">
+                            <p class="text-slate-700">{{ $admin->phone ?: '—' }}</p>
+                            <p class="mt-0.5 text-xs text-slate-400">{{ $admin->email ?: '—' }}</p>
+                        </td>
+                        <td class="px-3 py-3.5">
+                            <x-admin.badge :status="$admin->status" :label="ucfirst($admin->status)" />
+                        </td>
+                        <td class="px-6 py-3.5 text-right">
+                            <a href="{{ route('admin.users.edit', $admin) }}" class="kp-admin-link">Edit <x-tabler-pencil size="13" /></a>
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-5 py-12 text-center text-sm text-black">No administrator accounts found.</td></tr>
+                    <tr><td colspan="5"><x-admin.empty message="No administrator accounts found." /></td></tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-        @if($users->hasPages())<div class="border-t border-black px-5 py-4">{{ $users->links() }}</div>@endif
-    </div>
+        @if($users->hasPages())
+            <div class="border-t border-slate-100 px-6 py-4">{{ $users->links() }}</div>
+        @endif
+    </x-admin.card>
 </div>
 @endsection

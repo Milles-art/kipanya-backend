@@ -98,3 +98,24 @@ document.addEventListener(
   },
   true
 );
+
+const adminSidebar = document.querySelector('[data-admin-sidebar]');
+const adminBackdrop = document.querySelector('[data-admin-menu-backdrop]');
+const adminMenuToggle = document.querySelector('[data-admin-menu-toggle]');
+const adminMenuClose = document.querySelector('[data-admin-menu-close]');
+
+const setAdminMenu = open => {
+  if (!adminSidebar || !adminBackdrop || !adminMenuToggle) return;
+
+  adminSidebar.classList.toggle('-translate-x-full', !open);
+  adminBackdrop.classList.toggle('hidden', !open);
+  adminMenuToggle.setAttribute('aria-expanded', String(open));
+  document.body.classList.toggle('overflow-hidden', open);
+};
+
+adminMenuToggle?.addEventListener('click', () => setAdminMenu(true));
+adminMenuClose?.addEventListener('click', () => setAdminMenu(false));
+adminBackdrop?.addEventListener('click', () => setAdminMenu(false));
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') setAdminMenu(false);
+});

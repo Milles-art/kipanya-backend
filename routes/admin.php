@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\Wear\ProductController;
 use App\Http\Controllers\Admin\Wear\ReturnRequestController;
 use App\Http\Controllers\Admin\Wear\VariantController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\View;
 
 Route::prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -71,6 +72,12 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::prefix('wear')->name('wear.')->middleware('admin.permission:analytics.view')->group(function (): void {
             Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         });
+
+        // Promotional codes: the panel ships with the screen in place while the
+        // coupon engine (table, checkout validation) is still to be built.
+        Route::get('/discounts', fn (): View => view('admin.discounts.index'))
+            ->middleware('admin.permission:commerce.manage')
+            ->name('discounts.index');
 
         Route::prefix('wear')->name('wear.')->middleware('admin.permission:payments.manage')->group(function (): void {
             Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
