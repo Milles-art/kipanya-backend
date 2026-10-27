@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -224,54 +224,67 @@
         transform: none;
     }
 
+    /* ================================================================
+       KP Wear admin — storefront brand system.
+       Same language as the customer-facing store: emerald #087f5b,
+       ink black, white paper, Inter. Primary actions are black and
+       resolve to emerald; surfaces are white with hairline ink borders.
+       ================================================================ */
     .kp-admin-body {
         font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-        --admin-ink: #171612;
-        --admin-ink-soft: #24221c;
-        --admin-paper: #faf8f3;
-        --admin-canvas: #f2eee5;
-        --admin-line: #e2dacb;
-        --admin-muted: #756f64;
-        --admin-gold: #aa8951;
-        --admin-gold-soft: #eee3ce;
+        --admin-ink: #0c1210;
+        --admin-ink-soft: #1c2622;
+        --admin-paper: #ffffff;
+        --admin-canvas: #f5f8f7;
+        --admin-line: #dfe8e4;
+        --admin-muted: #64736c;
+        --admin-emerald: #087f5b;
+        --admin-emerald-dark: #056044;
+        --admin-emerald-soft: #eaf7f2;
         background:
-            radial-gradient(circle at 75% -18%, rgba(170, 137, 81, .15), transparent 32rem),
+            radial-gradient(circle at 78% -16%, rgba(8, 127, 91, .08), transparent 34rem),
             var(--admin-canvas);
         color: var(--admin-ink);
     }
 
     .kp-admin-sidebar {
         background:
-            linear-gradient(155deg, rgba(255, 255, 255, .055), transparent 28%),
+            linear-gradient(165deg, rgba(8, 127, 91, .18), transparent 34%),
             var(--admin-ink);
-        box-shadow: 12px 0 42px rgba(23, 22, 18, .13);
+        box-shadow: 12px 0 42px rgba(12, 18, 16, .12);
     }
 
     .kp-admin-nav-link {
-        @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-medium text-stone-300 transition duration-200;
+        @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-medium transition duration-200;
+        color: #b7c4bf;
     }
 
     .kp-admin-nav-link:hover {
-        background: rgba(238, 227, 206, .09);
-        color: #fffdf8;
+        background: rgba(255, 255, 255, .06);
+        color: #ffffff;
     }
 
     .kp-admin-nav-link.is-active {
-        background: linear-gradient(135deg, #c3a16b, #9a7845);
-        color: #171612;
-        box-shadow: 0 8px 18px rgba(0, 0, 0, .19);
+        background: var(--admin-emerald);
+        color: #ffffff;
+        box-shadow: 0 8px 18px rgba(8, 127, 91, .35);
     }
 
     .kp-admin-topbar {
         background: color-mix(in srgb, var(--admin-paper) 92%, transparent);
-        border-color: color-mix(in srgb, var(--admin-line) 85%, transparent);
-        box-shadow: 0 1px 0 rgba(23, 22, 18, .025);
+        border-color: color-mix(in srgb, var(--admin-ink) 10%, transparent);
+        box-shadow: 0 1px 0 rgba(12, 18, 16, .03);
     }
 
     .kp-admin-search {
-        border-color: var(--admin-line);
-        background: rgba(255, 255, 255, .62);
-        box-shadow: inset 0 1px 2px rgba(23, 22, 18, .025);
+        border-color: color-mix(in srgb, var(--admin-ink) 14%, transparent);
+        background: #ffffff;
+        box-shadow: inset 0 1px 2px rgba(12, 18, 16, .03);
+    }
+
+    .kp-admin-search:focus-within {
+        border-color: var(--admin-emerald);
+        box-shadow: 0 0 0 3px rgba(8, 127, 91, .12);
     }
 
     .kp-admin-icon-button {
@@ -280,26 +293,26 @@
     }
 
     .kp-admin-icon-button:hover {
-        background: var(--admin-gold-soft);
-        color: var(--admin-ink);
+        background: var(--admin-emerald-soft);
+        color: var(--admin-emerald-dark);
     }
 
     /* The shared admin action system also brings utility-only legacy templates
-       into the same restrained ink, gold, and ivory language. */
+       into the storefront language: black primary actions that resolve to
+       emerald, white secondaries with ink borders. */
     .kp-admin-primary-button,
     .kp-admin-body :is(a, button).bg-black,
     .kp-admin-body :is(a, button).bg-slate-900 {
         @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition duration-200 ease-out;
         background: var(--admin-ink);
-        box-shadow: 0 6px 16px rgba(23, 22, 18, .12);
+        box-shadow: 0 6px 16px rgba(12, 18, 16, .14);
     }
 
     .kp-admin-primary-button:hover,
     .kp-admin-body :is(a, button).bg-black:hover,
     .kp-admin-body :is(a, button).bg-slate-900:hover {
-        background: var(--admin-gold);
-        color: #171612;
-        box-shadow: 0 8px 20px rgba(170, 137, 81, .24);
+        background: var(--admin-emerald);
+        box-shadow: 0 8px 20px rgba(8, 127, 91, .28);
     }
 
     .kp-admin-primary-button:active,
@@ -318,43 +331,43 @@
     .kp-admin-secondary-button,
     .kp-admin-body :is(a, button).border-black:not(.bg-black) {
         @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border bg-white px-5 py-3 text-sm font-semibold transition duration-200 ease-out;
-        border-color: var(--admin-line);
+        border-color: var(--admin-ink);
         color: var(--admin-ink);
     }
 
     .kp-admin-secondary-button:hover,
     .kp-admin-body :is(a, button).border-black:not(.bg-black):hover {
-        background: var(--admin-gold-soft);
-        border-color: var(--admin-gold);
-        color: var(--admin-ink);
+        background: var(--admin-emerald-soft);
+        border-color: var(--admin-emerald);
+        color: var(--admin-emerald-dark);
     }
 
     .kp-admin-body :is(a, button):focus-visible {
-        outline: 2px solid var(--admin-gold);
+        outline: 2px solid var(--admin-emerald);
         outline-offset: 2px;
     }
 
     .kp-admin-card {
         @apply rounded-2xl border bg-white;
         border-color: var(--admin-line);
-        box-shadow: 0 14px 32px rgba(39, 33, 24, .045);
+        box-shadow: 0 14px 32px rgba(12, 18, 16, .05);
     }
 
     .kp-admin-link {
         @apply inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold transition;
-        color: #7e6338;
+        color: var(--admin-emerald);
     }
 
-    .kp-admin-link:hover { color: var(--admin-ink); }
+    .kp-admin-link:hover { color: var(--admin-emerald-dark); }
 
     .kp-admin-display {
-        font-family: "Playfair Display", Georgia, serif;
-        font-weight: 600;
-        letter-spacing: -.035em;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-weight: 800;
+        letter-spacing: -.03em;
     }
 
     .kp-admin-eyebrow {
-        color: var(--admin-gold);
+        color: var(--admin-emerald);
         font-size: .68rem;
         font-weight: 700;
         letter-spacing: .16em;
@@ -363,41 +376,88 @@
 
     .kp-admin-date-card {
         border-color: var(--admin-line);
-        background: rgba(255, 253, 248, .72);
-        color: #4e483d;
+        background: #ffffff;
+        color: var(--admin-ink-soft);
     }
 
-    .kp-admin-date-card > svg { color: var(--admin-gold); }
+    .kp-admin-date-card > svg { color: var(--admin-emerald); }
     .kp-admin-date-card p:last-child { color: var(--admin-muted); }
 
     .kp-admin-period {
         border-color: var(--admin-line);
-        background: #f6f2ea;
+        background: var(--admin-emerald-soft);
     }
 
     .kp-admin-period a { color: var(--admin-muted); transition: color .2s ease, background .2s ease, box-shadow .2s ease; }
-    .kp-admin-period a:hover { color: var(--admin-ink); }
-    .kp-admin-period a.is-active { background: var(--admin-ink); color: #fffaf0; box-shadow: 0 2px 8px rgba(23, 22, 18, .16); }
+    .kp-admin-period a:hover { color: var(--admin-emerald-dark); }
+    .kp-admin-period a.is-active { background: var(--admin-ink); color: #ffffff; box-shadow: 0 2px 8px rgba(12, 18, 16, .18); }
 
-    .kp-admin-chart-panel { background: #f8f4ec; }
+    .kp-admin-chart-panel { background: linear-gradient(180deg, #f7fbf9, #ffffff); }
+
+    .kp-admin-hero {
+        position: relative;
+        border: 1px solid rgba(5, 96, 68, .5);
+        border-radius: 1.5rem;
+        background: linear-gradient(120deg, #06392a 0%, #087f5b 58%, #0a9e72 100%);
+        box-shadow: 0 22px 48px rgba(8, 127, 91, .22);
+    }
+
+    .kp-admin-hero::after {
+        content: "KP";
+        position: absolute;
+        right: 2.5rem;
+        bottom: -2.7rem;
+        color: rgba(255, 255, 255, .07);
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(9rem, 19vw, 18rem);
+        font-weight: 900;
+        letter-spacing: -.12em;
+        line-height: 1;
+        pointer-events: none;
+    }
+
+    .kp-admin-hero-glow {
+        position: absolute;
+        width: 27rem;
+        height: 27rem;
+        right: -7rem;
+        top: -13rem;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 255, 255, .18), transparent 68%);
+        pointer-events: none;
+    }
+
+    .kp-admin-hero-eyebrow { color: #8fe3c4; font-size: .66rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+    .kp-admin-hero-date { display: inline-flex; align-items: center; gap: .65rem; color: #cdeee1; font-size: .75rem; }
+    .kp-admin-hero-date > svg { color: #8fe3c4; }
+    .kp-admin-hero-date p { color: #ffffff; font-size: .75rem; font-weight: 700; }
+    .kp-admin-hero-date span { display: block; margin-top: .12rem; color: #a9d8c6; font-size: .64rem; }
+    .kp-admin-hero-action { display: inline-flex; min-height: 2.85rem; align-items: center; justify-content: center; gap: .5rem; border-radius: .8rem; background: #ffffff; padding: .7rem 1rem; color: #06392a; font-size: .82rem; font-weight: 700; transition: transform .2s ease, background .2s ease, color .2s ease; }
+    .kp-admin-hero-action:hover { background: var(--admin-ink); color: #ffffff; transform: translateY(-1px); }
+    .kp-admin-hero-action:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
 
     .kp-section-icon {
         @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl;
-        background: #f5f0e5;
-        color: #715a34;
+        background: var(--admin-emerald-soft);
+        color: var(--admin-emerald);
     }
 
     .kp-summary-card {
-        @apply flex min-w-0 items-start gap-3 rounded-2xl border bg-white p-4;
+        @apply grid min-w-0 rounded-2xl border bg-white p-5;
         border-color: var(--admin-line);
-        box-shadow: 0 14px 32px rgba(39, 33, 24, .045);
+        box-shadow: 0 14px 32px rgba(12, 18, 16, .05);
     }
 
     .kp-summary-icon {
         @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl;
-        background: #f5f0e5;
-        color: #715a34;
+        background: var(--admin-emerald-soft);
+        color: var(--admin-emerald);
     }
+
+    .kp-summary-card.tone-emerald .kp-summary-icon { background: var(--admin-emerald-soft); color: var(--admin-emerald); }
+    .kp-summary-card.tone-blue .kp-summary-icon { background: #e8f1fe; color: #1d4ed8; }
+    .kp-summary-card.tone-violet .kp-summary-icon { background: #f1ecfd; color: #6d28d9; }
+    .kp-summary-card.tone-amber .kp-summary-icon { background: #fdf3d7; color: #a16207; }
 
     .kp-pipeline-item {
         @apply flex items-center justify-between rounded-xl border bg-white px-4 py-3;
@@ -406,48 +466,132 @@
 
     .kp-pipeline-icon {
         @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full;
-        background: #f5f0e5;
-        color: #715a34;
+        background: var(--admin-emerald-soft);
+        color: var(--admin-emerald);
     }
+
+    .kp-pipeline-item.tone-emerald .kp-pipeline-icon { background: var(--admin-emerald-soft); color: var(--admin-emerald); }
+    .kp-pipeline-item.tone-blue .kp-pipeline-icon { background: #e8f1fe; color: #1d4ed8; }
+    .kp-pipeline-item.tone-violet .kp-pipeline-icon { background: #f1ecfd; color: #6d28d9; }
+    .kp-pipeline-item.tone-amber .kp-pipeline-icon { background: #fdf3d7; color: #a16207; }
 
     .kp-inventory-row {
         @apply flex items-center gap-3 rounded-xl border px-3 py-2.5;
         border-color: var(--admin-line);
-        background: #fcfbf8;
+        background: #fbfdfc;
     }
 
     .kp-inventory-icon {
         @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl;
-        background: #f5f0e5;
-        color: #715a34;
+        background: var(--admin-emerald-soft);
+        color: var(--admin-emerald);
     }
+
+    .kp-inventory-row.tone-emerald .kp-inventory-icon { background: var(--admin-emerald-soft); color: var(--admin-emerald); }
+    .kp-inventory-row.tone-blue .kp-inventory-icon { background: #e8f1fe; color: #1d4ed8; }
+    .kp-inventory-row.tone-amber .kp-inventory-icon { background: #fdf3d7; color: #a16207; }
 
     .kp-admin-body :is(input, select, textarea).border-black,
     .kp-admin-body .field {
         border-color: var(--admin-line);
-        background: #fffdfa;
+        background: #ffffff;
         color: var(--admin-ink);
     }
 
     .kp-admin-body :is(input, select, textarea).border-black:focus,
     .kp-admin-body .field:focus {
-        border-color: var(--admin-gold);
-        box-shadow: 0 0 0 3px rgba(170, 137, 81, .14);
+        border-color: var(--admin-emerald);
+        box-shadow: 0 0 0 3px rgba(8, 127, 91, .14);
     }
 
     .kp-admin-body :is(.rounded-2xl, .rounded-xl).border.border-black.bg-white {
         border-color: var(--admin-line);
-        box-shadow: 0 14px 32px rgba(39, 33, 24, .04);
+        box-shadow: 0 14px 32px rgba(12, 18, 16, .04);
     }
 
     .kp-admin-body table thead {
-        background: #f6f2ea !important;
-        color: #766f62 !important;
+        background: #f4f8f6 !important;
+        color: var(--admin-muted) !important;
     }
 
     .kp-admin-body table tbody tr:hover {
-        background: #fcfaf6 !important;
+        background: #f7fbf9 !important;
     }
+
+    /* Shared admin page components. Older feature pages intentionally keep
+       their server-side markup; these rules turn the repeated cards, filters,
+       lists, and data tables into one storefront-brand system. */
+    .kp-admin-body main h2:not(.kp-admin-display) {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-weight: 800;
+        letter-spacing: -.025em;
+        color: var(--admin-ink);
+    }
+
+    .kp-admin-body main :is(h3, h4) { color: var(--admin-ink); }
+    .kp-admin-body .text-black { color: var(--admin-ink) !important; }
+    .kp-admin-body .text-emerald-600 { color: var(--admin-emerald) !important; }
+    .kp-admin-body .hover\:text-emerald-700:hover { color: var(--admin-emerald-dark) !important; }
+
+    .kp-admin-body :is(section, article, aside, form, div).rounded-2xl.border.border-black.bg-white,
+    .kp-admin-body :is(section, article, aside, form, div).rounded-3xl.border.border-black.bg-white {
+        border-color: var(--admin-line) !important;
+        background: #ffffff !important;
+        box-shadow: 0 14px 32px rgba(12, 18, 16, .05) !important;
+    }
+
+    .kp-admin-body :is(form, section, aside, article).rounded-2xl > :is(h2, h3):first-child,
+    .kp-admin-body :is(form, section, aside, article).rounded-3xl > :is(h2, h3):first-child {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-weight: 800;
+        letter-spacing: -.02em;
+    }
+
+    .kp-admin-body :is(label, .field-label) { color: var(--admin-ink-soft); }
+    .kp-admin-body :is(input, select, textarea)::placeholder { color: #9aaaa3; }
+
+    .kp-admin-body :is(input, select, textarea).border-black,
+    .kp-admin-body :is(input, select, textarea).border-black:focus,
+    .kp-admin-body :is(input, select, textarea).border-black:focus-visible {
+        outline: none;
+    }
+
+    .kp-admin-body .overflow-hidden.rounded-2xl.border.border-black.bg-white {
+        border-color: var(--admin-line) !important;
+        background: #ffffff !important;
+        box-shadow: 0 14px 32px rgba(12, 18, 16, .05) !important;
+    }
+
+    .kp-admin-body table { border-collapse: separate; border-spacing: 0; }
+    .kp-admin-body table thead th { border-bottom: 1px solid var(--admin-line) !important; color: var(--admin-muted) !important; font-size: .64rem !important; letter-spacing: .11em !important; }
+    .kp-admin-body table tbody { color: var(--admin-ink-soft); }
+    .kp-admin-body table tbody tr { transition: background .18s ease; }
+    .kp-admin-body table tbody tr + tr td { border-top-color: #eef3f1 !important; }
+    .kp-admin-body table a.font-bold { color: var(--admin-ink); }
+    .kp-admin-body table a.font-bold:hover { color: var(--admin-emerald); }
+
+    /* Generic status pills in legacy pages (status varies: "rejected",
+       "closed", "OFF"...) stay neutral so no state reads as positive. */
+    .kp-admin-body .rounded-full.bg-white {
+        border: 1px solid var(--admin-line);
+        background: #eef3f1 !important;
+        color: var(--admin-ink-soft) !important;
+    }
+
+    .kp-admin-body :is(pre, code).bg-black {
+        border: 1px solid rgba(8, 127, 91, .25);
+        background: var(--admin-ink) !important;
+        color: #d7f2e7 !important;
+    }
+
+    .kp-admin-body .border-t.border-black,
+    .kp-admin-body .border-b.border-black,
+    .kp-admin-body .divide-black > :not(:last-child) { border-color: var(--admin-line) !important; }
+
+    /* Plain bg-white panels nested inside cards (notes, transaction boxes,
+       table headers) get a faint emerald-tinted shade for depth against the
+       white cards themselves. */
+    .kp-admin-body main .bg-white { background-color: #f7faf9; }
 
     .kp-inventory-row.tone-red {
         @apply border-red-100 bg-red-50/60;
@@ -460,13 +604,13 @@
     .kp-quick-action {
         @apply flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition;
         border-color: var(--admin-line);
-        color: #4e483d;
+        color: var(--admin-ink-soft);
     }
 
     .kp-quick-action:hover {
-        background: #f6f1e7;
-        border-color: #cbb58c;
-        color: var(--admin-ink);
+        background: var(--admin-emerald-soft);
+        border-color: var(--admin-emerald);
+        color: var(--admin-emerald-dark);
     }
 }
 
@@ -633,15 +777,15 @@
     .kp-auth-register-fields { display:grid; gap:.85rem; }
     .kp-auth-animate { animation:kp-auth-card-in .65s cubic-bezier(.2,.8,.2,1) both; }
 
-    /* The admin entry point belongs to the control room, not the storefront. */
-    .kp-admin-login .kp-auth-page { background: #171612; }
-    .kp-admin-login .kp-auth-backdrop::after { background: linear-gradient(120deg, rgba(23,22,18,.9), rgba(23,22,18,.46)); }
-    .kp-admin-login .kp-auth-card { border-color: rgba(224, 204, 163, .42); background: rgba(250, 248, 243, .96); box-shadow: 0 28px 88px rgba(0,0,0,.35); }
-    .kp-admin-login .kp-auth-card-brand::after { content: "CONTROL ROOM"; margin-top: .45rem; color: #9a7845; font-size: .58rem; font-weight: 800; letter-spacing: .22em; }
-    .kp-admin-login .kp-auth-heading h1 { font-family: "Playfair Display", Georgia, serif; font-weight: 600; }
-    .kp-admin-login .kp-auth-back:hover { color: #9a7845; }
-    .kp-admin-login .button-dark { background: #171612; }
-    .kp-admin-login .button-dark:hover { background: #aa8951; color: #171612; }
+    /* The admin entry point keeps the storefront's light emerald auth
+       language, with a small admin marker so it reads as staff sign-in. */
+    .kp-admin-login .kp-auth-page { background: #eaf7f2; }
+    .kp-admin-login .kp-auth-backdrop::after { background: linear-gradient(120deg, rgba(234, 247, 242, .82), rgba(234, 247, 242, .35)); }
+    .kp-admin-login .kp-auth-card { border-color: rgba(8, 127, 91, .22); background: rgba(255, 255, 255, .96); box-shadow: 0 28px 88px rgba(5, 96, 68, .18); }
+    .kp-admin-login .kp-auth-card-brand::after { content: "ADMIN CONSOLE"; margin-top: .45rem; color: #087f5b; font-size: .58rem; font-weight: 800; letter-spacing: .22em; }
+    .kp-admin-login .kp-auth-heading h1 { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-weight: 800; letter-spacing: -.03em; }
+    .kp-admin-login .button-dark { background: #0c1210; }
+    .kp-admin-login .button-dark:hover { background: #087f5b; }
     @keyframes kp-auth-card-in { from { opacity:0; transform:translateY(18px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
     @keyframes kp-auth-bg-drift { from { transform:scale(1); } to { transform:scale(1.035); } }
 

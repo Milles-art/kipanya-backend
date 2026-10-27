@@ -6,22 +6,22 @@
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
     @endif
 
-    <section class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <p class="kp-admin-eyebrow">Kipanya Wear</p>
-            <h2 class="kp-admin-display mt-1 text-[32px] text-stone-950">Welcome back, {{ auth()->user()->name }}</h2>
-            <p class="mt-1 text-sm text-stone-500">A clear view of your store, orders, and stock.</p>
-        </div>
-        <div class="flex items-center gap-3">
-            @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))
-                <a href="{{ route('admin.wear.products.create') }}" class="kp-admin-primary-button"><x-tabler-plus size="17" /> Add product</a>
-            @endif
-            <div class="kp-admin-date-card hidden items-center gap-3 rounded-xl border px-4 py-2.5 sm:flex">
-                <x-tabler-calendar size="21" stroke-width="1.8" />
-                <div class="leading-tight">
-                    <p class="text-xs font-bold">{{ now()->format('l, d F Y') }}</p>
-                    <p class="mt-0.5 text-[10px]">Kipanya Wear Admin</p>
+    <section class="kp-admin-hero overflow-hidden">
+        <div class="kp-admin-hero-glow" aria-hidden="true"></div>
+        <div class="relative z-10 flex flex-col gap-7 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between lg:p-10">
+            <div class="max-w-2xl">
+                <p class="kp-admin-hero-eyebrow">Kipanya Wear · Private operations</p>
+                <h2 class="kp-admin-display mt-3 text-[clamp(2.35rem,5vw,4.5rem)] leading-[.92] text-white">The store, at a glance.</h2>
+                <p class="mt-4 max-w-lg text-sm leading-6 text-emerald-50/85 sm:text-base">Welcome back, {{ auth()->user()->name }}. Review today’s movement, keep stock in rhythm, and take action with confidence.</p>
+            </div>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div class="kp-admin-hero-date">
+                    <x-tabler-calendar size="19" stroke-width="1.8" />
+                    <div><p>{{ now()->format('l, d F Y') }}</p><span>Kipanya Wear Admin</span></div>
                 </div>
+                @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))
+                    <a href="{{ route('admin.wear.products.create') }}" class="kp-admin-hero-action"><x-tabler-plus size="17" /> Add product</a>
+                @endif
             </div>
         </div>
     </section>
@@ -37,12 +37,13 @@
         @endphp
         @foreach($summaryCards as [$label, $value, $sub, $icon, $tone, $foot])
             <div class="kp-summary-card tone-{{ $tone }}">
-                <span class="kp-summary-icon"><x-dynamic-component :component="'tabler-'.$icon" size="24" stroke-width="1.8" /></span>
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs font-semibold text-black/50">{{ $label }}</p>
+                    <span class="kp-summary-icon"><x-dynamic-component :component="'tabler-'.$icon" size="20" stroke-width="1.8" /></span>
+                </div>
                 <div class="min-w-0">
-                    <p class="text-xs font-semibold text-slate-500">{{ $label }}</p>
-                    <p class="mt-1 truncate text-[23px] font-black tracking-tight text-slate-950">{{ $value }}</p>
-                    <p class="mt-0.5 text-[11px] text-slate-400">{{ $sub }}</p>
-                    <p class="mt-2 text-[11px] font-medium text-slate-500">{{ $foot }}</p>
+                    <p class="kp-admin-display mt-5 truncate text-[31px] leading-none text-black">{{ $value }}</p>
+                    <div class="mt-4 flex items-center justify-between gap-2 border-t border-black/5 pt-3"><p class="text-[11px] text-black/40">{{ $sub }}</p><p class="text-[11px] font-medium text-black/60">{{ $foot }}</p></div>
                 </div>
             </div>
         @endforeach
@@ -53,8 +54,8 @@
             <div class="flex items-center gap-3">
                 <span class="kp-section-icon"><x-tabler-truck size="22" stroke-width="1.8" /></span>
                 <div>
-                    <h3 class="text-[15px] font-extrabold text-slate-900">Order pipeline</h3>
-                    <p class="text-xs text-slate-400">Track your orders from purchase to delivery.</p>
+                    <h3 class="text-[15px] font-extrabold text-black">Order pipeline</h3>
+                    <p class="text-xs text-black/45">Track your orders from purchase to delivery.</p>
                 </div>
             </div>
             @if(Route::has('admin.wear.orders.index'))
@@ -69,7 +70,7 @@
                 ['Delivered', $metrics['orders_delivered'], 'circle-check', 'emerald'],
             ] as [$label, $value, $icon, $tone])
                 <div class="kp-pipeline-item tone-{{ $tone }}">
-                    <div><p class="text-[11px] font-semibold text-slate-500">{{ $label }}</p><p class="mt-2 text-[21px] font-black text-slate-950">{{ $value }}</p></div>
+                    <div><p class="text-[11px] font-semibold text-black/50">{{ $label }}</p><p class="mt-2 text-[21px] font-black text-black">{{ $value }}</p></div>
                     <span class="kp-pipeline-icon"><x-dynamic-component :component="'tabler-'.$icon" size="22" stroke-width="1.8" /></span>
                 </div>
             @endforeach
@@ -82,8 +83,8 @@
                 <div class="flex items-center gap-3">
                     <span class="kp-section-icon"><x-tabler-chart-bar size="21" stroke-width="1.8" /></span>
                     <div>
-                        <h3 class="text-[15px] font-extrabold text-slate-900">Sales overview</h3>
-                        <p class="text-xs text-slate-400">Paid revenue over the selected period.</p>
+                        <h3 class="text-[15px] font-extrabold text-black">Sales overview</h3>
+                        <p class="text-xs text-black/45">Paid revenue over the selected period.</p>
                     </div>
                 </div>
                 <div class="kp-admin-period flex rounded-lg border p-0.5" role="group" aria-label="Sales chart period">
@@ -97,23 +98,23 @@
             </div>
             <div class="kp-admin-chart-panel mt-4 overflow-hidden rounded-xl">
                 <div class="relative h-60 w-full">
-                    <svg id="sales-chart" viewBox="0 0 1000 320" preserveAspectRatio="none" class="h-full w-full text-[#a68148]" role="img" aria-label="Sales revenue chart">
+                    <svg id="sales-chart" viewBox="0 0 1000 320" preserveAspectRatio="none" class="h-full w-full text-emerald-600" role="img" aria-label="Sales revenue chart">
                         <defs><linearGradient id="sales-area-gradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity="0.14"></stop><stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop></linearGradient></defs>
                         <g id="sales-grid"></g><path id="sales-area" fill="url(#sales-area-gradient)" stroke="none"></path><path id="sales-line" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><g id="sales-points"></g>
                     </svg>
-                    <div id="sales-empty" class="pointer-events-none absolute inset-0 hidden items-center justify-center text-xs font-medium text-slate-400">No paid sales in this period.</div>
+                    <div id="sales-empty" class="pointer-events-none absolute inset-0 hidden items-center justify-center text-xs font-medium text-black/40">No paid sales in this period.</div>
                 </div>
-                <div id="sales-labels" class="grid grid-cols-7 gap-1 px-3 pb-3 text-[10px] text-slate-400"></div>
+                <div id="sales-labels" class="grid grid-cols-7 gap-1 px-3 pb-3 text-[10px] text-black/40"></div>
             </div>
             <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div><strong id="sales-chart-total" class="text-xl font-black text-slate-950">TZS 0</strong><p class="text-[11px] text-slate-400">Period revenue</p></div>
-                <span class="text-[10px] font-medium text-slate-400">Paid orders only</span>
+                <div><strong id="sales-chart-total" class="text-xl font-black text-black">TZS 0</strong><p class="text-[11px] text-black/40">Period revenue</p></div>
+                <span class="text-[10px] font-medium text-black/40">Paid orders only</span>
             </div>
         </div>
 
         <div class="kp-admin-card p-4 sm:p-5">
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-stack-2 size="21" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-slate-900">Inventory status</h3><p class="text-xs text-slate-400">Current stock overview.</p></div></div>
+                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-stack-2 size="21" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Inventory status</h3><p class="text-xs text-black/45">Current stock overview.</p></div></div>
                 @if(Route::has('admin.wear.inventory.index'))<a href="{{ route('admin.wear.inventory.index') }}" class="kp-admin-link">View inventory <x-tabler-arrow-right size="16" /></a>@endif
             </div>
             <div class="mt-4 space-y-2">
@@ -123,7 +124,7 @@
                     ['Low stock', number_format($metrics['low_stock']), 'alert-triangle', 'amber'],
                     ['Out of stock', number_format($metrics['out_of_stock']), 'circle-x', 'red'],
                 ] as [$label, $value, $icon, $tone])
-                    <div class="kp-inventory-row tone-{{ $tone }}"><span class="kp-inventory-icon"><x-dynamic-component :component="'tabler-'.$icon" size="21" stroke-width="1.8" /></span><div class="min-w-0"><p class="text-[16px] font-black text-slate-900">{{ $value }}</p><p class="text-[10px] text-slate-400">{{ $label }}</p></div>@if($label === 'Variants')<x-tabler-chevron-right size="17" class="ml-auto text-slate-400" />@endif</div>
+                    <div class="kp-inventory-row tone-{{ $tone }}"><span class="kp-inventory-icon"><x-dynamic-component :component="'tabler-'.$icon" size="21" stroke-width="1.8" /></span><div class="min-w-0"><p class="text-[16px] font-black text-black">{{ $value }}</p><p class="text-[10px] text-black/40">{{ $label }}</p></div>@if($label === 'Variants')<x-tabler-chevron-right size="17" class="ml-auto text-black/35" />@endif</div>
                 @endforeach
             </div>
         </div>
@@ -131,14 +132,14 @@
 
     <section class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.65fr)]">
         <div class="kp-admin-card overflow-hidden">
-            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-5">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-file-invoice size="21" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-slate-900">Recent orders</h3><p class="text-xs text-slate-400">Latest orders from your store.</p></div></div>
+            <div class="flex items-center justify-between border-b border-black/5 px-4 py-4 sm:px-5">
+                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-file-invoice size="21" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Recent orders</h3><p class="text-xs text-black/45">Latest orders from your store.</p></div></div>
                 @if(Route::has('admin.wear.orders.index'))<a href="{{ route('admin.wear.orders.index') }}" class="kp-admin-link">View all orders <x-tabler-arrow-right size="16" /></a>@endif
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-sm">
-                    <thead class="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400"><tr><th class="px-4 py-3 sm:px-5">Order</th><th class="px-4 py-3">Customer</th><th class="px-4 py-3">Items</th><th class="px-4 py-3">Total</th><th class="px-4 py-3">Payment</th><th class="px-4 py-3">Status</th></tr></thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <thead class="bg-white text-[10px] uppercase tracking-wider"><tr><th class="px-4 py-3 sm:px-5">Order</th><th class="px-4 py-3">Customer</th><th class="px-4 py-3">Items</th><th class="px-4 py-3">Total</th><th class="px-4 py-3">Payment</th><th class="px-4 py-3">Status</th></tr></thead>
+                    <tbody class="divide-y divide-black/5">
                     @forelse($recentOrders->take(5) as $order)
                         @php
                             $status = $order->status;
@@ -146,16 +147,16 @@
                             $statusClasses = match($status?->value) { 'processing' => 'bg-blue-50 text-blue-700', 'shipped' => 'bg-violet-50 text-violet-700', 'delivered' => 'bg-emerald-50 text-emerald-700', 'cancelled' => 'bg-red-50 text-red-700', 'refunded' => 'bg-violet-50 text-violet-700', default => 'bg-amber-50 text-amber-700' };
                             $paymentClasses = match($payment?->value) { 'paid' => 'bg-emerald-50 text-emerald-700', 'failed' => 'bg-red-50 text-red-700', 'refunded' => 'bg-violet-50 text-violet-700', default => 'bg-amber-50 text-amber-700' };
                         @endphp
-                        <tr class="hover:bg-slate-50/70">
-                            <td class="whitespace-nowrap px-4 py-3.5 font-bold text-slate-800 sm:px-5">#{{ $order->order_number }}</td>
-                            <td class="max-w-[180px] px-4 py-3.5"><p class="truncate font-semibold text-slate-700">{{ $order->customer_name ?: $order->user?->name ?: 'Guest' }}</p><p class="mt-0.5 text-[10px] text-slate-400">{{ $order->delivery_address ?: '—' }}</p></td>
-                            <td class="px-4 py-3.5 font-semibold text-slate-700">{{ $order->items->sum('quantity') }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-slate-800">TZS {{ number_format((float) $order->total, 0) }}</td>
+                        <tr class="hover:bg-emerald-50/40">
+                            <td class="whitespace-nowrap px-4 py-3.5 font-bold text-black sm:px-5">#{{ $order->order_number }}</td>
+                            <td class="max-w-[180px] px-4 py-3.5"><p class="truncate font-semibold text-black/80">{{ $order->customer_name ?: $order->user?->name ?: 'Guest' }}</p><p class="mt-0.5 text-[10px] text-black/40">{{ $order->delivery_address ?: '—' }}</p></td>
+                            <td class="px-4 py-3.5 font-semibold text-black/80">{{ $order->items->sum('quantity') }}</td>
+                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-black">TZS {{ number_format((float) $order->total, 0) }}</td>
                             <td class="px-4 py-3.5"><span class="rounded-full px-2.5 py-1 text-[10px] font-bold {{ $paymentClasses }}">{{ $payment?->value ? str_replace('_', ' ', ucfirst($payment->value)) : 'Unknown' }}</span></td>
                             <td class="px-4 py-3.5"><span class="rounded-full px-2.5 py-1 text-[10px] font-bold {{ $statusClasses }}">{{ $status?->value ? str_replace('_', ' ', ucfirst($status->value)) : 'Unknown' }}</span></td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-5 py-12 text-center text-sm text-slate-500">No orders yet.</td></tr>
+                        <tr><td colspan="6" class="px-5 py-12 text-center text-sm text-black/45">No orders yet.</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -164,7 +165,7 @@
 
         <div class="space-y-4">
             <div class="kp-admin-card p-4 sm:p-5">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-bell size="20" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-slate-900">Attention</h3><p class="text-xs text-slate-400">Items that need your attention.</p></div></div>
+                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-bell size="20" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Attention</h3><p class="text-xs text-black/45">Items that need your attention.</p></div></div>
                 @if(($metrics['low_stock'] + $metrics['out_of_stock']) > 0)
                     <div class="mt-4 rounded-xl bg-amber-50 p-3"><p class="text-sm font-bold text-amber-800">Inventory needs attention</p><p class="mt-1 text-xs text-amber-700">{{ $metrics['low_stock'] }} low-stock and {{ $metrics['out_of_stock'] }} out-of-stock variants.</p></div>
                 @else
@@ -172,12 +173,12 @@
                 @endif
             </div>
             <div class="kp-admin-card p-4 sm:p-5">
-                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-bolt size="20" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-slate-900">Quick actions</h3><p class="text-xs text-slate-400">Common tasks.</p></div></div>
+                <div class="flex items-center gap-3"><span class="kp-section-icon"><x-tabler-bolt size="20" stroke-width="1.8" /></span><div><h3 class="text-[15px] font-extrabold text-black">Quick actions</h3><p class="text-xs text-black/45">Common tasks.</p></div></div>
                 <div class="mt-3 space-y-1.5">
-                    @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))<a class="kp-quick-action" href="{{ route('admin.wear.products.create') }}"><x-tabler-plus size="17" /> Add product <x-tabler-chevron-right size="16" class="ml-auto text-slate-400" /></a>@endif
-                    @if(Route::has('admin.wear.orders.index'))<a class="kp-quick-action" href="{{ route('admin.wear.orders.index') }}"><x-tabler-file-invoice size="17" /> View orders <x-tabler-chevron-right size="16" class="ml-auto text-slate-400" /></a>@endif
-                    @if(Route::has('admin.wear.inventory.index'))<a class="kp-quick-action" href="{{ route('admin.wear.inventory.index') }}"><x-tabler-box size="17" /> Manage inventory <x-tabler-chevron-right size="16" class="ml-auto text-slate-400" /></a>@endif
-                    @if(Route::has('admin.wear.enquiries.index'))<a class="kp-quick-action" href="{{ route('admin.wear.enquiries.index') }}"><x-tabler-message-circle-2 size="17" /> View enquiries <x-tabler-chevron-right size="16" class="ml-auto text-slate-400" /></a>@endif
+                    @if(auth()->user()->hasPermission('commerce.manage') && Route::has('admin.wear.products.create'))<a class="kp-quick-action" href="{{ route('admin.wear.products.create') }}"><x-tabler-plus size="17" /> Add product <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
+                    @if(Route::has('admin.wear.orders.index'))<a class="kp-quick-action" href="{{ route('admin.wear.orders.index') }}"><x-tabler-file-invoice size="17" /> View orders <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
+                    @if(Route::has('admin.wear.inventory.index'))<a class="kp-quick-action" href="{{ route('admin.wear.inventory.index') }}"><x-tabler-box size="17" /> Manage inventory <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
+                    @if(Route::has('admin.wear.enquiries.index'))<a class="kp-quick-action" href="{{ route('admin.wear.enquiries.index') }}"><x-tabler-message-circle-2 size="17" /> View enquiries <x-tabler-chevron-right size="16" class="ml-auto text-black/35" /></a>@endif
                 </div>
             </div>
         </div>

@@ -52,7 +52,7 @@
 
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-black/10 text-left text-sm">
-                    <thead class="bg-[#f8f8f6] text-[11px] uppercase tracking-[0.14em] text-black">
+                    <thead class="bg-[#f4f8f6] text-[11px] uppercase tracking-[0.14em] text-black">
                         <tr>
                             <th class="px-5 py-3 font-bold">Customer</th>
                             <th class="px-5 py-3 font-bold">Contact</th>
