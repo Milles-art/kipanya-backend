@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
-    "autoprefixer": "^10.6.1",
+    "autoprefixer": "^10.6.2",
     "laravel-vite-plugin": "^3.2.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.3.3",
