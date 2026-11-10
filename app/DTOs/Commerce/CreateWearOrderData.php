@@ -11,5 +11,6 @@ final readonly class CreateWearOrderData
         public ?string $paymentMethod = null,
         public ?string $paymentProvider = null,
         public ?string $paymentPhone = null,
+        public ?string $expectedQuoteHash = null,
     ) {}
 }

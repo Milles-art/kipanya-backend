@@ -25,6 +25,7 @@ class CreateOrderRequest extends FormRequest
                 ),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'expected_quote_hash' => ['nullable', 'string', 'regex:/^[a-f0-9]{64}$/'],
             // Only mobile money is wired to a real gateway. 'card' was accepted here
             // while the checkout page collected a raw PAN/CVV into a plain form field
             // and silently discarded it server-side — cardholder data must never touch

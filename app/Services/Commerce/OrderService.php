@@ -37,6 +37,9 @@ final class OrderService
         // Identifies WHAT was requested, so replaying an idempotency key with a different
         // request is an error instead of silently returning the earlier order.
         $fingerprint = hash('sha256', $data->addressId.'|'.($data->notes ?? '').'|'.$paymentMethod.'|'.($data->paymentProvider ?? '').'|'.($data->paymentPhone ?? ''));
+        if ($data->expectedQuoteHash !== null) {
+            $fingerprint = hash('sha256', $fingerprint.'|'.$data->expectedQuoteHash);
+        }
 
         $order = DB::transaction(function () use ($user, $data, $fingerprint, $paymentMethod): WearOrder {
             $existing = WearOrder::query()
@@ -56,6 +59,13 @@ final class OrderService
                     ->findOrFail($data->addressId)
                 : null;
 
+            $customerPhone = $address?->phone ?: ($user->phone ?: $data->paymentPhone);
+            if (! filled($customerPhone)) {
+                throw ValidationException::withMessages([
+                    'payment_phone' => 'Enter a contact or payment phone number to continue.',
+                ]);
+            }
+
             $cart = $this->cartService->current($user, null);
             $cart = Cart::query()->lockForUpdate()->findOrFail($cart->id);
             $cart->load('items.variant.product');
@@ -69,6 +79,11 @@ final class OrderService
             }
 
             $preview = $this->previewService->preview($cart);
+            if ($data->expectedQuoteHash !== null && ! hash_equals($preview['quote_hash'], $data->expectedQuoteHash)) {
+                throw ValidationException::withMessages([
+                    'expected_quote_hash' => 'Your bag or prices changed. Please review your order again before paying.',
+                ]);
+            }
 
             try {
                 $order = WearOrder::create([
@@ -77,7 +92,7 @@ final class OrderService
                     'checkout_fingerprint' => $fingerprint,
                     'user_id' => $user->id,
                     'customer_name' => $address?->recipient_name ?? $user->name,
-                    'customer_phone' => $address?->phone ?? $user->phone,
+                    'customer_phone' => $customerPhone,
                     'customer_email' => $user->email,
                     // The delivery_address column is NOT NULL (no doctrine/dbal
                     // available for a nullable alter), so address-less orders

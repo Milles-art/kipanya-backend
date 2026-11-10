@@ -26,6 +26,10 @@ return [
 
     'google' => [
         'maps_key' => env('GOOGLE_MAPS_API_KEY'),
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'guzzle' => ['timeout' => 15, 'connect_timeout' => 5],
+        'redirect' => env('GOOGLE_REDIRECT_URI', rtrim(env('APP_URL', 'http://localhost'), '/').'/auth/social/google/callback'),
     ],
 
     /*
@@ -39,6 +43,13 @@ return [
     | SELCOM_VENDOR_ID must be set or checkout will refuse to run.
     |
     */
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'guzzle' => ['timeout' => 15, 'connect_timeout' => 5],
+        'redirect' => env('FACEBOOK_REDIRECT_URI', rtrim(env('APP_URL', 'http://localhost'), '/').'/auth/social/facebook/callback'),
+    ],
 
     'selcom' => [
         'base_url' => env('SELCOM_BASE_URL'),

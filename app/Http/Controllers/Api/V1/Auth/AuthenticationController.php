@@ -449,30 +449,7 @@ final class AuthenticationController extends Controller
      */
     private function guardSignup(Request $request): void
     {
-        $ip = sha1((string) $request->ip());
-        $device = DeviceIdentity::id($request);
-
-        $limits = [
-            'auth-signup-ip-m:'.$ip => [(int) config('security.signup_ip_per_minute'), 60],
-            'auth-signup-ip-h:'.$ip => [(int) config('security.signup_ip_per_hour'), 3600],
-            'auth-signup-ip-d:'.$ip => [(int) config('security.signup_ip_per_day'), 86400],
-        ];
-
-        if ($device !== null) {
-            $limits['auth-signup-dev-d:'.sha1($device)] = [(int) config('security.signup_device_per_day'), 86400];
-        }
-
-        foreach ($limits as $key => [$max, $decay]) {
-            if (RateLimiter::tooManyAttempts($key, $max)) {
-                throw ValidationException::withMessages([
-                    'phone' => ['Too many accounts have been created from this connection. Please try again later.'],
-                ]);
-            }
-        }
-
-        foreach ($limits as $key => [$max, $decay]) {
-            RateLimiter::hit($key, $decay);
-        }
+        app(\App\Support\SignupRateLimiter::class)->hit($request);
     }
 
     private function loginRateKey(string $phone, string $ip): string

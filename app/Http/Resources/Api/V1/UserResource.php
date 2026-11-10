@@ -16,6 +16,7 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'phone_verified_at' => $this->phone_verified_at?->toISOString(),
             'status' => $this->status,
+            'has_password' => $this->password !== null,
             'onboarding_completed' => $this->onboarding_completed_at !== null,
             'created_at' => $this->created_at?->toISOString(),
         ];

@@ -18,7 +18,7 @@ final class WearCatalogController extends Controller
     public function index(WearProductIndexRequest $request): AnonymousResourceCollection
     {
         $products = WearProduct::query()
-            ->with('variants')
+            ->with(['variants', 'images'])
             ->where('is_active', true)
             ->when(
                 $request->filled('category'),

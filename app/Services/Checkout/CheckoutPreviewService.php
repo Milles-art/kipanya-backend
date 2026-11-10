@@ -19,6 +19,9 @@ public function preview(Cart $cart): array {
     'unit_price'=>$unit,
     'line_total'=>$line,
    ];}
-   return ['currency'=>'TZS','items'=>$items,'subtotal'=>round($subtotal,2),'delivery_fee'=>0.0,'total'=>round($subtotal,2)];
+   $result=['currency'=>'TZS','items'=>$items,'subtotal'=>round($subtotal,2),'delivery_fee'=>0.0,'total'=>round($subtotal,2)];
+   $result['quote_hash']=hash('sha256',json_encode([$items,$result['subtotal'],$result['delivery_fee'],$result['total']],JSON_THROW_ON_ERROR));
+   $result['payment_available'] = collect(['base_url','api_key','api_secret','vendor_id'])->every(fn ($key) => filled(config('services.selcom.'.$key)));
+   return $result;
   }
 }

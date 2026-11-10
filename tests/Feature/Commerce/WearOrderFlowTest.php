@@ -54,6 +54,34 @@ class WearOrderFlowTest extends TestCase
         ]);
     }
 
+    public function test_changed_price_invalidates_review_without_creating_order_or_payment(): void
+    {
+        $user = $this->user();
+        [$product, $variant] = $this->product();
+        $address = $this->address($user);
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', ['variant_id' => $variant->id, 'quantity' => 1])->assertOk();
+        $quote = $this->getJson('/api/v1/cart/checkout/preview')->assertOk()->json('data.quote_hash');
+        $product->update(['price' => 30000]);
+        $this->withHeader('Idempotency-Key', 'review-price-change-0001')->postJson('/api/v1/checkout', ['address_id' => $address->id, 'expected_quote_hash' => $quote])->assertUnprocessable()->assertJsonValidationErrors('expected_quote_hash');
+        $this->assertDatabaseCount('wear_orders', 0);
+        $this->assertDatabaseCount('payment_transactions', 0);
+        $this->assertDatabaseCount('wear_stock_reservations', 0);
+    }
+
+    public function test_reviewed_quote_accepts_idempotent_retry_only_once(): void
+    {
+        $user = $this->user();
+        [, $variant] = $this->product();
+        $address = $this->address($user);
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/items', ['variant_id' => $variant->id, 'quantity' => 1])->assertOk();
+        $quote = $this->getJson('/api/v1/cart/checkout/preview')->assertOk()->json('data.quote_hash');
+        $payload = ['address_id' => $address->id, 'expected_quote_hash' => $quote];
+        $first = $this->withHeader('Idempotency-Key', 'review-valid-retry-0001')->postJson('/api/v1/checkout', $payload)->assertOk();
+        $this->postJson('/api/v1/checkout', $payload)->assertOk()->assertJsonPath('data.id', $first->json('data.id'));
+        $this->assertDatabaseCount('wear_orders', 1);
+        $this->assertDatabaseCount('payment_transactions', 1);
+    }
+
     public function test_checkout_creates_order_reservation_and_pending_payment(): void
     {
         $user = $this->user();

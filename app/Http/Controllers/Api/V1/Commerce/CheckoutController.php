@@ -39,6 +39,7 @@ final class CheckoutController extends Controller
                 paymentMethod: $request->input('payment_method'),
                 paymentProvider: $request->input('payment_provider'),
                 paymentPhone: $paymentPhone,
+                expectedQuoteHash: $request->input('expected_quote_hash'),
             ),
         );
 

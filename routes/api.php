@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::prefix('auth')->group(function () {
+        Route::get('/social/providers', [\App\Http\Controllers\Api\V1\Auth\SocialAuthenticationController::class, 'providers']);
         // Account lifecycle. Rate limiting is layered: a coarse per-IP route
         // throttle plus the per-phone/per-IP/per-device budgets inside the
         // controller (sign-up caps, sign-in lockout, reset-link limits).
@@ -43,6 +44,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::post('/logout', [AuthenticationController::class, 'logout']);
             Route::post('/logout-all', [AuthenticationController::class, 'logoutAll']);
             Route::get('/me', [AuthenticationController::class, 'me']);
+            Route::get('/social/accounts', [\App\Http\Controllers\Api\V1\Auth\SocialAuthenticationController::class, 'accounts']);
         });
     });
 

@@ -40,4 +40,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 Route::redirect('/orders', '/account/orders');
 Route::view('/orders/{orderNumber}', 'pages.order-status')->name('order-status');
 
+// Stateful OAuth redirects stay in the web middleware group. These paths
+// deliberately fall through the static React routing to Laravel.
+Route::get('/auth/social/{provider}/redirect', [\App\Http\Controllers\Api\V1\Auth\SocialAuthenticationController::class, 'redirect'])->whereIn('provider', ['google', 'facebook'])->middleware('throttle:20,1');
+Route::get('/auth/social/{provider}/callback', [\App\Http\Controllers\Api\V1\Auth\SocialAuthenticationController::class, 'callback'])->whereIn('provider', ['google', 'facebook'])->middleware('throttle:20,1');
+
 require __DIR__.'/admin.php';

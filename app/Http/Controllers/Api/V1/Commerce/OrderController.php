@@ -21,7 +21,6 @@ use Illuminate\Validation\ValidationException;
 final class OrderController extends Controller
 {
     use AuthorizesUserOwnership;
-    public function __construct(private readonly OrderService $service) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -40,9 +39,9 @@ final class OrderController extends Controller
         return new OrderResource($order->load(['items', 'payments', 'statusHistory', 'stockReservation.items.variant.product']));
     }
 
-    public function cancel(Request $request, WearOrder $order): OrderResource
+    public function cancel(Request $request, WearOrder $order, OrderService $service): OrderResource
     {
-        return new OrderResource($this->service->cancel($order, $request->user()));
+        return new OrderResource($service->cancel($order, $request->user()));
     }
 
     /**
